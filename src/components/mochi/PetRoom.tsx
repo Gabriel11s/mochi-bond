@@ -230,7 +230,16 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBusy(true);
     setShownPhoto(photo);
     setSmitten(true);
-    burstParticles("💗", 10);
+
+    // staggered heart bursts to feel continuous, not a single pop
+    const burstTimers: number[] = [];
+    burstParticles("💗", 4);
+    burstTimers.push(
+      window.setTimeout(() => burstParticles("💞", 3), 600),
+      window.setTimeout(() => burstParticles("💗", 4), 1300),
+      window.setTimeout(() => burstParticles("💕", 3), 2100),
+      window.setTimeout(() => burstParticles("💗", 3), 2900),
+    );
 
     const dHappy = photo.happiness_boost;
     const newHappiness = clamp(pet.happiness + dHappy);
@@ -269,11 +278,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       burstParticles("✨", 12);
     }
 
+    // ~2 full smitten cycles (1.8s each) so the loop ends naturally
     window.setTimeout(() => {
+      burstTimers.forEach((t) => window.clearTimeout(t));
       setSmitten(false);
       setShownPhoto(null);
       setBusy(false);
-    }, 3200);
+    }, 3800);
   };
 
   if (!pet) {
