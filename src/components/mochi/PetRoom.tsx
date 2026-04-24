@@ -284,7 +284,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     );
   }
 
-  const mood: Mood = eating ? "eating" : (pet.current_mood as Mood);
+  const mood: Mood = smitten ? "smitten" : eating ? "eating" : (pet.current_mood as Mood);
   const xpInLevel = pet.xp % 100;
 
   return (
@@ -332,7 +332,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       {/* mochi scene */}
       <div className="relative mt-2 flex justify-center">
         <FloatingHearts particles={particles} />
-        <Mochi mood={mood} eating={eating} bouncing={bouncing} />
+        <Mochi
+          mood={mood}
+          eating={eating}
+          bouncing={bouncing}
+          skinId={pet.equipped_skin}
+          accessoryId={pet.equipped_accessory}
+        />
 
         {/* food flight */}
         <AnimatePresence>
