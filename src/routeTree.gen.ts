@@ -10,33 +10,89 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiSpotifyStatusRouteImport } from './routes/api.spotify.status'
+import { Route as ApiSpotifyLoginRouteImport } from './routes/api.spotify.login'
+import { Route as ApiSpotifyDataRouteImport } from './routes/api.spotify.data'
+import { Route as ApiSpotifyCallbackRouteImport } from './routes/api.spotify.callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSpotifyStatusRoute = ApiSpotifyStatusRouteImport.update({
+  id: '/api/spotify/status',
+  path: '/api/spotify/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSpotifyLoginRoute = ApiSpotifyLoginRouteImport.update({
+  id: '/api/spotify/login',
+  path: '/api/spotify/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSpotifyDataRoute = ApiSpotifyDataRouteImport.update({
+  id: '/api/spotify/data',
+  path: '/api/spotify/data',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSpotifyCallbackRoute = ApiSpotifyCallbackRouteImport.update({
+  id: '/api/spotify/callback',
+  path: '/api/spotify/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/spotify/callback': typeof ApiSpotifyCallbackRoute
+  '/api/spotify/data': typeof ApiSpotifyDataRoute
+  '/api/spotify/login': typeof ApiSpotifyLoginRoute
+  '/api/spotify/status': typeof ApiSpotifyStatusRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/spotify/callback': typeof ApiSpotifyCallbackRoute
+  '/api/spotify/data': typeof ApiSpotifyDataRoute
+  '/api/spotify/login': typeof ApiSpotifyLoginRoute
+  '/api/spotify/status': typeof ApiSpotifyStatusRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/spotify/callback': typeof ApiSpotifyCallbackRoute
+  '/api/spotify/data': typeof ApiSpotifyDataRoute
+  '/api/spotify/login': typeof ApiSpotifyLoginRoute
+  '/api/spotify/status': typeof ApiSpotifyStatusRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/api/spotify/callback'
+    | '/api/spotify/data'
+    | '/api/spotify/login'
+    | '/api/spotify/status'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/api/spotify/callback'
+    | '/api/spotify/data'
+    | '/api/spotify/login'
+    | '/api/spotify/status'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/spotify/callback'
+    | '/api/spotify/data'
+    | '/api/spotify/login'
+    | '/api/spotify/status'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiSpotifyCallbackRoute: typeof ApiSpotifyCallbackRoute
+  ApiSpotifyDataRoute: typeof ApiSpotifyDataRoute
+  ApiSpotifyLoginRoute: typeof ApiSpotifyLoginRoute
+  ApiSpotifyStatusRoute: typeof ApiSpotifyStatusRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +104,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/spotify/status': {
+      id: '/api/spotify/status'
+      path: '/api/spotify/status'
+      fullPath: '/api/spotify/status'
+      preLoaderRoute: typeof ApiSpotifyStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/spotify/login': {
+      id: '/api/spotify/login'
+      path: '/api/spotify/login'
+      fullPath: '/api/spotify/login'
+      preLoaderRoute: typeof ApiSpotifyLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/spotify/data': {
+      id: '/api/spotify/data'
+      path: '/api/spotify/data'
+      fullPath: '/api/spotify/data'
+      preLoaderRoute: typeof ApiSpotifyDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/spotify/callback': {
+      id: '/api/spotify/callback'
+      path: '/api/spotify/callback'
+      fullPath: '/api/spotify/callback'
+      preLoaderRoute: typeof ApiSpotifyCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiSpotifyCallbackRoute: ApiSpotifyCallbackRoute,
+  ApiSpotifyDataRoute: ApiSpotifyDataRoute,
+  ApiSpotifyLoginRoute: ApiSpotifyLoginRoute,
+  ApiSpotifyStatusRoute: ApiSpotifyStatusRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

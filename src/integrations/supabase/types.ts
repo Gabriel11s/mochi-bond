@@ -133,6 +133,54 @@ export type Database = {
           },
         ]
       }
+      music_reactions: {
+        Row: {
+          artist_name: string | null
+          created_at: string
+          danceability: number | null
+          energy: number | null
+          energy_delta: number
+          happiness_delta: number
+          id: string
+          message: string | null
+          partner_name: string
+          track_id: string
+          track_name: string | null
+          valence: number | null
+          vibe: string
+        }
+        Insert: {
+          artist_name?: string | null
+          created_at?: string
+          danceability?: number | null
+          energy?: number | null
+          energy_delta?: number
+          happiness_delta?: number
+          id?: string
+          message?: string | null
+          partner_name: string
+          track_id: string
+          track_name?: string | null
+          valence?: number | null
+          vibe: string
+        }
+        Update: {
+          artist_name?: string | null
+          created_at?: string
+          danceability?: number | null
+          energy?: number | null
+          energy_delta?: number
+          happiness_delta?: number
+          id?: string
+          message?: string | null
+          partner_name?: string
+          track_id?: string
+          track_name?: string | null
+          valence?: number | null
+          vibe?: string
+        }
+        Relationships: []
+      }
       pantry_items: {
         Row: {
           consumed: boolean
@@ -358,6 +406,48 @@ export type Database = {
           reward_xp?: number
           slug?: string
           title?: string
+        }
+        Relationships: []
+      }
+      spotify_connections: {
+        Row: {
+          access_token: string
+          created_at: string
+          display_name: string | null
+          expires_at: string
+          id: string
+          partner_name: string
+          refresh_token: string
+          scope: string
+          spotify_user_id: string | null
+          token_type: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          display_name?: string | null
+          expires_at: string
+          id?: string
+          partner_name: string
+          refresh_token: string
+          scope?: string
+          spotify_user_id?: string | null
+          token_type?: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          display_name?: string | null
+          expires_at?: string
+          id?: string
+          partner_name?: string
+          refresh_token?: string
+          scope?: string
+          spotify_user_id?: string | null
+          token_type?: string
+          updated_at?: string
         }
         Relationships: []
       }
