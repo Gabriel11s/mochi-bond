@@ -17,6 +17,8 @@ interface Props {
   /** Estado controlado de abertura do painel (controlado pelo PetRoom). */
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Comunica o "tocando agora" pro PetRoom mostrar a barra de vibe sempre visível. */
+  onNowChange?: (now: NowPlayingResponse | null) => void;
 }
 
 type Tab = "now" | "top" | "vibe";
@@ -38,7 +40,13 @@ function getSpotifyAppOrigin() {
   return window.location.origin;
 }
 
-export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Props) {
+export function SpotifyPanel({
+  partnerName,
+  onReaction,
+  open,
+  onOpenChange,
+  onNowChange,
+}: Props) {
   const [tab, setTab] = useState<Tab>("now");
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [now, setNow] = useState<NowPlayingResponse | null>(null);
@@ -98,16 +106,19 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
           `/api/spotify/data?partner=${encodeURIComponent(partnerName)}&kind=now`,
         );
         if (!r.ok) {
-          setNow({ is_playing: false, progress_ms: null, track: null, features: null });
+          const empty = { is_playing: false, progress_ms: null, track: null, features: null };
+          setNow(empty);
+          onNowChange?.(empty);
           return;
         }
         const d: NowPlayingResponse = await r.json();
         setNow(d);
+        onNowChange?.(d);
       } finally {
         setLoading(false);
       }
     },
-    [partnerName],
+    [partnerName, onNowChange],
   );
 
   const loadTop = useMemo(
@@ -130,14 +141,14 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
     [partnerName],
   );
 
-  // poll do "tocando agora" enquanto o painel está aberto
+  // poll do "tocando agora" SEMPRE que estiver conectado, mesmo com painel fechado,
+  // pra alimentar a barra de vibe que fica visível no PetRoom.
   useEffect(() => {
-    if (!open || !status?.connected) return;
-    if (tab !== "now" && tab !== "vibe") return;
+    if (!status?.connected) return;
     loadNow();
     const t = window.setInterval(loadNow, POLL_MS);
     return () => window.clearInterval(t);
-  }, [open, status?.connected, tab, loadNow]);
+  }, [status?.connected, loadNow]);
 
   useEffect(() => {
     if (!open || !status?.connected) return;
@@ -151,7 +162,13 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
     if (lastReactedTrackRef.current === now.track.id) return;
     lastReactedTrackRef.current = now.track.id;
 
-    const reaction = buildMochiReaction(now.features, partnerName, now.track.name);
+    const artistNames = now.track.artists.map((a) => a.name);
+    const reaction = buildMochiReaction(
+      now.features,
+      partnerName,
+      now.track.name,
+      artistNames,
+    );
     onReaction?.(reaction);
 
     // aplica boost sutil nos stats (com cooldown anti-spam: máx 1 boost por faixa)
@@ -386,7 +403,13 @@ function VibeCard({
       </p>
     );
   }
-  const reaction = buildMochiReaction(now.features, partnerName, now.track.name);
+  const artistNames = now.track.artists.map((a) => a.name);
+  const reaction = buildMochiReaction(
+    now.features,
+    partnerName,
+    now.track.name,
+    artistNames,
+  );
   const f = now.features;
   return (
     <div className="space-y-2">
