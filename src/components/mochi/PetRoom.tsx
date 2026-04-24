@@ -41,6 +41,8 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [questsOpen, setQuestsOpen] = useState(false);
   const [spotifyOpen, setSpotifyOpen] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<NowPlayingResponse | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
@@ -296,6 +298,28 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     showToast("lookzinho novo ✨");
   };
 
+  const startEditingName = () => {
+    if (!pet) return;
+    setNameDraft(pet.pet_name);
+    setEditingName(true);
+  };
+
+  const saveName = async () => {
+    if (!pet) return;
+    const trimmed = nameDraft.trim().slice(0, 20);
+    setEditingName(false);
+    if (!trimmed || trimmed === pet.pet_name) return;
+    const { error } = await supabase
+      .from("pet_state")
+      .update({ pet_name: trimmed, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    if (error) {
+      showToast("não consegui renomear 🥺");
+      return;
+    }
+    showToast(`agora ele atende por ${trimmed} 💗`);
+  };
+
   const showPhoto = async (photo: Photo) => {
     if (!pet || busy) return;
     setBusy(true);
@@ -428,7 +452,29 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
       {/* pet name & mood */}
       <div className="mt-6 text-center">
-        <h1 className="font-display text-4xl font-bold tracking-tight">{pet.pet_name}</h1>
+        {editingName ? (
+          <input
+            autoFocus
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={saveName}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveName();
+              if (e.key === "Escape") setEditingName(false);
+            }}
+            maxLength={20}
+            className="w-full bg-transparent text-center font-display text-4xl font-bold tracking-tight outline-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={startEditingName}
+            title="renomear"
+            className="font-display text-4xl font-bold tracking-tight transition-colors hover:text-pink"
+          >
+            {pet.pet_name}
+          </button>
+        )}
         <div className="mt-1 flex flex-col items-center gap-2">
           <button
             type="button"
