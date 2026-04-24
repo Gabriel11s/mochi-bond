@@ -88,6 +88,17 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     return () => window.clearInterval(t);
   }, [partnerKey]);
 
+  // carrega background salvo no localStorage
+  useEffect(() => {
+    setBackgroundId(loadBackgroundId());
+  }, []);
+
+  const pickBackground = (id: BackgroundId) => {
+    setBackgroundId(id);
+    saveBackgroundId(id);
+    showToast(`cantinho trocado ✨`);
+  };
+
   // initial load + realtime
   useEffect(() => {
     const load = async () => {
