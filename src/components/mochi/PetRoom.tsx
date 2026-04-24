@@ -17,6 +17,7 @@ import { WardrobeDrawer } from "./WardrobeDrawer";
 import { PhotosDrawer, type Photo } from "./PhotosDrawer";
 import { QuestsDrawer } from "./QuestsDrawer";
 import { MochiSpeechBubble } from "./MochiSpeechBubble";
+import { PhotoWall } from "./PhotoWall";
 import { partnerKeyFromName, pickGreeting } from "@/lib/mochi-greetings";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -365,6 +366,9 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
+      <PhotoWall />
+      {/* container do conteúdo acima do mural */}
+      <div className="relative z-10 flex flex-1 flex-col">
       {/* top bar */}
       <header className="flex items-center justify-between">
         <button
@@ -605,6 +609,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         partnerName={partnerName}
         onShowToMochi={showPhoto}
       />
+      </div>
     </div>
   );
 }
