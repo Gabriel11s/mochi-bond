@@ -225,14 +225,20 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
     }
   };
 
-  const grouped = quests.reduce<Record<QuestCategory, Quest[]>>(
+  // normaliza categorias antigas pra novas (casal→dupla, romantico→mundo)
+  const normalizeCat = (c: string): QuestCategory => {
+    if (c === "casal") return "dupla";
+    if (c === "romantico") return "mundo";
+    return c as QuestCategory;
+  };
+  const grouped = quests.reduce<Record<"casa" | "dupla" | "mundo", Quest[]>>(
     (acc, q) => {
-      const k = q.category as QuestCategory;
-      if (!acc[k]) acc[k] = [];
-      acc[k].push(q);
+      const k = normalizeCat(q.category);
+      const bucket = k === "casa" ? "casa" : k === "dupla" || k === "casal" ? "dupla" : "mundo";
+      acc[bucket].push(q);
       return acc;
     },
-    { casa: [], casal: [], romantico: [] },
+    { casa: [], dupla: [], mundo: [] },
   );
 
   return (
