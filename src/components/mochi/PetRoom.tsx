@@ -452,7 +452,29 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
       {/* pet name & mood */}
       <div className="mt-6 text-center">
-        <h1 className="font-display text-4xl font-bold tracking-tight">{pet.pet_name}</h1>
+        {editingName ? (
+          <input
+            autoFocus
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={saveName}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveName();
+              if (e.key === "Escape") setEditingName(false);
+            }}
+            maxLength={20}
+            className="w-full bg-transparent text-center font-display text-4xl font-bold tracking-tight outline-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={startEditingName}
+            title="renomear"
+            className="font-display text-4xl font-bold tracking-tight transition-colors hover:text-pink"
+          >
+            {pet.pet_name}
+          </button>
+        )}
         <div className="mt-1 flex flex-col items-center gap-2">
           <button
             type="button"
