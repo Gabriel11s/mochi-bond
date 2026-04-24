@@ -609,6 +609,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         partnerName={partnerName}
         onShowToMochi={showPhoto}
       />
+      </div>
     </div>
   );
 }
