@@ -151,12 +151,13 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
 
   const handleConnect = () => {
     if (typeof window === "undefined") return;
-    const loginUrl = `/api/spotify/login?partner=${encodeURIComponent(partnerName)}`;
+    const loginUrl = new URL("/api/spotify/login", window.location.origin);
+    loginUrl.searchParams.set("partner", partnerName);
     if (window.top && window.top !== window.self) {
-      window.top.location.href = loginUrl;
+      window.top.location.href = loginUrl.toString();
       return;
     }
-    window.location.href = loginUrl;
+    window.location.href = loginUrl.toString();
   };
 
   const handleDisconnect = async () => {
