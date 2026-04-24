@@ -23,6 +23,21 @@ type Tab = "now" | "top" | "vibe";
 
 const POLL_MS = 20_000;
 
+function getSpotifyAppOrigin() {
+  if (typeof window === "undefined") return "";
+  try {
+    if (document.referrer) {
+      const referrerUrl = new URL(document.referrer);
+      if (referrerUrl.protocol === "https:" && referrerUrl.hostname.includes("lovable.app")) {
+        return referrerUrl.origin;
+      }
+    }
+  } catch {
+    // cai no origin atual
+  }
+  return window.location.origin;
+}
+
 export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Props) {
   const [tab, setTab] = useState<Tab>("now");
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
@@ -151,13 +166,9 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
 
   const handleConnect = () => {
     if (typeof window === "undefined") return;
-    const loginUrl = new URL("/api/spotify/login", window.location.origin);
+    const loginUrl = new URL("/api/spotify/login", getSpotifyAppOrigin());
     loginUrl.searchParams.set("partner", partnerName);
-    if (window.top && window.top !== window.self) {
-      window.top.location.href = loginUrl.toString();
-      return;
-    }
-    window.location.href = loginUrl.toString();
+    window.open(loginUrl.toString(), "_top");
   };
 
   const handleDisconnect = async () => {
