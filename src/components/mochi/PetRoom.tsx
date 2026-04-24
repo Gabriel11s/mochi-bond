@@ -230,7 +230,16 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBusy(true);
     setShownPhoto(photo);
     setSmitten(true);
-    burstParticles("💗", 10);
+
+    // staggered heart bursts to feel continuous, not a single pop
+    const burstTimers: number[] = [];
+    burstParticles("💗", 4);
+    burstTimers.push(
+      window.setTimeout(() => burstParticles("💞", 3), 600),
+      window.setTimeout(() => burstParticles("💗", 4), 1300),
+      window.setTimeout(() => burstParticles("💕", 3), 2100),
+      window.setTimeout(() => burstParticles("💗", 3), 2900),
+    );
 
     const dHappy = photo.happiness_boost;
     const newHappiness = clamp(pet.happiness + dHappy);
@@ -269,11 +278,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       burstParticles("✨", 12);
     }
 
+    // ~2 full smitten cycles (1.8s each) so the loop ends naturally
     window.setTimeout(() => {
+      burstTimers.forEach((t) => window.clearTimeout(t));
       setSmitten(false);
       setShownPhoto(null);
       setBusy(false);
-    }, 3200);
+    }, 3800);
   };
 
   if (!pet) {
@@ -376,11 +387,21 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         <AnimatePresence>
           {shownPhoto && (
             <motion.div
-              initial={{ opacity: 0, y: 40, rotate: -8, scale: 0.7 }}
-              animate={{ opacity: 1, y: 0, rotate: -4, scale: 1 }}
-              exit={{ opacity: 0, y: 30, scale: 0.8 }}
-              transition={{ type: "spring", stiffness: 200, damping: 18 }}
-              className="pointer-events-none absolute -left-2 bottom-6 z-20 w-28 rotate-[-4deg] rounded-xl bg-white p-1.5 shadow-[var(--shadow-glow)] sm:w-32"
+              initial={{ opacity: 0, y: 40, rotate: -10, scale: 0.7 }}
+              animate={{
+                opacity: 1,
+                y: [0, -4, 0, -3, 0],
+                rotate: [-6, -2, -5, -1, -4],
+                scale: 1,
+              }}
+              exit={{ opacity: 0, y: 30, scale: 0.85, rotate: -8 }}
+              transition={{
+                opacity: { duration: 0.4 },
+                scale: { type: "spring", stiffness: 200, damping: 18 },
+                y: { duration: 1.8, repeat: Infinity, ease: "easeInOut" },
+                rotate: { duration: 1.8, repeat: Infinity, ease: "easeInOut" },
+              }}
+              className="pointer-events-none absolute -left-2 bottom-6 z-20 w-28 rounded-xl bg-white p-1.5 shadow-[var(--shadow-glow)] sm:w-32"
             >
               <img
                 src={

@@ -193,6 +193,16 @@
   0%, 100% { transform: scale(1) rotate(-1deg); }
   50% { transform: scale(1.02) rotate(1deg); }
 }
+@keyframes mochi-smitten {
+  0%, 100% { transform: scale(1) translateY(0) rotate(-2deg); }
+  25% { transform: scale(1.06) translateY(-6px) rotate(2deg); }
+  50% { transform: scale(1.03) translateY(-3px) rotate(-1deg); }
+  75% { transform: scale(1.07) translateY(-7px) rotate(2deg); }
+}
+@keyframes smitten-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.12); }
+}
 @keyframes float-up {
   0% { opacity: 0; transform: translateY(10px) scale(0.6); }
   20% { opacity: 1; }
@@ -207,4 +217,6 @@
 .animate-mochi-bounce { animation: mochi-bounce 0.7s cubic-bezier(.34,1.56,.64,1); }
 .animate-mochi-eat { animation: mochi-eat 0.9s ease-in-out; }
 .animate-mochi-sleep { animation: mochi-sleep 4s ease-in-out infinite; }
+.animate-mochi-smitten { animation: mochi-smitten 1.8s ease-in-out infinite; }
+.animate-smitten-glow { animation: smitten-glow 1.4s ease-in-out infinite; }
 .animate-shimmer { animation: shimmer 2.4s ease-in-out infinite; }
