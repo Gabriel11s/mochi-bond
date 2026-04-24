@@ -41,6 +41,8 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [questsOpen, setQuestsOpen] = useState(false);
   const [spotifyOpen, setSpotifyOpen] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<NowPlayingResponse | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
