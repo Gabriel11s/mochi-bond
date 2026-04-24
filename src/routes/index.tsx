@@ -7,13 +7,13 @@ import { AmbientStars } from "@/components/mochi/AmbientStars";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Mochi Room — o cantinho de vocês" },
+      { title: "Pet Room — o cantinho de vocês" },
       {
         name: "description",
         content:
           "Um cantinho digital privado para duas pessoas cuidarem de um bichinho fofo, juntas.",
       },
-      { property: "og:title", content: "Mochi Room" },
+      { property: "og:title", content: "Pet Room" },
       {
         property: "og:description",
         content:

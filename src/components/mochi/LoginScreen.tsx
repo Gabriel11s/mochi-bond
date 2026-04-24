@@ -10,10 +10,8 @@ interface Props {
 
 export function LoginScreen({ onLogin }: Props) {
   const [settings, setSettings] = useState<CoupleSettings | null>(null);
-  const [code, setCode] = useState("");
   const [picked, setPicked] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     supabase
@@ -26,18 +24,11 @@ export function LoginScreen({ onLogin }: Props) {
       });
   }, []);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!settings) return;
     if (!picked) {
       setError("Escolha quem é você 💗");
-      return;
-    }
-    setLoading(true);
-    if (code.trim().toLowerCase() !== settings.secret_code.toLowerCase()) {
-      setError("Esse não é o código de vocês 🥺");
-      setLoading(false);
       return;
     }
     onLogin(picked);
@@ -62,7 +53,7 @@ export function LoginScreen({ onLogin }: Props) {
         className="glass-strong mt-2 flex w-full max-w-sm flex-col gap-5 rounded-3xl p-7"
       >
         <div className="text-center">
-          <h1 className="font-display text-3xl font-bold tracking-tight">Mochi Room</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight">Pet Room</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Entre no cantinho de vocês
           </p>
@@ -87,23 +78,6 @@ export function LoginScreen({ onLogin }: Props) {
           </div>
         )}
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
-            Código secreto do casal
-          </label>
-          <input
-            type="password"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="palavra fofa de vocês"
-            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center font-display text-lg font-medium tracking-wider outline-none transition-all focus:border-pink/40 focus:bg-white/10 focus:ring-4 focus:ring-pink/20"
-            autoComplete="off"
-          />
-          <p className="text-center text-[11px] text-muted-foreground">
-            (dica: o código padrão é <span className="font-mono">mochi</span>)
-          </p>
-        </div>
-
         {error && (
           <motion.p
             initial={{ opacity: 0, y: -4 }}
@@ -116,10 +90,9 @@ export function LoginScreen({ onLogin }: Props) {
 
         <button
           type="submit"
-          disabled={loading}
-          className="rounded-2xl bg-gradient-to-r from-pink to-lilac px-6 py-3.5 font-display text-base font-bold text-white shadow-[var(--shadow-glow)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+          className="rounded-2xl bg-gradient-to-r from-pink to-lilac px-6 py-3.5 font-display text-base font-bold text-white shadow-[var(--shadow-glow)] transition-all hover:brightness-110 active:scale-[0.98]"
         >
-          {loading ? "abrindo a porta…" : "entrar no cantinho"}
+          entrar no cantinho
         </button>
       </motion.form>
     </div>
