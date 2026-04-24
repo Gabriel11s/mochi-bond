@@ -413,12 +413,14 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   // Vibe ao vivo (visível sem precisar abrir o painel do Spotify)
   const liveTrack = nowPlaying?.is_playing ? nowPlaying.track : null;
   const liveReaction = liveTrack
-    ? buildMochiReaction(
-        nowPlaying?.features,
+    ? buildMochiReaction({
+        features: nowPlaying?.features,
         partnerName,
-        liveTrack.name,
-        liveTrack.artists.map((a) => a.name),
-      )
+        trackName: liveTrack.name,
+        artistNames: liveTrack.artists.map((a) => a.name),
+        genres: nowPlaying?.genres ?? [],
+        playCount: 0,
+      })
     : null;
 
   // Janela de 24h por pessoa: calcula horas restantes pra Gab e Tita.
