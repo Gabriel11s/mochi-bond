@@ -19,6 +19,8 @@ import { QuestsDrawer } from "./QuestsDrawer";
 import { MochiSpeechBubble } from "./MochiSpeechBubble";
 import { PhotoWall } from "./PhotoWall";
 import { SpotifyPanel } from "./SpotifyPanel";
+import type { NowPlayingResponse } from "@/lib/spotify-types";
+import { buildMochiReaction, vibeLabel } from "@/lib/spotify-vibe";
 import { partnerKeyFromName, pickGreeting } from "@/lib/mochi-greetings";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -38,6 +40,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [photosOpen, setPhotosOpen] = useState(false);
   const [questsOpen, setQuestsOpen] = useState(false);
   const [spotifyOpen, setSpotifyOpen] = useState(false);
+  const [nowPlaying, setNowPlaying] = useState<NowPlayingResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
@@ -380,6 +383,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         partnerName={partnerName}
         open={spotifyOpen}
         onOpenChange={setSpotifyOpen}
+        onNowChange={setNowPlaying}
         onReaction={(r) => {
           setSpeech(r.message);
           window.setTimeout(() => setSpeech(null), 5500);
