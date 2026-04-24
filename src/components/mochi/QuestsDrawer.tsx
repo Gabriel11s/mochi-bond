@@ -303,7 +303,7 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
             {/* QUESTS TAB */}
             {!activeQuest && tab === "quests" && (
               <div className="flex-1 overflow-y-auto px-6 pb-6 pt-3">
-                {(Object.keys(grouped) as QuestCategory[]).map((cat) =>
+                {(Object.keys(grouped) as Array<"casa" | "dupla" | "mundo">).map((cat) =>
                   grouped[cat].length === 0 ? null : (
                     <div key={cat} className="mb-5">
                       <h4 className="mb-2 px-1 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
