@@ -13,7 +13,9 @@ import { StatusBars } from "./StatusBars";
 import { FoodDrawer } from "./FoodDrawer";
 import { InteractionHistory } from "./InteractionHistory";
 import { FloatingHearts } from "./FloatingHearts";
+import { OutfitDrawer } from "./OutfitDrawer";
 import { useTheme } from "@/hooks/use-theme";
+import { type Outfit, loadOutfit, saveOutfit } from "@/lib/mochi-outfit";
 
 interface Props {
   partnerName: string;
@@ -29,6 +31,8 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [history, setHistory] = useState<Interaction[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [outfitOpen, setOutfitOpen] = useState(false);
+  const [outfit, setOutfit] = useState<Outfit>(() => loadOutfit());
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
@@ -38,6 +42,11 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   const { theme, toggle } = useTheme();
   const flightRef = useRef<{ id: number; emoji: string } | null>(null);
   const [flight, setFlight] = useState<{ id: number; emoji: string } | null>(null);
+
+  const updateOutfit = (next: Outfit) => {
+    setOutfit(next);
+    saveOutfit(next);
+  };
 
   // initial load + realtime
   useEffect(() => {
@@ -289,7 +298,7 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
       {/* mochi scene */}
       <div className="relative mt-2 flex justify-center">
         <FloatingHearts particles={particles} />
-        <Mochi mood={mood} eating={eating} bouncing={bouncing} />
+        <Mochi mood={mood} eating={eating} bouncing={bouncing} outfit={outfit} />
 
         {/* food flight */}
         <AnimatePresence>
@@ -353,11 +362,10 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
           🎈 brincar
         </button>
         <button
-          disabled
-          className="glass rounded-2xl px-3 py-3 font-display text-sm font-semibold opacity-40"
-          title="em breve"
+          onClick={() => setOutfitOpen(true)}
+          className="glass rounded-2xl px-3 py-3 font-display text-sm font-semibold transition-all active:scale-[0.97]"
         >
-          📸 memórias
+          👕 vestir
         </button>
       </div>
 
@@ -400,6 +408,14 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
         foods={foods}
         onPick={feed}
         busy={busy}
+      />
+
+      {/* outfit drawer */}
+      <OutfitDrawer
+        open={outfitOpen}
+        outfit={outfit}
+        onChange={updateOutfit}
+        onClose={() => setOutfitOpen(false)}
       />
     </div>
   );
