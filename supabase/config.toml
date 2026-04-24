@@ -1,1 +1,4 @@
 project_id = "iepkmfevtarwtwojejbz"
+
+[functions.verify-quest]
+verify_jwt = false
