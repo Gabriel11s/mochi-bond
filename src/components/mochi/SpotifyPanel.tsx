@@ -12,6 +12,7 @@ import { clamp } from "@/lib/mochi-types";
 
 interface Props {
   partnerName: string;
+  petName: string;
   /** Quando o Mochi reage à música, dispara um balão de fala no PetRoom. */
   onReaction?: (reaction: MochiMusicReaction) => void;
   /** Estado controlado de abertura do painel (controlado pelo PetRoom). */
@@ -42,6 +43,7 @@ function getSpotifyAppOrigin() {
 
 export function SpotifyPanel({
   partnerName,
+  petName,
   onReaction,
   open,
   onOpenChange,
@@ -240,7 +242,7 @@ export function SpotifyPanel({
             {!status?.connected ? (
               <div className="space-y-3 py-2">
                 <p className="text-sm leading-snug">
-                  conecta seu Spotify pra o Mochi reagir às suas músicas, {partnerName.toLowerCase()} ✨
+                  conecta seu Spotify pra {petName} reagir às suas músicas, {partnerName.toLowerCase()} ✨
                 </p>
                 <button
                   onClick={handleConnect}
@@ -278,7 +280,7 @@ export function SpotifyPanel({
                     <NowPlayingCard now={now} loading={loading} onRefresh={loadNow} />
                   )}
                   {tab === "top" && <TopList tracks={top} loading={loading} />}
-                  {tab === "vibe" && <VibeCard now={now} partnerName={partnerName} />}
+                  {tab === "vibe" && <VibeCard now={now} partnerName={partnerName} petName={petName} />}
                 </div>
 
                 <button
@@ -392,14 +394,16 @@ function TopList({ tracks, loading }: { tracks: SpotifyTrackLite[]; loading: boo
 function VibeCard({
   now,
   partnerName,
+  petName,
 }: {
   now: NowPlayingResponse | null;
   partnerName: string;
+  petName: string;
 }) {
   if (!now?.track) {
     return (
       <p className="py-6 text-center text-xs text-muted-foreground">
-        toca alguma coisa pro Mochi sentir a vibe 🎶
+        toca alguma coisa pra {petName} sentir a vibe 🎶
       </p>
     );
   }

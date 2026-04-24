@@ -35,6 +35,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   partnerName: string;
+  petName: string;
   onCompleted: (msg: string) => void;
 }
 
@@ -52,7 +53,7 @@ interface CompletionWithQuest extends QuestCompletion {
   quest_emoji?: string;
 }
 
-export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props) {
+export function QuestsDrawer({ open, onClose, partnerName, petName, onCompleted }: Props) {
   const [tab, setTab] = useState<Tab>("quests");
   const [quests, setQuests] = useState<Quest[]>([]);
   const [myCompletions, setMyCompletions] = useState<QuestCompletion[]>([]);
@@ -174,7 +175,7 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
       });
 
       if (error) {
-        setResultMsg({ kind: "no", text: "Mochi teve problema pra olhar 🥺" });
+        setResultMsg({ kind: "no", text: `${petName} teve problema pra olhar 🥺` });
         return;
       }
 
@@ -210,7 +211,7 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
       } else {
         setResultMsg({
           kind: "no",
-          text: payload.reason ?? "Mochi não conseguiu ver 🥺",
+          text: payload.reason ?? `${petName} não conseguiu ver 🥺`,
           cuteness: payload.cuteness,
           vibe: payload.vibe,
         });
@@ -270,11 +271,11 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
             </div>
 
             <div className="px-6 pt-3 pb-2">
-              <h3 className="font-display text-2xl font-bold">Missões do Mochi 🎯</h3>
+              <h3 className="font-display text-2xl font-bold">Missões {petName ? `do ${petName}` : ""} 🎯</h3>
               <p className="text-sm text-muted-foreground">
                 {tab === "quests"
                   ? "Cumpra tarefinhas e ganhe comidinhas pra despensa"
-                  : "Veja como o Mochi julgou as fotos enviadas"}
+                  : `Veja como ${petName} julgou as fotos enviadas`}
               </p>
             </div>
 
@@ -462,7 +463,7 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
                     <span className="text-muted-foreground">+ {activeQuest.reward_xp} XP</span>
                   </div>
                   <p className="mt-3 text-[10px] uppercase tracking-wider text-muted-foreground">
-                    💡 capricha na foto — Mochi também avalia se ficou fofa
+                    💡 capricha na foto — {petName} também avalia se ficou fofa
                   </p>
                 </div>
 
@@ -488,7 +489,7 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
                   <div className="mt-5 flex flex-col items-center gap-3 rounded-2xl bg-white/5 py-6">
                     <div className="h-8 w-8 animate-spin rounded-full border-2 border-pink/30 border-t-pink" />
                     <p className="text-sm text-muted-foreground">
-                      Mochi tá conferindo pra você… 🔍
+                      {petName} tá conferindo pra você… 🔍
                     </p>
                   </div>
                 )}
