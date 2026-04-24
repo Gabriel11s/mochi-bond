@@ -62,7 +62,7 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
           .then((r) => r.json())
           .then((d: ConnectionStatus) => setStatus(d))
           .catch(() => {});
-        setOpen(true);
+        onOpenChange(true);
       }
     }
   }, [partnerName]);
