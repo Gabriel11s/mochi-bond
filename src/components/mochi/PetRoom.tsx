@@ -23,6 +23,7 @@ import {
   loadEnabled,
   saveEnabled,
 } from "@/lib/mochi-outfit";
+import { type MochiTheme, loadMochiTheme, saveMochiTheme } from "@/lib/mochi-theme";
 
 interface Props {
   partnerName: string;
@@ -43,6 +44,11 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   const [enabledItems, setEnabledItems] = useState<Set<OutfitItemId>>(() =>
     loadEnabled(),
   );
+  const [mochiTheme, setMochiTheme] = useState<MochiTheme>(() => loadMochiTheme());
+  const updateMochiTheme = (t: MochiTheme) => {
+    setMochiTheme(t);
+    saveMochiTheme(t);
+  };
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
