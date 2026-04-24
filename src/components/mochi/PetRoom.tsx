@@ -13,6 +13,8 @@ import { StatusBars } from "./StatusBars";
 import { FoodDrawer } from "./FoodDrawer";
 import { InteractionHistory } from "./InteractionHistory";
 import { FloatingHearts } from "./FloatingHearts";
+import { WardrobeDrawer } from "./WardrobeDrawer";
+import { PhotosDrawer, type Photo } from "./PhotosDrawer";
 import { useTheme } from "@/hooks/use-theme";
 
 interface Props {
@@ -27,9 +29,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [history, setHistory] = useState<Interaction[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [wardrobeOpen, setWardrobeOpen] = useState(false);
+  const [photosOpen, setPhotosOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
+  const [smitten, setSmitten] = useState(false);
+  const [shownPhoto, setShownPhoto] = useState<Photo | null>(null);
   const [particles, setParticles] = useState<{ id: number; emoji: string; x: number }[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [levelUp, setLevelUp] = useState(false);
