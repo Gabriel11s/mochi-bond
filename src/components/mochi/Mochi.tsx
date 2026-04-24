@@ -429,11 +429,24 @@ function Eyes({
   sleeping,
   happy,
   blink,
+  surprised,
+  sx,
+  sy,
 }: {
   sleeping: boolean;
   happy: boolean;
   blink: boolean;
+  surprised: boolean;
+  sx: MotionValue<number>;
+  sy: MotionValue<number>;
 }) {
+  // Pupila pode se mover dentro do olho (raio do olho ~ 13/16)
+  // Range pequeno e fofo, com clamp via useTransform.
+  const pxRange = 6;
+  const pyRange = 5;
+  const pupilX = useTransform(sx, [-1, 1], [-pxRange, pxRange]);
+  const pupilY = useTransform(sy, [-1, 1], [-pyRange, pyRange]);
+
   if (sleeping) {
     return (
       <g stroke="#3a2a4a" strokeWidth="3.5" strokeLinecap="round" fill="none">
@@ -458,15 +471,33 @@ function Eyes({
       </g>
     );
   }
+
+  // Olhos normais com pupilas que seguem o cursor.
+  // O olho (esclera) é creme/branco — a pupila escura é o que se move dentro.
+  const scale = surprised ? 1.18 : 1;
   return (
-    <g>
-      <ellipse cx="128" cy="170" rx="13" ry="16" fill="url(#eyeGrad)" />
-      <ellipse cx="124" cy="164" rx="4.5" ry="6" fill="#ffffff" opacity="0.95" />
-      <circle cx="132" cy="174" r="2" fill="#ffffff" opacity="0.7" />
-      <ellipse cx="192" cy="170" rx="13" ry="16" fill="url(#eyeGrad)" />
-      <ellipse cx="188" cy="164" rx="4.5" ry="6" fill="#ffffff" opacity="0.95" />
-      <circle cx="196" cy="174" r="2" fill="#ffffff" opacity="0.7" />
-    </g>
+    <motion.g
+      initial={false}
+      animate={{ scale }}
+      transition={{ type: "spring", stiffness: 360, damping: 18 }}
+      style={{ transformOrigin: "160px 170px", transformBox: "fill-box" }}
+    >
+      {/* esclera (branco do olho) */}
+      <ellipse cx="128" cy="170" rx="13" ry="16" fill="#fff8ee" stroke="#e8c89a" strokeWidth="1" />
+      <ellipse cx="192" cy="170" rx="13" ry="16" fill="#fff8ee" stroke="#e8c89a" strokeWidth="1" />
+
+      {/* pupilas (movem com o mouse) */}
+      <motion.g style={{ x: pupilX, y: pupilY }}>
+        <ellipse cx="128" cy="170" rx="9" ry="13" fill="url(#eyeGrad)" />
+        <ellipse cx="124" cy="164" rx="3.5" ry="5" fill="#ffffff" opacity="0.95" />
+        <circle cx="131" cy="176" r="1.6" fill="#ffffff" opacity="0.7" />
+      </motion.g>
+      <motion.g style={{ x: pupilX, y: pupilY }}>
+        <ellipse cx="192" cy="170" rx="9" ry="13" fill="url(#eyeGrad)" />
+        <ellipse cx="188" cy="164" rx="3.5" ry="5" fill="#ffffff" opacity="0.95" />
+        <circle cx="195" cy="176" r="1.6" fill="#ffffff" opacity="0.7" />
+      </motion.g>
+    </motion.g>
   );
 }
 
