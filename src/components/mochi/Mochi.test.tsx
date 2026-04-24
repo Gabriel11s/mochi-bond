@@ -37,4 +37,14 @@ describe("Mochi SVG component", () => {
     const { container } = render(<Mochi mood="happy" eating />);
     expect(container.querySelector("svg")).not.toBeNull();
   });
+
+  it("renders both visual themes (cute + premium)", () => {
+    const cute = render(<Mochi mood="happy" theme="cute" />);
+    expect(cute.container.querySelector("svg")).not.toBeNull();
+    cute.unmount();
+
+    const premium = render(<Mochi mood="happy" theme="premium" />);
+    expect(premium.container.querySelector("svg")).not.toBeNull();
+    premium.unmount();
+  });
 });

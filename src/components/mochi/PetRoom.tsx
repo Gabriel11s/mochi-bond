@@ -23,6 +23,7 @@ import {
   loadEnabled,
   saveEnabled,
 } from "@/lib/mochi-outfit";
+import { type MochiTheme, loadMochiTheme, saveMochiTheme } from "@/lib/mochi-theme";
 
 interface Props {
   partnerName: string;
@@ -43,6 +44,11 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   const [enabledItems, setEnabledItems] = useState<Set<OutfitItemId>>(() =>
     loadEnabled(),
   );
+  const [mochiTheme, setMochiTheme] = useState<MochiTheme>(() => loadMochiTheme());
+  const updateMochiTheme = (t: MochiTheme) => {
+    setMochiTheme(t);
+    saveMochiTheme(t);
+  };
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
@@ -335,7 +341,7 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
       {/* mochi scene */}
       <div className="relative mt-2 flex justify-center">
         <FloatingHearts particles={particles} />
-        <Mochi mood={mood} eating={eating} bouncing={bouncing} outfit={outfit} />
+        <Mochi mood={mood} eating={eating} bouncing={bouncing} outfit={outfit} theme={mochiTheme} />
 
         {/* food flight */}
         <AnimatePresence>
@@ -370,7 +376,34 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* status bars */}
+      {/* mochi style selector — alterna a estética em tempo real */}
+      <div className="mt-3 flex justify-center">
+        <div className="glass inline-flex items-center gap-1 rounded-full p-1 text-[11px]">
+          <span className="px-2 uppercase tracking-[0.18em] text-muted-foreground">
+            estilo
+          </span>
+          {(["cute", "premium"] as const).map((t) => {
+            const active = mochiTheme === t;
+            const label = t === "cute" ? "fofinho" : "artesanal";
+            const emoji = t === "cute" ? "🍡" : "✨";
+            return (
+              <button
+                key={t}
+                onClick={() => !active && updateMochiTheme(t)}
+                className={`rounded-full px-3 py-1.5 font-display text-xs font-bold transition-all ${
+                  active
+                    ? "bg-gradient-to-r from-pink to-lilac text-white shadow-[var(--shadow-glow)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-pressed={active}
+              >
+                {emoji} {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="glass mt-2 rounded-3xl p-5">
         <StatusBars hunger={pet.hunger} happiness={pet.happiness} energy={pet.energy} />
       </div>
