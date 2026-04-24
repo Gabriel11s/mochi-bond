@@ -18,11 +18,13 @@ import { useTheme } from "@/hooks/use-theme";
 interface Props {
   partnerName: string;
   onLogout: () => void;
+  onSwitchPartner: (name: string) => void;
 }
 
 let particleId = 0;
 
-export function PetRoom({ partnerName, onLogout }: Props) {
+export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
+  const [partners, setPartners] = useState<[string, string]>(["Gab", "Tita"]);
   const [pet, setPet] = useState<PetState | null>(null);
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [history, setHistory] = useState<Interaction[]>([]);
@@ -40,14 +42,16 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   // initial load + realtime
   useEffect(() => {
     const load = async () => {
-      const [{ data: petData }, { data: foodData }, { data: histData }] = await Promise.all([
+      const [{ data: petData }, { data: foodData }, { data: histData }, { data: settings }] = await Promise.all([
         supabase.from("pet_state").select("*").eq("id", 1).single(),
         supabase.from("food_items").select("*").eq("is_active", true).order("rarity"),
         supabase.from("interactions").select("*").order("created_at", { ascending: false }).limit(20),
+        supabase.from("couple_settings").select("partner_one_name, partner_two_name").eq("id", 1).single(),
       ]);
       if (petData) setPet(petData as PetState);
       if (foodData) setFoods(foodData as FoodItem[]);
       if (histData) setHistory(histData as Interaction[]);
+      if (settings) setPartners([settings.partner_one_name, settings.partner_two_name]);
     };
     load();
 
@@ -224,23 +228,42 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
       {/* top bar */}
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between gap-2">
         <button
           onClick={onLogout}
-          className="glass flex h-10 w-10 items-center justify-center rounded-full text-sm"
+          className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm"
           aria-label="sair"
           title="sair"
         >
           ←
         </button>
-        <div className="text-center">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            oi, {partnerName.toLowerCase()}
-          </p>
+
+        {/* partner switcher: who is caring right now */}
+        <div className="glass flex items-center gap-1 rounded-full p-1">
+          <span className="px-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            cuidando
+          </span>
+          {partners.map((name) => {
+            const active = name === partnerName;
+            return (
+              <button
+                key={name}
+                onClick={() => !active && onSwitchPartner(name)}
+                className={`rounded-full px-3 py-1.5 text-xs font-display font-bold transition-all ${
+                  active
+                    ? "bg-gradient-to-r from-pink to-lilac text-white shadow-[var(--shadow-glow)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {name.toLowerCase()}
+              </button>
+            );
+          })}
         </div>
+
         <button
           onClick={toggle}
-          className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
+          className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base"
           aria-label="trocar tema"
         >
           {theme === "dark" ? "🌙" : "☀️"}
