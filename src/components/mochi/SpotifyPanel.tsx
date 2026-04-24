@@ -23,8 +23,7 @@ type Tab = "now" | "top" | "vibe";
 
 const POLL_MS = 20_000;
 
-export function SpotifyPanel({ partnerName, onReaction }: Props) {
-  const [open, setOpen] = useState(false);
+export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Props) {
   const [tab, setTab] = useState<Tab>("now");
   const [status, setStatus] = useState<ConnectionStatus | null>(null);
   const [now, setNow] = useState<NowPlayingResponse | null>(null);
