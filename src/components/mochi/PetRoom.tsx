@@ -13,6 +13,8 @@ import { StatusBars } from "./StatusBars";
 import { FoodDrawer } from "./FoodDrawer";
 import { InteractionHistory } from "./InteractionHistory";
 import { FloatingHearts } from "./FloatingHearts";
+import { WardrobeDrawer } from "./WardrobeDrawer";
+import { PhotosDrawer, type Photo } from "./PhotosDrawer";
 import { useTheme } from "@/hooks/use-theme";
 
 interface Props {
@@ -27,9 +29,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [history, setHistory] = useState<Interaction[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [wardrobeOpen, setWardrobeOpen] = useState(false);
+  const [photosOpen, setPhotosOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
+  const [smitten, setSmitten] = useState(false);
+  const [shownPhoto, setShownPhoto] = useState<Photo | null>(null);
   const [particles, setParticles] = useState<{ id: number; emoji: string; x: number }[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [levelUp, setLevelUp] = useState(false);
@@ -210,6 +216,66 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBusy(false);
   };
 
+  const saveOutfit = async (skin: string, accessory: string) => {
+    if (!pet) return;
+    await supabase
+      .from("pet_state")
+      .update({ equipped_skin: skin, equipped_accessory: accessory, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    showToast("lookzinho novo ✨");
+  };
+
+  const showPhoto = async (photo: Photo) => {
+    if (!pet || busy) return;
+    setBusy(true);
+    setShownPhoto(photo);
+    setSmitten(true);
+    burstParticles("💗", 10);
+
+    const dHappy = photo.happiness_boost;
+    const newHappiness = clamp(pet.happiness + dHappy);
+    const xp = 8;
+    const newXp = pet.xp + xp;
+    const newLevel = Math.floor(newXp / 100) + 1;
+    const leveled = newLevel > pet.level;
+    const now = new Date().toISOString();
+
+    await supabase
+      .from("pet_state")
+      .update({
+        happiness: newHappiness,
+        xp: newXp,
+        level: newLevel,
+        current_mood: computeMood(pet.hunger, newHappiness, pet.energy),
+        last_interaction_at: now,
+        last_interaction_by: partnerName,
+        updated_at: now,
+      })
+      .eq("id", 1);
+
+    await supabase.from("interactions").insert({
+      partner_name: partnerName,
+      interaction_type: "photo",
+      happiness_delta: dHappy,
+      xp_delta: xp,
+      message: photo.caption ? `derreteu vendo "${photo.caption}"` : "derreteu vendo uma fotinho de vocês",
+    });
+
+    showToast("ele ficou apaixonadinho 💗");
+
+    if (leveled) {
+      setLevelUp(true);
+      window.setTimeout(() => setLevelUp(false), 2400);
+      burstParticles("✨", 12);
+    }
+
+    window.setTimeout(() => {
+      setSmitten(false);
+      setShownPhoto(null);
+      setBusy(false);
+    }, 3200);
+  };
+
   if (!pet) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center text-muted-foreground">
@@ -218,7 +284,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     );
   }
 
-  const mood: Mood = eating ? "eating" : (pet.current_mood as Mood);
+  const mood: Mood = smitten ? "smitten" : eating ? "eating" : (pet.current_mood as Mood);
   const xpInLevel = pet.xp % 100;
 
   return (
@@ -266,7 +332,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       {/* mochi scene */}
       <div className="relative mt-2 flex justify-center">
         <FloatingHearts particles={particles} />
-        <Mochi mood={mood} eating={eating} bouncing={bouncing} />
+        <Mochi
+          mood={mood}
+          eating={eating}
+          bouncing={bouncing}
+          skinId={pet.equipped_skin}
+          accessoryId={pet.equipped_accessory}
+        />
 
         {/* food flight */}
         <AnimatePresence>
@@ -299,6 +371,32 @@ export function PetRoom({ partnerName, onLogout }: Props) {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* photo shown to mochi */}
+        <AnimatePresence>
+          {shownPhoto && (
+            <motion.div
+              initial={{ opacity: 0, y: 40, rotate: -8, scale: 0.7 }}
+              animate={{ opacity: 1, y: 0, rotate: -4, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.8 }}
+              transition={{ type: "spring", stiffness: 200, damping: 18 }}
+              className="pointer-events-none absolute -left-2 bottom-6 z-20 w-28 rotate-[-4deg] rounded-xl bg-white p-1.5 shadow-[var(--shadow-glow)] sm:w-32"
+            >
+              <img
+                src={
+                  supabase.storage.from("mochi-photos").getPublicUrl(shownPhoto.storage_path).data.publicUrl
+                }
+                alt={shownPhoto.caption ?? "fotinho"}
+                className="aspect-square w-full rounded-lg object-cover"
+              />
+              {shownPhoto.caption && (
+                <p className="mt-1 px-1 pb-0.5 text-center text-[9px] font-medium text-zinc-700 line-clamp-1">
+                  {shownPhoto.caption}
+                </p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* status bars */}
@@ -307,34 +405,41 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       </div>
 
       {/* primary actions */}
-      <div className="mt-4 grid grid-cols-3 gap-3">
+      <div className="mt-4 grid grid-cols-4 gap-3">
         <button
           onClick={() => setDrawerOpen(true)}
           disabled={busy}
-          className="col-span-3 rounded-2xl bg-gradient-to-r from-pink to-lilac px-5 py-4 font-display text-lg font-bold text-white shadow-[var(--shadow-glow)] transition-all active:scale-[0.97] disabled:opacity-50"
+          className="col-span-4 rounded-2xl bg-gradient-to-r from-pink to-lilac px-5 py-4 font-display text-lg font-bold text-white shadow-[var(--shadow-glow)] transition-all active:scale-[0.97] disabled:opacity-50"
         >
           🍙 alimentar
         </button>
         <button
           onClick={() => pet_action("pet")}
           disabled={busy}
-          className="glass rounded-2xl px-3 py-3 font-display text-sm font-semibold transition-all active:scale-[0.97] disabled:opacity-50"
+          className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97] disabled:opacity-50"
         >
           💗 carinho
         </button>
         <button
           onClick={() => pet_action("play")}
           disabled={busy || pet.energy < 10}
-          className="glass rounded-2xl px-3 py-3 font-display text-sm font-semibold transition-all active:scale-[0.97] disabled:opacity-50"
+          className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97] disabled:opacity-50"
         >
           🎈 brincar
         </button>
         <button
-          disabled
-          className="glass rounded-2xl px-3 py-3 font-display text-sm font-semibold opacity-40"
-          title="em breve"
+          onClick={() => setPhotosOpen(true)}
+          disabled={busy}
+          className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97] disabled:opacity-50"
         >
-          📸 memórias
+          📸 fotinho
+        </button>
+        <button
+          onClick={() => setWardrobeOpen(true)}
+          disabled={busy}
+          className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97] disabled:opacity-50"
+        >
+          🎀 vestir
         </button>
       </div>
 
@@ -377,6 +482,23 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         foods={foods}
         onPick={feed}
         busy={busy}
+      />
+
+      {/* wardrobe drawer */}
+      <WardrobeDrawer
+        open={wardrobeOpen}
+        onClose={() => setWardrobeOpen(false)}
+        currentSkin={pet.equipped_skin}
+        currentAccessory={pet.equipped_accessory}
+        onSave={saveOutfit}
+      />
+
+      {/* photos drawer */}
+      <PhotosDrawer
+        open={photosOpen}
+        onClose={() => setPhotosOpen(false)}
+        partnerName={partnerName}
+        onShowToMochi={showPhoto}
       />
     </div>
   );
