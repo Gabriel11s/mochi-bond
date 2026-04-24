@@ -5,8 +5,10 @@ import type { Quest, QuestCompletion, QuestCategory, Rarity, QuestVibe } from "@
 
 const CATEGORY_LABEL: Record<QuestCategory, { label: string; emoji: string }> = {
   casa: { label: "Pela casa", emoji: "🏠" },
-  casal: { label: "De vocês dois", emoji: "💑" },
-  romantico: { label: "Romântico", emoji: "✨" },
+  casal: { label: "Dupla", emoji: "👥" },
+  dupla: { label: "Dupla", emoji: "👥" },
+  romantico: { label: "Lá fora", emoji: "🌤️" },
+  mundo: { label: "Lá fora", emoji: "🌤️" },
 };
 
 const RARITY_LABEL: Record<Rarity, string> = {
