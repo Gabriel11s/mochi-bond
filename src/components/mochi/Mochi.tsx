@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  type MotionValue,
+} from "framer-motion";
 import type { Mood } from "@/lib/mochi-types";
 import type { Outfit } from "@/lib/mochi-outfit";
 import { DEFAULT_OUTFIT } from "@/lib/mochi-outfit";
@@ -25,6 +32,8 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
   const sad = mood === "sad" && !eating;
   const happy = (mood === "happy" || mood === "excited") && !eating;
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Piscar
   const [blink, setBlink] = useState(false);
   useEffect(() => {
@@ -38,6 +47,71 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
     timer = window.setTimeout(loop, 1500);
     return () => window.clearTimeout(timer);
   }, [sleeping]);
+
+  // ========== Mouse tracking (eye-tracking + head tilt) ==========
+  // Normalized -1..1 coords relative to face center.
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  // Springs para suavidade e fofura (pequeno overshoot).
+  const sx = useSpring(mx, { stiffness: 140, damping: 18, mass: 0.6 });
+  const sy = useSpring(my, { stiffness: 140, damping: 18, mass: 0.6 });
+
+  // Surpresa: olhos arregalam quando o mouse se aproxima rápido
+  const [surprised, setSurprised] = useState(false);
+  const lastPosRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const surpriseTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (sleeping) {
+      mx.set(0);
+      my.set(0);
+      return;
+    }
+    const handle = (e: PointerEvent) => {
+      const el = containerRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = (e.clientX - cx) / (r.width / 2);
+      const dy = (e.clientY - cy) / (r.height / 2);
+      const nx = Math.max(-1.4, Math.min(1.4, dx));
+      const ny = Math.max(-1.4, Math.min(1.4, dy));
+      mx.set(nx);
+      my.set(ny);
+
+      // Detectar movimento rápido pra reagir com surpresa
+      const now = performance.now();
+      const last = lastPosRef.current;
+      if (last) {
+        const dt = now - last.t;
+        const dist = Math.hypot(e.clientX - last.x, e.clientY - last.y);
+        const speed = dist / Math.max(1, dt); // px/ms
+        if (speed > 2.2 && Math.hypot(dx, dy) < 1.1) {
+          setSurprised(true);
+          if (surpriseTimer.current) window.clearTimeout(surpriseTimer.current);
+          surpriseTimer.current = window.setTimeout(() => setSurprised(false), 600);
+        }
+      }
+      lastPosRef.current = { x: e.clientX, y: e.clientY, t: now };
+    };
+    const reset = () => {
+      mx.set(0);
+      my.set(0);
+    };
+    window.addEventListener("pointermove", handle, { passive: true });
+    window.addEventListener("pointerleave", reset);
+    return () => {
+      window.removeEventListener("pointermove", handle);
+      window.removeEventListener("pointerleave", reset);
+      if (surpriseTimer.current) window.clearTimeout(surpriseTimer.current);
+    };
+  }, [sleeping, mx, my]);
+
+  // Head tilt (sutil)
+  const headRotate = useTransform(sx, [-1, 1], [-4, 4]);
+  const headX = useTransform(sx, [-1, 1], [-3, 3]);
+  const headY = useTransform(sy, [-1, 1], [-2, 2]);
 
   // animação de bounce extra
   const bodyAnim = bouncing
@@ -53,7 +127,10 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
     : { duration: 3.6, ease: "easeInOut" as const, repeat: Infinity };
 
   return (
-    <div className="relative flex h-72 w-full items-end justify-center sm:h-80">
+    <div
+      ref={containerRef}
+      className="relative flex h-72 w-full items-end justify-center sm:h-80"
+    >
       {/* glow halo */}
       <div
         className="pointer-events-none absolute inset-0 rounded-full blur-3xl opacity-60"
@@ -171,6 +248,16 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
           {/* ===== CAMISETA (overlay no corpo) ===== */}
           <Shirt id={outfit.shirt} />
 
+          {/* ===== HEAD GROUP (segue o cursor com tilt sutil) ===== */}
+          <motion.g
+            style={{
+              transformOrigin: "160px 200px",
+              transformBox: "fill-box",
+              rotate: headRotate,
+              x: headX,
+              y: headY,
+            }}
+          >
           {/* ===== ORELHAS animadas independentes ===== */}
           <motion.g
             style={{ transformOrigin: "108px 100px", transformBox: "fill-box" }}
@@ -232,6 +319,9 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
             sleeping={sleeping}
             happy={happy}
             blink={blink}
+            surprised={surprised}
+            sx={sx}
+            sy={sy}
           />
 
           {/* ===== Óculos overlay ===== */}
@@ -291,6 +381,8 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
 
           {/* ===== Chapéu (overlay topo) ===== */}
           <Hat id={outfit.hat} />
+          </motion.g>
+          {/* ===== /HEAD GROUP ===== */}
 
           {/* ===== Lágrima triste ===== */}
           {sad && (
@@ -337,11 +429,24 @@ function Eyes({
   sleeping,
   happy,
   blink,
+  surprised,
+  sx,
+  sy,
 }: {
   sleeping: boolean;
   happy: boolean;
   blink: boolean;
+  surprised: boolean;
+  sx: MotionValue<number>;
+  sy: MotionValue<number>;
 }) {
+  // Pupila pode se mover dentro do olho (raio do olho ~ 13/16)
+  // Range pequeno e fofo, com clamp via useTransform.
+  const pxRange = 6;
+  const pyRange = 5;
+  const pupilX = useTransform(sx, [-1, 1], [-pxRange, pxRange]);
+  const pupilY = useTransform(sy, [-1, 1], [-pyRange, pyRange]);
+
   if (sleeping) {
     return (
       <g stroke="#3a2a4a" strokeWidth="3.5" strokeLinecap="round" fill="none">
@@ -366,15 +471,33 @@ function Eyes({
       </g>
     );
   }
+
+  // Olhos normais com pupilas que seguem o cursor.
+  // O olho (esclera) é creme/branco — a pupila escura é o que se move dentro.
+  const scale = surprised ? 1.18 : 1;
   return (
-    <g>
-      <ellipse cx="128" cy="170" rx="13" ry="16" fill="url(#eyeGrad)" />
-      <ellipse cx="124" cy="164" rx="4.5" ry="6" fill="#ffffff" opacity="0.95" />
-      <circle cx="132" cy="174" r="2" fill="#ffffff" opacity="0.7" />
-      <ellipse cx="192" cy="170" rx="13" ry="16" fill="url(#eyeGrad)" />
-      <ellipse cx="188" cy="164" rx="4.5" ry="6" fill="#ffffff" opacity="0.95" />
-      <circle cx="196" cy="174" r="2" fill="#ffffff" opacity="0.7" />
-    </g>
+    <motion.g
+      initial={false}
+      animate={{ scale }}
+      transition={{ type: "spring", stiffness: 360, damping: 18 }}
+      style={{ transformOrigin: "160px 170px", transformBox: "fill-box" }}
+    >
+      {/* esclera (branco do olho) */}
+      <ellipse cx="128" cy="170" rx="13" ry="16" fill="#fff8ee" stroke="#e8c89a" strokeWidth="1" />
+      <ellipse cx="192" cy="170" rx="13" ry="16" fill="#fff8ee" stroke="#e8c89a" strokeWidth="1" />
+
+      {/* pupilas (movem com o mouse) */}
+      <motion.g style={{ x: pupilX, y: pupilY }}>
+        <ellipse cx="128" cy="170" rx="9" ry="13" fill="url(#eyeGrad)" />
+        <ellipse cx="124" cy="164" rx="3.5" ry="5" fill="#ffffff" opacity="0.95" />
+        <circle cx="131" cy="176" r="1.6" fill="#ffffff" opacity="0.7" />
+      </motion.g>
+      <motion.g style={{ x: pupilX, y: pupilY }}>
+        <ellipse cx="192" cy="170" rx="9" ry="13" fill="url(#eyeGrad)" />
+        <ellipse cx="188" cy="164" rx="3.5" ry="5" fill="#ffffff" opacity="0.95" />
+        <circle cx="195" cy="176" r="1.6" fill="#ffffff" opacity="0.7" />
+      </motion.g>
+    </motion.g>
   );
 }
 
