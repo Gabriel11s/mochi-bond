@@ -127,7 +127,10 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
     : { duration: 3.6, ease: "easeInOut" as const, repeat: Infinity };
 
   return (
-    <div className="relative flex h-72 w-full items-end justify-center sm:h-80">
+    <div
+      ref={containerRef}
+      className="relative flex h-72 w-full items-end justify-center sm:h-80"
+    >
       {/* glow halo */}
       <div
         className="pointer-events-none absolute inset-0 rounded-full blur-3xl opacity-60"
