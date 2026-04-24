@@ -78,7 +78,7 @@ export function WardrobeDrawer({ open, onClose, currentSkin, currentAccessory, o
                 </button>
               </div>
 
-              <div className="grid max-h-[35vh] grid-cols-3 gap-3 overflow-y-auto px-6 pb-4 pt-4 sm:grid-cols-4">
+              <div className="grid min-h-0 flex-1 grid-cols-3 gap-3 overflow-y-auto px-6 pb-3 pt-3 sm:grid-cols-4">
                 {tab === "skin"
                   ? SKINS.map((s) => (
                       <motion.button
