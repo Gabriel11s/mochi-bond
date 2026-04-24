@@ -15,6 +15,7 @@ import { InteractionHistory } from "./InteractionHistory";
 import { FloatingHearts } from "./FloatingHearts";
 import { WardrobeDrawer } from "./WardrobeDrawer";
 import { PhotosDrawer, type Photo } from "./PhotosDrawer";
+import { QuestsDrawer } from "./QuestsDrawer";
 import { useTheme } from "@/hooks/use-theme";
 
 interface Props {
@@ -31,6 +32,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(false);
+  const [questsOpen, setQuestsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
@@ -97,8 +99,9 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     }, 1700);
   };
 
-  const feed = async (food: FoodItem) => {
+  const feed = async (entry: { food: FoodItem; pantryItemId: string | null }) => {
     if (!pet || busy) return;
+    const { food, pantryItemId } = entry;
     setBusy(true);
     setDrawerOpen(false);
 
@@ -145,6 +148,14 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       setEating(false);
       setBusy(false);
       return;
+    }
+
+    // consome o item da despensa (se vier de lá)
+    if (pantryItemId) {
+      await supabase
+        .from("pantry_items")
+        .update({ consumed: true, consumed_at: now })
+        .eq("id", pantryItemId);
     }
 
     await supabase.from("interactions").insert({
@@ -430,9 +441,16 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         <button
           onClick={() => setDrawerOpen(true)}
           disabled={busy}
-          className="col-span-4 rounded-2xl bg-gradient-to-r from-pink to-lilac px-5 py-4 font-display text-lg font-bold text-white shadow-[var(--shadow-glow)] transition-all active:scale-[0.97] disabled:opacity-50"
+          className="col-span-2 rounded-2xl bg-gradient-to-r from-pink to-lilac px-5 py-4 font-display text-base font-bold text-white shadow-[var(--shadow-glow)] transition-all active:scale-[0.97] disabled:opacity-50"
         >
           🍙 alimentar
+        </button>
+        <button
+          onClick={() => setQuestsOpen(true)}
+          disabled={busy}
+          className="col-span-2 rounded-2xl bg-gradient-to-r from-mint to-lilac px-5 py-4 font-display text-base font-bold text-white shadow-[var(--shadow-glow)] transition-all active:scale-[0.97] disabled:opacity-50"
+        >
+          🎯 missões
         </button>
         <button
           onClick={() => pet_action("pet")}
@@ -500,9 +518,18 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       <FoodDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        foods={foods}
+        partnerName={partnerName}
         onPick={feed}
         busy={busy}
+        onOpenQuests={() => setQuestsOpen(true)}
+      />
+
+      {/* quests drawer */}
+      <QuestsDrawer
+        open={questsOpen}
+        onClose={() => setQuestsOpen(false)}
+        partnerName={partnerName}
+        onCompleted={(msg) => showToast(msg)}
       />
 
       {/* wardrobe drawer */}
