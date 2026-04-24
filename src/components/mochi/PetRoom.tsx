@@ -160,6 +160,15 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
     const now = new Date().toISOString();
 
+    // Marca a coluna correta de quem alimentou (gab/tita) — usado pelo
+    // mecanismo de "morte por inanição" (cron a cada hora no Supabase).
+    const fedByPatch: Record<string, string> =
+      partnerKey === "gab"
+        ? { last_fed_by_gab: now }
+        : partnerKey === "tita"
+          ? { last_fed_by_tita: now }
+          : {};
+
     const { error: petErr } = await supabase
       .from("pet_state")
       .update({
@@ -173,6 +182,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         last_interaction_at: now,
         last_interaction_by: partnerName,
         updated_at: now,
+        ...fedByPatch,
       })
       .eq("id", 1);
 
