@@ -7,11 +7,20 @@ interface Props {
   bouncing?: boolean;
 }
 
+/**
+ * Dachshund "Mochi" — clean side-view illustration.
+ * ViewBox: 320 x 220
+ * Layout (left → right):
+ *   - head + snout on the LEFT
+ *   - long sausage body in the middle
+ *   - curly tail on the RIGHT
+ *   - 4 short legs at the bottom
+ */
 export function Mochi({ mood, eating, bouncing }: Props) {
   const eyesClosed = mood === "sleepy";
   const blush = mood === "happy" || mood === "excited";
   const tear = mood === "sad";
-  const mouthOpen = eating || mood === "excited";
+  const mouthOpen = !!eating;
   const tongueOut = mood === "happy" || mood === "excited";
 
   const animClass = eating
@@ -22,183 +31,222 @@ export function Mochi({ mood, eating, bouncing }: Props) {
     ? "animate-mochi-sleep"
     : "animate-breathe";
 
+  // colors
+  const COAT_LIGHT = "oklch(0.78 0.12 55)";
+  const COAT = "oklch(0.66 0.15 45)";
+  const COAT_DARK = "oklch(0.5 0.14 35)";
+  const EAR_DARK = "oklch(0.4 0.12 30)";
+  const BELLY = "oklch(0.88 0.07 65)";
+  const NOSE = "oklch(0.18 0.03 30)";
+  const INK = "oklch(0.18 0.04 30)";
+  const TONGUE = "oklch(0.7 0.16 12)";
+
   return (
-    <div className="relative flex h-72 w-72 items-end justify-center sm:h-80 sm:w-80">
+    <div className="relative flex h-72 w-full items-end justify-center sm:h-80">
       {/* glow halo */}
       <div
-        className="pointer-events-none absolute inset-0 rounded-full blur-3xl opacity-60"
+        className="pointer-events-none absolute inset-0 rounded-full blur-3xl opacity-50"
         style={{
-          background:
-            "radial-gradient(circle, var(--accent-pink) 0%, transparent 65%)",
+          background: "radial-gradient(circle at 50% 55%, var(--accent-pink) 0%, transparent 60%)",
         }}
       />
-      {/* shadow */}
+      {/* ground shadow */}
       <div
-        className="absolute bottom-3 h-3 w-52 rounded-full opacity-40 blur-md"
+        className="absolute bottom-2 h-3 w-56 rounded-full opacity-40 blur-md"
         style={{ background: "oklch(0.1 0.04 300)" }}
       />
 
       <motion.svg
-        viewBox="0 0 240 200"
+        viewBox="0 0 320 220"
         className={`relative z-10 h-64 w-72 sm:h-72 sm:w-80 ${animClass}`}
-        initial={{ scale: 0.6, opacity: 0 }}
+        initial={{ scale: 0.7, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 180, damping: 14 }}
+        transition={{ type: "spring", stiffness: 180, damping: 15 }}
       >
         <defs>
-          {/* warm chestnut/caramel dachshund coat */}
-          <radialGradient id="dax-body" cx="50%" cy="35%" r="75%">
-            <stop offset="0%" stopColor="oklch(0.78 0.13 55)" />
-            <stop offset="55%" stopColor="oklch(0.65 0.15 45)" />
-            <stop offset="100%" stopColor="oklch(0.5 0.14 35)" />
+          <linearGradient id="coat" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={COAT_LIGHT} />
+            <stop offset="100%" stopColor={COAT_DARK} />
+          </linearGradient>
+          <radialGradient id="bellyGrad" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stopColor={BELLY} stopOpacity="1" />
+            <stop offset="100%" stopColor={BELLY} stopOpacity="0" />
           </radialGradient>
-          <radialGradient id="dax-head" cx="40%" cy="40%" r="70%">
-            <stop offset="0%" stopColor="oklch(0.8 0.12 55)" />
-            <stop offset="100%" stopColor="oklch(0.6 0.15 40)" />
-          </radialGradient>
-          <radialGradient id="dax-ear" cx="50%" cy="20%" r="80%">
-            <stop offset="0%" stopColor="oklch(0.55 0.14 35)" />
-            <stop offset="100%" stopColor="oklch(0.38 0.12 30)" />
-          </radialGradient>
-          <radialGradient id="dax-belly" cx="50%" cy="50%" r="60%">
-            <stop offset="0%" stopColor="oklch(0.88 0.07 65)" />
-            <stop offset="100%" stopColor="oklch(0.78 0.1 55)" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="dax-cheek" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="oklch(0.75 0.18 10)" stopOpacity="0.75" />
-            <stop offset="100%" stopColor="oklch(0.75 0.18 10)" stopOpacity="0" />
+          <radialGradient id="cheek" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="oklch(0.78 0.18 10)" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="oklch(0.78 0.18 10)" stopOpacity="0" />
           </radialGradient>
         </defs>
 
-        {/* ===== BODY (sausage shape) ===== */}
-        {/* Tail */}
+        {/* ============ BACK LEG (behind body) ============ */}
+        <rect x="222" y="150" width="16" height="34" rx="7" fill={COAT_DARK} />
+        <ellipse cx="230" cy="186" rx="11" ry="5" fill={EAR_DARK} />
+
+        {/* ============ FRONT LEG behind ============ */}
+        <rect x="138" y="150" width="14" height="34" rx="6" fill={COAT_DARK} />
+        <ellipse cx="145" cy="186" rx="10" ry="4.5" fill={EAR_DARK} />
+
+        {/* ============ TAIL (curled up, right side) ============ */}
         <path
-          d="M 198 122 Q 220 110 222 92 Q 222 84 215 82"
-          stroke="url(#dax-body)"
+          d="M 256 130
+             Q 282 118 284 96
+             Q 284 82 272 80"
+          stroke="url(#coat)"
           strokeWidth="14"
           strokeLinecap="round"
           fill="none"
         />
 
-        {/* Long sausage body */}
-        <ellipse cx="135" cy="135" rx="78" ry="32" fill="url(#dax-body)" />
+        {/* ============ BODY (long sausage) ============ */}
+        {/* main long ellipse */}
+        <ellipse cx="170" cy="135" rx="92" ry="32" fill="url(#coat)" />
+        {/* belly highlight */}
+        <ellipse cx="170" cy="150" rx="78" ry="14" fill="url(#bellyGrad)" />
 
-        {/* Belly highlight */}
-        <ellipse cx="135" cy="148" rx="60" ry="14" fill="url(#dax-belly)" />
+        {/* ============ FRONT LEG (in front) ============ */}
+        <rect x="118" y="148" width="16" height="38" rx="7" fill={COAT} />
+        <ellipse cx="126" cy="188" rx="12" ry="5" fill={INK} opacity="0.85" />
 
-        {/* Tiny back legs */}
-        <ellipse cx="180" cy="165" rx="9" ry="14" fill="url(#dax-body)" />
-        <ellipse cx="195" cy="167" rx="8" ry="12" fill="oklch(0.55 0.14 38)" />
-        {/* paws */}
-        <ellipse cx="180" cy="174" rx="10" ry="5" fill="oklch(0.4 0.12 30)" />
-        <ellipse cx="195" cy="175" rx="9" ry="4.5" fill="oklch(0.35 0.1 28)" />
+        {/* ============ BACK LEG (in front) ============ */}
+        <rect x="244" y="148" width="16" height="38" rx="7" fill={COAT} />
+        <ellipse cx="252" cy="188" rx="12" ry="5" fill={INK} opacity="0.85" />
 
-        {/* Tiny front legs */}
-        <ellipse cx="92" cy="163" rx="9" ry="14" fill="url(#dax-body)" />
-        <ellipse cx="78" cy="165" rx="8" ry="12" fill="oklch(0.55 0.14 38)" />
-        <ellipse cx="92" cy="172" rx="10" ry="5" fill="oklch(0.4 0.12 30)" />
-        <ellipse cx="78" cy="173" rx="9" ry="4.5" fill="oklch(0.35 0.1 28)" />
-
-        {/* ===== HEAD ===== */}
-        {/* slightly elongated dachshund head */}
-        <ellipse cx="68" cy="98" rx="42" ry="38" fill="url(#dax-head)" />
-        {/* snout extension */}
-        <ellipse cx="38" cy="108" rx="22" ry="18" fill="url(#dax-head)" />
-
-        {/* Long floppy ears */}
+        {/* ============ NECK ============ */}
         <path
-          d="M 78 70 Q 92 70 100 88 Q 104 110 96 130 Q 88 138 80 130 Q 76 110 76 90 Z"
-          fill="url(#dax-ear)"
-        />
-        <path
-          d="M 58 68 Q 44 70 38 88 Q 36 108 44 128 Q 52 136 60 128 Q 64 108 62 88 Z"
-          fill="url(#dax-ear)"
-        />
-        {/* ear inner */}
-        <path
-          d="M 82 90 Q 90 100 90 118 Q 86 124 82 118 Q 80 105 82 90 Z"
-          fill="oklch(0.7 0.15 18 / 0.4)"
+          d="M 102 130
+             Q 96 118 96 104
+             Q 96 92 110 90
+             L 132 92
+             Q 138 116 130 138 Z"
+          fill="url(#coat)"
         />
 
+        {/* ============ HEAD ============ */}
+        {/* skull */}
+        <ellipse cx="80" cy="86" rx="36" ry="32" fill="url(#coat)" />
+        {/* snout */}
+        <path
+          d="M 60 92
+             Q 30 92 24 104
+             Q 22 116 36 118
+             Q 60 118 70 110 Z"
+          fill={COAT_LIGHT}
+        />
+        {/* snout shadow under */}
+        <path
+          d="M 36 116
+             Q 56 122 70 114"
+          stroke={COAT}
+          strokeWidth="2"
+          fill="none"
+          opacity="0.5"
+        />
+
+        {/* ============ EARS ============ */}
+        {/* back ear */}
+        <path
+          d="M 92 70
+             Q 110 72 114 92
+             Q 116 118 104 130
+             Q 92 132 90 120
+             Q 86 100 88 80 Z"
+          fill={EAR_DARK}
+        />
+        {/* front ear */}
+        <path
+          d="M 76 64
+             Q 96 66 102 88
+             Q 104 116 92 128
+             Q 78 130 74 116
+             Q 70 92 72 74 Z"
+          fill={COAT_DARK}
+        />
+        {/* inner ear shine */}
+        <path
+          d="M 84 82
+             Q 94 92 92 112
+             Q 88 118 84 110
+             Q 82 96 84 82 Z"
+          fill="oklch(0.7 0.15 18 / 0.45)"
+        />
+
+        {/* ============ FACE ============ */}
         {/* cheeks */}
         {blush && (
           <>
-            <ellipse cx="42" cy="115" rx="9" ry="6" fill="url(#dax-cheek)" />
-            <ellipse cx="80" cy="118" rx="9" ry="6" fill="url(#dax-cheek)" />
+            <ellipse cx="50" cy="100" rx="7" ry="5" fill="url(#cheek)" />
+            <ellipse cx="80" cy="104" rx="8" ry="5" fill="url(#cheek)" />
           </>
         )}
 
         {/* eyes */}
         {eyesClosed ? (
           <>
-            <path d="M 56 100 Q 62 96 68 100" stroke="oklch(0.18 0.04 30)" strokeWidth="2.8" fill="none" strokeLinecap="round" />
-            <path d="M 78 100 Q 84 96 90 100" stroke="oklch(0.18 0.04 30)" strokeWidth="2.8" fill="none" strokeLinecap="round" />
+            <path d="M 56 86 Q 62 82 68 86" stroke={INK} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+            <path d="M 78 86 Q 84 82 90 86" stroke={INK} strokeWidth="2.6" fill="none" strokeLinecap="round" />
           </>
         ) : (
           <>
-            {/* eye whites for sparkle */}
-            <ellipse cx="62" cy="100" rx="6" ry="7.5" fill="oklch(0.18 0.04 30)" />
-            <ellipse cx="84" cy="100" rx="6" ry="7.5" fill="oklch(0.18 0.04 30)" />
-            {/* shines */}
-            <ellipse cx="64" cy="97" rx="2" ry="2.5" fill="white" />
-            <ellipse cx="86" cy="97" rx="2" ry="2.5" fill="white" />
-            <ellipse cx="60" cy="103" rx="1" ry="1.2" fill="white" opacity="0.7" />
-            <ellipse cx="82" cy="103" rx="1" ry="1.2" fill="white" opacity="0.7" />
-            {/* tiny eyebrows for expression */}
+            {/* eye whites */}
+            <ellipse cx="62" cy="86" rx="5.5" ry="7" fill={INK} />
+            <ellipse cx="84" cy="86" rx="5.5" ry="7" fill={INK} />
+            {/* big shines */}
+            <ellipse cx="64" cy="83" rx="2" ry="2.4" fill="white" />
+            <ellipse cx="86" cy="83" rx="2" ry="2.4" fill="white" />
+            {/* small shines */}
+            <ellipse cx="60" cy="89" rx="1" ry="1.2" fill="white" opacity="0.7" />
+            <ellipse cx="82" cy="89" rx="1" ry="1.2" fill="white" opacity="0.7" />
+            {/* sad brows */}
             {mood === "sad" && (
               <>
-                <path d="M 56 92 Q 62 88 68 92" stroke="oklch(0.25 0.05 30)" strokeWidth="2" fill="none" strokeLinecap="round" />
-                <path d="M 78 92 Q 84 88 90 92" stroke="oklch(0.25 0.05 30)" strokeWidth="2" fill="none" strokeLinecap="round" />
+                <path d="M 56 78 Q 62 74 68 78" stroke={INK} strokeWidth="2" fill="none" strokeLinecap="round" />
+                <path d="M 78 78 Q 84 74 90 78" stroke={INK} strokeWidth="2" fill="none" strokeLinecap="round" />
               </>
             )}
           </>
         )}
 
         {/* tear */}
-        {tear && (
-          <ellipse cx="58" cy="112" rx="2" ry="3.5" fill="oklch(0.7 0.13 230)" />
-        )}
+        {tear && <ellipse cx="58" cy="96" rx="2" ry="3.5" fill="oklch(0.72 0.13 230)" />}
 
         {/* nose */}
-        <ellipse cx="22" cy="104" rx="6" ry="5" fill="oklch(0.2 0.04 30)" />
-        <ellipse cx="20" cy="102" rx="1.6" ry="1.2" fill="white" opacity="0.6" />
+        <ellipse cx="26" cy="100" rx="6" ry="5" fill={NOSE} />
+        <ellipse cx="24" cy="98" rx="1.6" ry="1.2" fill="white" opacity="0.6" />
 
         {/* mouth */}
         {mouthOpen ? (
           <>
-            <ellipse cx="28" cy="118" rx="6" ry="5" fill="oklch(0.3 0.08 20)" />
-            {tongueOut && (
-              <ellipse cx="28" cy="121" rx="4" ry="4" fill="oklch(0.7 0.15 10)" />
-            )}
+            <ellipse cx="40" cy="112" rx="6" ry="5" fill="oklch(0.3 0.08 20)" />
+            <ellipse cx="40" cy="115" rx="4.5" ry="3.5" fill={TONGUE} />
           </>
         ) : mood === "sad" ? (
-          <path d="M 22 118 Q 28 114 34 118" stroke="oklch(0.25 0.05 30)" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          <path d="M 32 112 Q 40 108 48 112" stroke={INK} strokeWidth="2" fill="none" strokeLinecap="round" />
         ) : (
           <>
-            <path d="M 22 116 Q 28 122 34 116" stroke="oklch(0.25 0.05 30)" strokeWidth="2.2" fill="none" strokeLinecap="round" />
-            {tongueOut && (
-              <ellipse cx="28" cy="120" rx="3" ry="2.5" fill="oklch(0.72 0.16 10)" />
-            )}
+            <path d="M 32 110 Q 40 116 48 110" stroke={INK} strokeWidth="2" fill="none" strokeLinecap="round" />
+            {tongueOut && <ellipse cx="40" cy="114" rx="3" ry="2.2" fill={TONGUE} />}
           </>
         )}
 
-        {/* tiny collar */}
+        {/* ============ COLLAR ============ */}
         <path
-          d="M 92 122 Q 105 130 118 124"
-          stroke="oklch(0.7 0.18 350)"
-          strokeWidth="5"
+          d="M 110 130
+             Q 122 142 138 138"
+          stroke="oklch(0.72 0.18 350)"
+          strokeWidth="6"
           strokeLinecap="round"
           fill="none"
         />
-        <circle cx="106" cy="129" r="3" fill="oklch(0.85 0.15 80)" />
+        <circle cx="124" cy="142" r="3.5" fill="oklch(0.85 0.15 80)" />
+        <circle cx="124" cy="142" r="1.2" fill="oklch(0.6 0.12 60)" />
 
-        {/* sleep Z */}
+        {/* ============ SLEEP Z ============ */}
         {mood === "sleepy" && (
           <text
-            x="100"
-            y="65"
+            x="118"
+            y="60"
             fill="oklch(0.78 0.13 300)"
-            fontSize="20"
+            fontSize="22"
             fontFamily="var(--font-display)"
             fontWeight="700"
           >
