@@ -29,6 +29,7 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
   const [now, setNow] = useState<NowPlayingResponse | null>(null);
   const [top, setTop] = useState<SpotifyTrackLite[]>([]);
   const [loading, setLoading] = useState(false);
+  const [justConnected, setJustConnected] = useState(false);
   const lastReactedTrackRef = useRef<string | null>(null);
 
   // status
@@ -58,6 +59,7 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
       url.searchParams.delete("spotify_error");
       window.history.replaceState({}, "", url.toString());
       if (ok) {
+        setJustConnected(true);
         fetch(`/api/spotify/status?partner=${encodeURIComponent(partnerName)}`)
           .then((r) => r.json())
           .then((d: ConnectionStatus) => setStatus(d))
@@ -65,7 +67,7 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
         onOpenChange(true);
       }
     }
-  }, [partnerName]);
+  }, [partnerName, onOpenChange]);
 
   const loadNow = useMemo(
     () => async () => {
