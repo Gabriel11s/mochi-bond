@@ -31,6 +31,8 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [history, setHistory] = useState<Interaction[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [outfitOpen, setOutfitOpen] = useState(false);
+  const [outfit, setOutfit] = useState<Outfit>(() => loadOutfit());
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
@@ -40,6 +42,11 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   const { theme, toggle } = useTheme();
   const flightRef = useRef<{ id: number; emoji: string } | null>(null);
   const [flight, setFlight] = useState<{ id: number; emoji: string } | null>(null);
+
+  const updateOutfit = (next: Outfit) => {
+    setOutfit(next);
+    saveOutfit(next);
+  };
 
   // initial load + realtime
   useEffect(() => {
