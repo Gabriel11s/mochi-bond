@@ -123,12 +123,57 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
           </>
         )}
 
-        {/* glasses */}
+        {/* glasses (oculinhos finos) */}
         {acc.id === "glasses" && (
           <g stroke="oklch(0.25 0.04 320)" strokeWidth="2.5" fill="none">
             <circle cx="82" cy="108" r="11" />
             <circle cx="118" cy="108" r="11" />
             <line x1="93" y1="108" x2="107" y2="108" />
+          </g>
+        )}
+
+        {/* nerd glasses — armação wayfarer preta grossa estilo cachorrinho da foto */}
+        {acc.id === "nerd" && (
+          <g>
+            {/* lentes (preenchimento translúcido pra dar vidro) */}
+            <path
+              d="M 60 100 Q 60 94 66 94 L 92 94 Q 96 94 96 100 L 96 116 Q 96 122 90 122 L 66 122 Q 60 122 60 116 Z"
+              fill="oklch(1 0 0 / 0.08)"
+              stroke="oklch(0.15 0.01 300)"
+              strokeWidth="3.5"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M 104 100 Q 104 94 108 94 L 134 94 Q 140 94 140 100 L 140 116 Q 140 122 134 122 L 110 122 Q 104 122 104 116 Z"
+              fill="oklch(1 0 0 / 0.08)"
+              stroke="oklch(0.15 0.01 300)"
+              strokeWidth="3.5"
+              strokeLinejoin="round"
+            />
+            {/* ponte */}
+            <path
+              d="M 96 102 Q 100 99 104 102"
+              stroke="oklch(0.15 0.01 300)"
+              strokeWidth="3.5"
+              fill="none"
+              strokeLinecap="round"
+            />
+            {/* hastes nas laterais */}
+            <path
+              d="M 60 104 L 52 102"
+              stroke="oklch(0.15 0.01 300)"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+            <path
+              d="M 140 104 L 148 102"
+              stroke="oklch(0.15 0.01 300)"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+            {/* reflexo branquinho nos cantos das lentes (igual a foto) */}
+            <rect x="86" y="98" width="5" height="2.2" rx="1" fill="white" opacity="0.95" />
+            <rect x="130" y="98" width="5" height="2.2" rx="1" fill="white" opacity="0.95" />
           </g>
         )}
 
