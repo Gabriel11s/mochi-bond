@@ -48,6 +48,7 @@ export type Database = {
           hunger_value: number
           id: string
           is_active: boolean
+          is_unlockable: boolean
           name: string
           rarity: string
         }
@@ -60,6 +61,7 @@ export type Database = {
           hunger_value?: number
           id?: string
           is_active?: boolean
+          is_unlockable?: boolean
           name: string
           rarity?: string
         }
@@ -72,6 +74,7 @@ export type Database = {
           hunger_value?: number
           id?: string
           is_active?: boolean
+          is_unlockable?: boolean
           name?: string
           rarity?: string
         }
@@ -126,6 +129,51 @@ export type Database = {
             columns: ["food_id"]
             isOneToOne: false
             referencedRelation: "food_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pantry_items: {
+        Row: {
+          consumed: boolean
+          consumed_at: string | null
+          created_at: string
+          food_id: string
+          id: string
+          partner_name: string
+          source_quest_id: string | null
+        }
+        Insert: {
+          consumed?: boolean
+          consumed_at?: string | null
+          created_at?: string
+          food_id: string
+          id?: string
+          partner_name: string
+          source_quest_id?: string | null
+        }
+        Update: {
+          consumed?: boolean
+          consumed_at?: string | null
+          created_at?: string
+          food_id?: string
+          id?: string
+          partner_name?: string
+          source_quest_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pantry_items_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "food_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pantry_items_source_quest_id_fkey"
+            columns: ["source_quest_id"]
+            isOneToOne: false
+            referencedRelation: "quests"
             referencedColumns: ["id"]
           },
         ]
@@ -205,6 +253,105 @@ export type Database = {
           id?: string
           storage_path?: string
           uploaded_by?: string
+        }
+        Relationships: []
+      }
+      quest_completions: {
+        Row: {
+          ai_reason: string | null
+          created_at: string
+          id: string
+          partner_name: string
+          photo_id: string | null
+          photo_path: string | null
+          quest_id: string
+          status: string
+        }
+        Insert: {
+          ai_reason?: string | null
+          created_at?: string
+          id?: string
+          partner_name: string
+          photo_id?: string | null
+          photo_path?: string | null
+          quest_id: string
+          status?: string
+        }
+        Update: {
+          ai_reason?: string | null
+          created_at?: string
+          id?: string
+          partner_name?: string
+          photo_id?: string | null
+          photo_path?: string | null
+          quest_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quest_completions_photo_id_fkey"
+            columns: ["photo_id"]
+            isOneToOne: false
+            referencedRelation: "photos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quest_completions_quest_id_fkey"
+            columns: ["quest_id"]
+            isOneToOne: false
+            referencedRelation: "quests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quests: {
+        Row: {
+          category: string
+          cooldown_minutes: number
+          created_at: string
+          emoji: string
+          hint: string
+          id: string
+          is_active: boolean
+          proof_target: string
+          proof_type: string
+          reward_food_count: number
+          reward_food_rarity: string
+          reward_xp: number
+          slug: string
+          title: string
+        }
+        Insert: {
+          category?: string
+          cooldown_minutes?: number
+          created_at?: string
+          emoji?: string
+          hint: string
+          id?: string
+          is_active?: boolean
+          proof_target: string
+          proof_type?: string
+          reward_food_count?: number
+          reward_food_rarity?: string
+          reward_xp?: number
+          slug: string
+          title: string
+        }
+        Update: {
+          category?: string
+          cooldown_minutes?: number
+          created_at?: string
+          emoji?: string
+          hint?: string
+          id?: string
+          is_active?: boolean
+          proof_target?: string
+          proof_type?: string
+          reward_food_count?: number
+          reward_food_rarity?: string
+          reward_xp?: number
+          slug?: string
+          title?: string
         }
         Relationships: []
       }
