@@ -196,6 +196,12 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
               </button>
             </header>
 
+            {justConnected && status?.display_name && (
+              <div className="mb-3 rounded-xl bg-primary/10 px-3 py-2 text-sm text-foreground">
+                Spotify conectado com sucesso · {status.display_name}
+              </div>
+            )}
+
             {!status?.connected ? (
               <div className="space-y-3 py-2">
                 <p className="text-sm leading-snug">
