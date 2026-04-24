@@ -421,7 +421,7 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
                               "{c.ai_reason}"
                               {typeof c.cuteness === "number" && (
                                 <span className="ml-1 not-italic font-bold">
-                                  · fofura {c.cuteness}/10
+                                  · nota {c.cuteness}/10
                                 </span>
                               )}
                             </p>
