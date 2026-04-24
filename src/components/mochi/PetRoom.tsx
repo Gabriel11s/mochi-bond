@@ -298,7 +298,7 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
       {/* mochi scene */}
       <div className="relative mt-2 flex justify-center">
         <FloatingHearts particles={particles} />
-        <Mochi mood={mood} eating={eating} bouncing={bouncing} />
+        <Mochi mood={mood} eating={eating} bouncing={bouncing} outfit={outfit} />
 
         {/* food flight */}
         <AnimatePresence>
