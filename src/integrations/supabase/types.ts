@@ -229,6 +229,7 @@ export type Database = {
       pet_state: {
         Row: {
           current_mood: string
+          died_at: string | null
           energy: number
           equipped_accessory: string
           equipped_skin: string
@@ -236,6 +237,8 @@ export type Database = {
           hunger: number
           id: number
           last_fed_at: string | null
+          last_fed_by_gab: string | null
+          last_fed_by_tita: string | null
           last_interaction_at: string | null
           last_interaction_by: string | null
           level: number
@@ -245,6 +248,7 @@ export type Database = {
         }
         Insert: {
           current_mood?: string
+          died_at?: string | null
           energy?: number
           equipped_accessory?: string
           equipped_skin?: string
@@ -252,6 +256,8 @@ export type Database = {
           hunger?: number
           id?: number
           last_fed_at?: string | null
+          last_fed_by_gab?: string | null
+          last_fed_by_tita?: string | null
           last_interaction_at?: string | null
           last_interaction_by?: string | null
           level?: number
@@ -261,6 +267,7 @@ export type Database = {
         }
         Update: {
           current_mood?: string
+          died_at?: string | null
           energy?: number
           equipped_accessory?: string
           equipped_skin?: string
@@ -268,6 +275,8 @@ export type Database = {
           hunger?: number
           id?: number
           last_fed_at?: string | null
+          last_fed_by_gab?: string | null
+          last_fed_by_tita?: string | null
           last_interaction_at?: string | null
           last_interaction_by?: string | null
           level?: number

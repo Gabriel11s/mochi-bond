@@ -160,6 +160,15 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
     const now = new Date().toISOString();
 
+    // Marca a coluna correta de quem alimentou (gab/tita) — usado pelo
+    // mecanismo de "morte por inanição" (cron a cada hora no Supabase).
+    const fedByPatch: Record<string, string> =
+      partnerKey === "gab"
+        ? { last_fed_by_gab: now }
+        : partnerKey === "tita"
+          ? { last_fed_by_tita: now }
+          : {};
+
     const { error: petErr } = await supabase
       .from("pet_state")
       .update({
@@ -173,6 +182,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         last_interaction_at: now,
         last_interaction_by: partnerName,
         updated_at: now,
+        ...fedByPatch,
       })
       .eq("id", 1);
 
@@ -411,6 +421,35 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       )
     : null;
 
+  // Janela de 24h por pessoa: calcula horas restantes pra Gab e Tita.
+  // Quando passa de 24h sem alimentar, o cron no Supabase mata o pet.
+  const now = Date.now();
+  const FEED_WINDOW_MS = 24 * 60 * 60 * 1000;
+  const hoursLeft = (iso: string | null): number | null => {
+    if (!iso) return 0;
+    const elapsed = now - new Date(iso).getTime();
+    const left = (FEED_WINDOW_MS - elapsed) / (60 * 60 * 1000);
+    return left;
+  };
+  const gabHours = hoursLeft(pet.last_fed_by_gab);
+  const titaHours = hoursLeft(pet.last_fed_by_tita);
+  const myKey = partnerKey; // "gab" | "tita" | "outro"
+  const myHours = myKey === "gab" ? gabHours : myKey === "tita" ? titaHours : null;
+  const partnerHours = myKey === "gab" ? titaHours : myKey === "tita" ? gabHours : null;
+  const partnerOtherName = myKey === "gab" ? "tita" : myKey === "tita" ? "gab" : "seu par";
+  const myUrgent = myHours !== null && myHours <= 6;
+  const partnerUrgent = partnerHours !== null && partnerHours <= 6;
+  // "Acabou de morrer" = died_at nas últimas 24h
+  const justDied = pet.died_at
+    ? now - new Date(pet.died_at).getTime() < FEED_WINDOW_MS
+    : false;
+  const fmtHours = (h: number | null) => {
+    if (h === null) return "—";
+    if (h <= 0) return "0h";
+    if (h < 1) return `${Math.max(1, Math.round(h * 60))}min`;
+    return `${Math.floor(h)}h`;
+  };
+
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
       <PhotoWall />
@@ -450,6 +489,42 @@ export function PetRoom({ partnerName, onLogout }: Props) {
           {theme === "dark" ? "🌙" : "☀️"}
         </button>
       </header>
+
+      {/* Aviso de morte recente */}
+      {justDied && (
+        <div className="mt-4 rounded-2xl border border-danger-soft/40 bg-danger-soft/15 p-3 text-center text-sm">
+          💔 {pet.pet_name} não foi alimentado a tempo e voltou pro nível 1.
+          <span className="block text-xs text-muted-foreground mt-1">
+            cuidem dele de novo — cada um precisa alimentar 1× a cada 24h.
+          </span>
+        </div>
+      )}
+
+      {/* Aviso de fome (cada um tem janela própria de 24h) */}
+      {!justDied && (myUrgent || partnerUrgent) && (
+        <div
+          className={`mt-4 rounded-2xl p-3 text-sm ${
+            myUrgent
+              ? "border border-pink/50 bg-pink/15 animate-pulse"
+              : "border border-white/10 bg-white/5"
+          }`}
+        >
+          {myUrgent ? (
+            <p className="font-semibold">
+              ⚠️ {pet.pet_name} precisa de você! restam {fmtHours(myHours)} pra
+              você alimentar — se não, ele morre.
+            </p>
+          ) : (
+            <p>
+              🕐 {partnerOtherName} tem só {fmtHours(partnerHours)} pra alimentar {pet.pet_name}.
+            </p>
+          )}
+          <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
+            <span>você: {fmtHours(myHours)}</span>
+            <span>{partnerOtherName}: {fmtHours(partnerHours)}</span>
+          </div>
+        </div>
+      )}
 
       {/* pet name & mood */}
       <div className="mt-6 text-center">
