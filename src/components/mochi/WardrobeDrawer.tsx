@@ -128,7 +128,6 @@ export function WardrobeDrawer({ open, onClose, currentSkin, currentAccessory, o
                   salvar lookzinho
                 </button>
               </div>
-            </div>
           </motion.div>
         </>
       )}
