@@ -7,7 +7,7 @@ import type {
   SpotifyTrackLite,
   TopTracksResponse,
 } from "@/lib/spotify-types";
-import { buildMochiReaction, type MochiMusicReaction } from "@/lib/spotify-vibe";
+import { buildMochiReaction, estimateAudioStats, type MochiMusicReaction } from "@/lib/spotify-vibe";
 import { clamp } from "@/lib/mochi-types";
 
 interface Props {
@@ -441,15 +441,18 @@ function VibeCard({
     genres: now.genres ?? [],
     playCount: 0,
   });
-  const f = now.features;
+  const stats = estimateAudioStats(reaction.vibe, now.features, {
+    trackId: now.track.id,
+    artistPopularity: now.artist_popularity,
+  });
   const topGenres = (now.genres ?? []).slice(0, 3);
   return (
     <div className="space-y-2">
       <p className="text-xs italic leading-snug">"{reaction.message}"</p>
       <div className="grid grid-cols-3 gap-1 text-[10px]">
-        <Stat label="energia" v={f?.energy} />
-        <Stat label="alegria" v={f?.valence} />
-        <Stat label="dança" v={f?.danceability} />
+        <Stat label="energia" v={stats.energy} />
+        <Stat label="alegria" v={stats.valence} />
+        <Stat label="dança" v={stats.danceability} />
       </div>
       {topGenres.length > 0 && (
         <p className="text-center text-[10px] text-muted-foreground">
@@ -458,6 +461,7 @@ function VibeCard({
       )}
       <p className="text-center text-[10px] text-muted-foreground">
         vibe detectada: <span className="font-semibold">{reaction.vibe}</span>
+        {stats.isEstimated && <span className="ml-1 opacity-70">· estimado por gênero</span>}
       </p>
     </div>
   );
@@ -469,6 +473,12 @@ function Stat({ label, v }: { label: string; v: number | null | undefined }) {
     <div className="rounded-lg bg-foreground/5 p-1.5 text-center">
       <p className="text-muted-foreground">{label}</p>
       <p className="font-bold tabular-nums">{v == null ? "—" : `${pct}%`}</p>
+      <div className="mt-1 h-1 overflow-hidden rounded-full bg-foreground/10">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-pink to-lilac transition-all"
+          style={{ width: v == null ? "0%" : `${pct}%` }}
+        />
+      </div>
     </div>
   );
 }
