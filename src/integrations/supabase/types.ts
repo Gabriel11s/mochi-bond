@@ -134,6 +134,8 @@ export type Database = {
         Row: {
           current_mood: string
           energy: number
+          equipped_accessory: string
+          equipped_skin: string
           happiness: number
           hunger: number
           id: number
@@ -148,6 +150,8 @@ export type Database = {
         Insert: {
           current_mood?: string
           energy?: number
+          equipped_accessory?: string
+          equipped_skin?: string
           happiness?: number
           hunger?: number
           id?: number
@@ -162,6 +166,8 @@ export type Database = {
         Update: {
           current_mood?: string
           energy?: number
+          equipped_accessory?: string
+          equipped_skin?: string
           happiness?: number
           hunger?: number
           id?: number
@@ -172,6 +178,33 @@ export type Database = {
           pet_name?: string
           updated_at?: string
           xp?: number
+        }
+        Relationships: []
+      }
+      photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          happiness_boost: number
+          id: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          happiness_boost?: number
+          id?: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          happiness_boost?: number
+          id?: string
+          storage_path?: string
+          uploaded_by?: string
         }
         Relationships: []
       }
