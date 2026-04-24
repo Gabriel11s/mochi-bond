@@ -184,8 +184,26 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBusy(false);
   };
 
+  const lastPlayAt = history.find((h) => h.interaction_type === "play")?.created_at ?? null;
+  const playCooldownMs = 24 * 60 * 60 * 1000;
+  const playMsLeft = lastPlayAt
+    ? Math.max(0, playCooldownMs - (Date.now() - new Date(lastPlayAt).getTime()))
+    : 0;
+  const playLocked = playMsLeft > 0;
+  const playLockedLabel = (() => {
+    if (!playLocked) return null;
+    const h = Math.floor(playMsLeft / 3600000);
+    const m = Math.floor((playMsLeft % 3600000) / 60000);
+    if (h > 0) return `volta em ${h}h`;
+    return `volta em ${m}min`;
+  })();
+
   const pet_action = async (type: "pet" | "play") => {
     if (!pet || busy) return;
+    if (type === "play" && playLocked) {
+      showToast(`brincadeira só 1x/dia 💤 ${playLockedLabel}`);
+      return;
+    }
     setBusy(true);
     setBouncing(true);
     burstParticles(type === "pet" ? "💗" : "✨", 5);
@@ -461,10 +479,11 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         </button>
         <button
           onClick={() => pet_action("play")}
-          disabled={busy || pet.energy < 10}
+          disabled={busy || pet.energy < 10 || playLocked}
           className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97] disabled:opacity-50"
+          title={playLocked ? `brincadeira só 1x/dia — ${playLockedLabel}` : "brincar"}
         >
-          🎈 brincar
+          {playLocked ? `🎈 ${playLockedLabel}` : "🎈 brincar"}
         </button>
         <button
           onClick={() => setPhotosOpen(true)}
