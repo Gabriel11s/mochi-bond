@@ -441,9 +441,16 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         <button
           onClick={() => setDrawerOpen(true)}
           disabled={busy}
-          className="col-span-4 rounded-2xl bg-gradient-to-r from-pink to-lilac px-5 py-4 font-display text-lg font-bold text-white shadow-[var(--shadow-glow)] transition-all active:scale-[0.97] disabled:opacity-50"
+          className="col-span-2 rounded-2xl bg-gradient-to-r from-pink to-lilac px-5 py-4 font-display text-base font-bold text-white shadow-[var(--shadow-glow)] transition-all active:scale-[0.97] disabled:opacity-50"
         >
           🍙 alimentar
+        </button>
+        <button
+          onClick={() => setQuestsOpen(true)}
+          disabled={busy}
+          className="col-span-2 rounded-2xl bg-gradient-to-r from-mint to-lilac px-5 py-4 font-display text-base font-bold text-white shadow-[var(--shadow-glow)] transition-all active:scale-[0.97] disabled:opacity-50"
+        >
+          🎯 missões
         </button>
         <button
           onClick={() => pet_action("pet")}
