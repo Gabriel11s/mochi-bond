@@ -97,8 +97,9 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     }, 1700);
   };
 
-  const feed = async (food: FoodItem) => {
+  const feed = async (entry: { food: FoodItem; pantryItemId: string | null }) => {
     if (!pet || busy) return;
+    const { food, pantryItemId } = entry;
     setBusy(true);
     setDrawerOpen(false);
 
@@ -145,6 +146,14 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       setEating(false);
       setBusy(false);
       return;
+    }
+
+    // consome o item da despensa (se vier de lá)
+    if (pantryItemId) {
+      await supabase
+        .from("pantry_items")
+        .update({ consumed: true, consumed_at: now })
+        .eq("id", pantryItemId);
     }
 
     await supabase.from("interactions").insert({
