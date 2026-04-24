@@ -858,6 +858,14 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         onSave={saveOutfit}
       />
 
+      {/* background drawer */}
+      <BackgroundDrawer
+        open={backgroundOpen}
+        onClose={() => setBackgroundOpen(false)}
+        current={backgroundId}
+        onSelect={pickBackground}
+      />
+
       {/* photos drawer */}
       <PhotosDrawer
         open={photosOpen}
