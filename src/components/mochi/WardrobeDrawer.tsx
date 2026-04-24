@@ -58,8 +58,8 @@ export function WardrobeDrawer({ open, onClose, currentSkin, currentAccessory, o
               </div>
             </div>
 
-              {/* tabs */}
-              <div className="mx-6 mt-2 flex rounded-full bg-white/5 p-1">
+            {/* tabs */}
+            <div className="mx-6 mt-2 flex rounded-full bg-white/5 p-1">
                 <button
                   onClick={() => setTab("skin")}
                   className={`flex-1 rounded-full py-2 text-sm font-display font-semibold transition-all ${
