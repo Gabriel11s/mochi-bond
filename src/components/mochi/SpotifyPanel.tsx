@@ -155,34 +155,34 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
     setTop([]);
   };
 
-  // Botão flutuante + cartão
+  // Painel modal centralizado (controlado pelo PetRoom)
   return (
-    <div className="pointer-events-none fixed left-3 top-24 z-30 flex flex-col items-start sm:left-5">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="glass-strong pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full text-xl shadow-md transition-transform active:scale-95"
-        aria-label="Spotify"
-        title="Spotify"
-      >
-        🎵
-      </button>
-
-      <AnimatePresence>
-        {open && (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 pt-20 backdrop-blur-sm sm:pt-24"
+          onClick={() => onOpenChange(false)}
+        >
           <motion.div
             initial={{ opacity: 0, y: -8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.18 }}
-            className="glass-strong pointer-events-auto mt-2 w-[280px] overflow-hidden rounded-2xl p-3 shadow-xl sm:w-[320px]"
+            className="glass-strong w-[300px] overflow-hidden rounded-2xl p-3 shadow-xl sm:w-[340px]"
+            onClick={(e) => e.stopPropagation()}
           >
             <header className="mb-2 flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                <SpotifyIcon className="h-3.5 w-3.5 text-[#1DB954]" />
                 Spotify
                 {status?.display_name ? ` · ${status.display_name}` : ""}
               </p>
               <button
-                onClick={() => setOpen(false)}
+                onClick={() => onOpenChange(false)}
                 className="rounded-full px-2 text-xs text-muted-foreground hover:text-foreground"
               >
                 ×
