@@ -3,6 +3,10 @@
 export interface SpotifyArtistLite {
   id: string;
   name: string;
+  /** Gêneros do Spotify para esse artista (pode estar vazio). */
+  genres?: string[];
+  /** 0–100. Quanto mais alto, mais popular o artista. */
+  popularity?: number | null;
 }
 
 export interface SpotifyImage {
@@ -33,6 +37,10 @@ export interface NowPlayingResponse {
     danceability: number | null;
     tempo: number | null;
   } | null;
+  /** Gêneros agregados de todos os artistas da faixa (lowercase, dedup). */
+  genres: string[];
+  /** Popularidade média dos artistas (0–100). */
+  artist_popularity: number | null;
 }
 
 export interface TopTracksResponse {
