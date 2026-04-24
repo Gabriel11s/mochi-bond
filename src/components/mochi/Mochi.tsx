@@ -319,6 +319,9 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
             sleeping={sleeping}
             happy={happy}
             blink={blink}
+            surprised={surprised}
+            sx={sx}
+            sy={sy}
           />
 
           {/* ===== Óculos overlay ===== */}
