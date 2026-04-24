@@ -23,6 +23,13 @@ import type { NowPlayingResponse } from "@/lib/spotify-types";
 import { buildMochiReaction, vibeLabel } from "@/lib/spotify-vibe";
 import { partnerKeyFromName, pickGreeting } from "@/lib/mochi-greetings";
 import { useTheme } from "@/hooks/use-theme";
+import { BackgroundScene } from "./BackgroundScene";
+import { BackgroundDrawer } from "./BackgroundDrawer";
+import {
+  loadBackgroundId,
+  saveBackgroundId,
+  type BackgroundId,
+} from "@/lib/mochi-backgrounds";
 
 interface Props {
   partnerName: string;
@@ -40,6 +47,8 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [photosOpen, setPhotosOpen] = useState(false);
   const [questsOpen, setQuestsOpen] = useState(false);
   const [spotifyOpen, setSpotifyOpen] = useState(false);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const [backgroundId, setBackgroundId] = useState<BackgroundId>("quartinho");
   const [nowPlaying, setNowPlaying] = useState<NowPlayingResponse | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -78,6 +87,17 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     }, 25000);
     return () => window.clearInterval(t);
   }, [partnerKey]);
+
+  // carrega background salvo no localStorage
+  useEffect(() => {
+    setBackgroundId(loadBackgroundId());
+  }, []);
+
+  const pickBackground = (id: BackgroundId) => {
+    setBackgroundId(id);
+    saveBackgroundId(id);
+    showToast(`cantinho trocado ✨`);
+  };
 
   // initial load + realtime
   useEffect(() => {
@@ -454,6 +474,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
+      <BackgroundScene backgroundId={backgroundId} />
       <PhotoWall />
       <SpotifyPanel
         partnerName={partnerName}
@@ -483,13 +504,23 @@ export function PetRoom({ partnerName, onLogout }: Props) {
             oi, {partnerName.toLowerCase()}
           </p>
         </div>
-        <button
-          onClick={toggle}
-          className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
-          aria-label="trocar tema"
-        >
-          {theme === "dark" ? "🌙" : "☀️"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setBackgroundOpen(true)}
+            className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
+            aria-label="trocar cenário"
+            title="trocar cenário"
+          >
+            🏞️
+          </button>
+          <button
+            onClick={toggle}
+            className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
+            aria-label="trocar tema"
+          >
+            {theme === "dark" ? "🌙" : "☀️"}
+          </button>
+        </div>
       </header>
 
       {/* Aviso de morte recente */}
@@ -825,6 +856,14 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         currentSkin={pet.equipped_skin}
         currentAccessory={pet.equipped_accessory}
         onSave={saveOutfit}
+      />
+
+      {/* background drawer */}
+      <BackgroundDrawer
+        open={backgroundOpen}
+        onClose={() => setBackgroundOpen(false)}
+        current={backgroundId}
+        onSelect={pickBackground}
       />
 
       {/* photos drawer */}
