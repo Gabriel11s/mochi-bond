@@ -18,6 +18,8 @@ interface VerifyBody {
 interface VerifyResult {
   match: boolean;
   reason: string;
+  cuteness: number; // 1-10
+  vibe: "bonitinho" | "feio" | "meh";
 }
 
 Deno.serve(async (req) => {
