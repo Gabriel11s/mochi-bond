@@ -42,14 +42,16 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   // initial load + realtime
   useEffect(() => {
     const load = async () => {
-      const [{ data: petData }, { data: foodData }, { data: histData }] = await Promise.all([
+      const [{ data: petData }, { data: foodData }, { data: histData }, { data: settings }] = await Promise.all([
         supabase.from("pet_state").select("*").eq("id", 1).single(),
         supabase.from("food_items").select("*").eq("is_active", true).order("rarity"),
         supabase.from("interactions").select("*").order("created_at", { ascending: false }).limit(20),
+        supabase.from("couple_settings").select("partner_one_name, partner_two_name").eq("id", 1).single(),
       ]);
       if (petData) setPet(petData as PetState);
       if (foodData) setFoods(foodData as FoodItem[]);
       if (histData) setHistory(histData as Interaction[]);
+      if (settings) setPartners([settings.partner_one_name, settings.partner_two_name]);
     };
     load();
 
