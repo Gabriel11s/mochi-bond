@@ -494,8 +494,11 @@ async function applyMusicBoost({
   try {
     const raw = window.localStorage.getItem(BOOST_KEY(partnerName));
     const prev = raw ? (JSON.parse(raw) as { trackId: string; t: number }) : null;
-    if (prev?.trackId === track.id) return;
-    if (prev && Date.now() - prev.t < BOOST_COOLDOWN_MS) return;
+    // Anti-spam apenas para o MESMO track em sequência. O ajuste por
+    // playCount já cuida de não inflar stats com música repetida.
+    if (prev?.trackId === track.id && Date.now() - prev.t < BOOST_COOLDOWN_MS) {
+      return;
+    }
 
     const { data: pet } = await supabase.from("pet_state").select("*").eq("id", 1).single();
     if (!pet) return;
