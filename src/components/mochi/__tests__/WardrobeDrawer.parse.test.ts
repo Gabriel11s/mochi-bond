@@ -44,7 +44,8 @@ describe("WardrobeDrawer parser invariants", () => {
 
     const count = (re: RegExp) => (stripped.match(re) ?? []).length;
 
-    const motionOpen = count(/<motion\.div\b/g);
+    // count only non-self-closing opens
+    const motionOpen = count(/<motion\.div\b[^>]*(?<!\/)>/g);
     const motionClose = count(/<\/motion\.div>/g);
     expect(motionOpen).toBe(motionClose);
 
