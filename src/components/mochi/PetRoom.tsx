@@ -474,6 +474,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
+      <BackgroundScene backgroundId={backgroundId} />
       <PhotoWall />
       <SpotifyPanel
         partnerName={partnerName}
