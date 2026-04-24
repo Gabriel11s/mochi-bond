@@ -451,7 +451,9 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
       <OutfitDrawer
         open={outfitOpen}
         outfit={outfit}
+        enabled={enabledItems}
         onChange={updateOutfit}
+        onToggleEnabled={toggleItemEnabled}
         onClose={() => setOutfitOpen(false)}
       />
     </div>
