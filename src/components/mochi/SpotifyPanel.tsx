@@ -29,6 +29,7 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
   const [now, setNow] = useState<NowPlayingResponse | null>(null);
   const [top, setTop] = useState<SpotifyTrackLite[]>([]);
   const [loading, setLoading] = useState(false);
+  const [justConnected, setJustConnected] = useState(false);
   const lastReactedTrackRef = useRef<string | null>(null);
 
   // status
@@ -58,6 +59,7 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
       url.searchParams.delete("spotify_error");
       window.history.replaceState({}, "", url.toString());
       if (ok) {
+        setJustConnected(true);
         fetch(`/api/spotify/status?partner=${encodeURIComponent(partnerName)}`)
           .then((r) => r.json())
           .then((d: ConnectionStatus) => setStatus(d))
@@ -65,7 +67,13 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
         onOpenChange(true);
       }
     }
-  }, [partnerName]);
+  }, [partnerName, onOpenChange]);
+
+  useEffect(() => {
+    if (!justConnected || !status?.display_name) return;
+    const timeout = window.setTimeout(() => setJustConnected(false), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [justConnected, status?.display_name]);
 
   const loadNow = useMemo(
     () => async () => {
@@ -143,7 +151,12 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
 
   const handleConnect = () => {
     if (typeof window === "undefined") return;
-    window.location.href = `/api/spotify/login?partner=${encodeURIComponent(partnerName)}`;
+    const loginUrl = `/api/spotify/login?partner=${encodeURIComponent(partnerName)}`;
+    if (window.top && window.top !== window.self) {
+      window.top.location.href = loginUrl;
+      return;
+    }
+    window.location.href = loginUrl;
   };
 
   const handleDisconnect = async () => {
@@ -188,6 +201,12 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
                 ×
               </button>
             </header>
+
+            {justConnected && status?.display_name && (
+              <div className="mb-3 rounded-xl bg-primary/10 px-3 py-2 text-sm text-foreground">
+                Spotify conectado com sucesso · {status.display_name}
+              </div>
+            )}
 
             {!status?.connected ? (
               <div className="space-y-3 py-2">
