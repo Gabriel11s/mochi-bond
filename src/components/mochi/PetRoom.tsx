@@ -416,6 +416,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       <PhotoWall />
       <SpotifyPanel
         partnerName={partnerName}
+        petName={pet.pet_name}
         open={spotifyOpen}
         onOpenChange={setSpotifyOpen}
         onNowChange={setNowPlaying}
@@ -725,6 +726,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         partnerName={partnerName}
+        petName={pet.pet_name}
         onPick={feed}
         busy={busy}
         onOpenQuests={() => setQuestsOpen(true)}
@@ -735,6 +737,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         open={questsOpen}
         onClose={() => setQuestsOpen(false)}
         partnerName={partnerName}
+        petName={pet.pet_name}
         onCompleted={(msg) => showToast(msg)}
       />
 
