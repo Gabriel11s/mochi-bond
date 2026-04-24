@@ -15,7 +15,14 @@ import { InteractionHistory } from "./InteractionHistory";
 import { FloatingHearts } from "./FloatingHearts";
 import { OutfitDrawer } from "./OutfitDrawer";
 import { useTheme } from "@/hooks/use-theme";
-import { type Outfit, loadOutfit, saveOutfit } from "@/lib/mochi-outfit";
+import {
+  type Outfit,
+  type OutfitItemId,
+  loadOutfit,
+  saveOutfit,
+  loadEnabled,
+  saveEnabled,
+} from "@/lib/mochi-outfit";
 
 interface Props {
   partnerName: string;
