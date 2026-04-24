@@ -298,6 +298,28 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     showToast("lookzinho novo ✨");
   };
 
+  const startEditingName = () => {
+    if (!pet) return;
+    setNameDraft(pet.pet_name);
+    setEditingName(true);
+  };
+
+  const saveName = async () => {
+    if (!pet) return;
+    const trimmed = nameDraft.trim().slice(0, 20);
+    setEditingName(false);
+    if (!trimmed || trimmed === pet.pet_name) return;
+    const { error } = await supabase
+      .from("pet_state")
+      .update({ pet_name: trimmed, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    if (error) {
+      showToast("não consegui renomear 🥺");
+      return;
+    }
+    showToast(`agora ele atende por ${trimmed} 💗`);
+  };
+
   const showPhoto = async (photo: Photo) => {
     if (!pet || busy) return;
     setBusy(true);
