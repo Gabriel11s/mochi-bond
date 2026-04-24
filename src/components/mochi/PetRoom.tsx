@@ -13,7 +13,9 @@ import { StatusBars } from "./StatusBars";
 import { FoodDrawer } from "./FoodDrawer";
 import { InteractionHistory } from "./InteractionHistory";
 import { FloatingHearts } from "./FloatingHearts";
+import { OutfitDrawer } from "./OutfitDrawer";
 import { useTheme } from "@/hooks/use-theme";
+import { type Outfit, loadOutfit, saveOutfit } from "@/lib/mochi-outfit";
 
 interface Props {
   partnerName: string;
