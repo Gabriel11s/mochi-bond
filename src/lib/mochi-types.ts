@@ -32,7 +32,7 @@ export interface FoodItem {
   is_unlockable?: boolean;
 }
 
-export type QuestCategory = "casa" | "casal" | "romantico";
+export type QuestCategory = "casa" | "casal" | "dupla" | "romantico" | "mundo";
 
 export interface Quest {
   id: string;
@@ -130,14 +130,14 @@ export function moodLabel(mood: Mood): string {
 
 export function moodCopy(mood: Mood): string {
   switch (mood) {
-    case "happy": return "Hoje ele tá radiante";
-    case "hungry": return "Acho que ele quer um lanchinho";
+    case "happy": return "Tá de bom humor hoje";
+    case "hungry": return "Acho que quer um lanchinho";
     case "sleepy": return "Bocejou três vezes seguidas";
-    case "excited": return "Tá pulando de alegria";
-    case "sad": return "Precisa de um pouquinho de carinho";
+    case "excited": return "Tá animadinho";
+    case "sad": return "Tá meio pra baixo";
     case "eating": return "Mastigando devagarzinho";
-    case "smitten": return "Derretendo com a fotinho de vocês 💗";
-    default: return "Tá curtindo o quartinho";
+    case "smitten": return "Curtiu bastante a foto ✨";
+    default: return "Tá tranquilo no quartinho";
   }
 }
 

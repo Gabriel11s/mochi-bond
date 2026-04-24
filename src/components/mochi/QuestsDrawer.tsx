@@ -5,8 +5,10 @@ import type { Quest, QuestCompletion, QuestCategory, Rarity, QuestVibe } from "@
 
 const CATEGORY_LABEL: Record<QuestCategory, { label: string; emoji: string }> = {
   casa: { label: "Pela casa", emoji: "🏠" },
-  casal: { label: "De vocês dois", emoji: "💑" },
-  romantico: { label: "Romântico", emoji: "✨" },
+  casal: { label: "Dupla", emoji: "👥" },
+  dupla: { label: "Dupla", emoji: "👥" },
+  romantico: { label: "Lá fora", emoji: "🌤️" },
+  mundo: { label: "Lá fora", emoji: "🌤️" },
 };
 
 const RARITY_LABEL: Record<Rarity, string> = {
@@ -24,7 +26,7 @@ const RARITY_GRADIENT: Record<Rarity, string> = {
 };
 
 const VIBE_META: Record<QuestVibe, { emoji: string; label: string; color: string }> = {
-  bonitinho: { emoji: "😍", label: "achou super fofo", color: "bg-mint/25 text-foreground" },
+  bonitinho: { emoji: "👌", label: "curtiu", color: "bg-mint/25 text-foreground" },
   meh: { emoji: "🙂", label: "achou ok", color: "bg-white/10 text-foreground" },
   feio: { emoji: "🥲", label: "torceu o nariz", color: "bg-danger-soft/20 text-foreground" },
 };
@@ -223,14 +225,20 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
     }
   };
 
-  const grouped = quests.reduce<Record<QuestCategory, Quest[]>>(
+  // normaliza categorias antigas pra novas (casal→dupla, romantico→mundo)
+  const normalizeCat = (c: string): QuestCategory => {
+    if (c === "casal") return "dupla";
+    if (c === "romantico") return "mundo";
+    return c as QuestCategory;
+  };
+  const grouped = quests.reduce<Record<"casa" | "dupla" | "mundo", Quest[]>>(
     (acc, q) => {
-      const k = q.category as QuestCategory;
-      if (!acc[k]) acc[k] = [];
-      acc[k].push(q);
+      const k = normalizeCat(q.category);
+      const bucket = k === "casa" ? "casa" : k === "dupla" || k === "casal" ? "dupla" : "mundo";
+      acc[bucket].push(q);
       return acc;
     },
-    { casa: [], casal: [], romantico: [] },
+    { casa: [], dupla: [], mundo: [] },
   );
 
   return (
@@ -295,7 +303,7 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
             {/* QUESTS TAB */}
             {!activeQuest && tab === "quests" && (
               <div className="flex-1 overflow-y-auto px-6 pb-6 pt-3">
-                {(Object.keys(grouped) as QuestCategory[]).map((cat) =>
+                {(Object.keys(grouped) as Array<"casa" | "dupla" | "mundo">).map((cat) =>
                   grouped[cat].length === 0 ? null : (
                     <div key={cat} className="mb-5">
                       <h4 className="mb-2 px-1 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
@@ -413,7 +421,7 @@ export function QuestsDrawer({ open, onClose, partnerName, onCompleted }: Props)
                               "{c.ai_reason}"
                               {typeof c.cuteness === "number" && (
                                 <span className="ml-1 not-italic font-bold">
-                                  · fofura {c.cuteness}/10
+                                  · nota {c.cuteness}/10
                                 </span>
                               )}
                             </p>
