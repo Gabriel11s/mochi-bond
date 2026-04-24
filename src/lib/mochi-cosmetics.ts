@@ -123,7 +123,7 @@ export const ACCESSORIES: Accessory[] = [
   { id: "heart", label: "Coraçãozinho", emoji: "💗" },
   { id: "cherry", label: "Cerejinha", emoji: "🍒" },
   { id: "sunglasses", label: "Óculos sol", emoji: "😎" },
-  { id: "nerd", label: "Nerdola", emoji: "🤓" },
+  { id: "victory", label: "Vitória", emoji: "🕶️" },
   { id: "monocle", label: "Monóculo", emoji: "🧐" },
   { id: "mustache", label: "Bigode", emoji: "👨" },
   { id: "tie", label: "Gravatinha", emoji: "👔" },
