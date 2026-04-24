@@ -184,24 +184,34 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBusy(false);
   };
 
+  const cooldownMs = 24 * 60 * 60 * 1000;
+  const formatLeft = (ms: number) => {
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return h > 0 ? `volta em ${h}h` : `volta em ${m}min`;
+  };
   const lastPlayAt = history.find((h) => h.interaction_type === "play")?.created_at ?? null;
-  const playCooldownMs = 24 * 60 * 60 * 1000;
   const playMsLeft = lastPlayAt
-    ? Math.max(0, playCooldownMs - (Date.now() - new Date(lastPlayAt).getTime()))
+    ? Math.max(0, cooldownMs - (Date.now() - new Date(lastPlayAt).getTime()))
     : 0;
   const playLocked = playMsLeft > 0;
-  const playLockedLabel = (() => {
-    if (!playLocked) return null;
-    const h = Math.floor(playMsLeft / 3600000);
-    const m = Math.floor((playMsLeft % 3600000) / 60000);
-    if (h > 0) return `volta em ${h}h`;
-    return `volta em ${m}min`;
-  })();
+  const playLockedLabel = playLocked ? formatLeft(playMsLeft) : null;
+
+  const lastPetAt = history.find((h) => h.interaction_type === "pet")?.created_at ?? null;
+  const petMsLeft = lastPetAt
+    ? Math.max(0, cooldownMs - (Date.now() - new Date(lastPetAt).getTime()))
+    : 0;
+  const petLocked = petMsLeft > 0;
+  const petLockedLabel = petLocked ? formatLeft(petMsLeft) : null;
 
   const pet_action = async (type: "pet" | "play") => {
     if (!pet || busy) return;
     if (type === "play" && playLocked) {
       showToast(`brincadeira só 1x/dia 💤 ${playLockedLabel}`);
+      return;
+    }
+    if (type === "pet" && petLocked) {
+      showToast(`carinho só 1x/dia 💗 ${petLockedLabel}`);
       return;
     }
     setBusy(true);
