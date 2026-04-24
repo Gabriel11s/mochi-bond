@@ -1,0 +1,127 @@
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { CoupleSettings } from "@/lib/mochi-types";
+import { Mochi } from "./Mochi";
+
+interface Props {
+  onLogin: (partnerName: string) => void;
+}
+
+export function LoginScreen({ onLogin }: Props) {
+  const [settings, setSettings] = useState<CoupleSettings | null>(null);
+  const [code, setCode] = useState("");
+  const [picked, setPicked] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    supabase
+      .from("couple_settings")
+      .select("*")
+      .eq("id", 1)
+      .single()
+      .then(({ data }) => {
+        if (data) setSettings(data as CoupleSettings);
+      });
+  }, []);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!settings) return;
+    if (!picked) {
+      setError("Escolha quem é você 💗");
+      return;
+    }
+    setLoading(true);
+    if (code.trim().toLowerCase() !== settings.secret_code.toLowerCase()) {
+      setError("Esse não é o código de vocês 🥺");
+      setLoading(false);
+      return;
+    }
+    onLogin(picked);
+  };
+
+  return (
+    <div className="relative flex min-h-[100dvh] flex-col items-center justify-center px-6 py-10">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="flex flex-col items-center"
+      >
+        <Mochi mood="happy" />
+      </motion.div>
+
+      <motion.form
+        onSubmit={submit}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.5 }}
+        className="glass-strong mt-2 flex w-full max-w-sm flex-col gap-5 rounded-3xl p-7"
+      >
+        <div className="text-center">
+          <h1 className="font-display text-3xl font-bold tracking-tight">Mochi Room</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Entre no cantinho de vocês
+          </p>
+        </div>
+
+        {settings && (
+          <div className="flex gap-2">
+            {[settings.partner_one_name, settings.partner_two_name].map((name) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => setPicked(name)}
+                className={`flex-1 rounded-2xl border-2 px-3 py-3 text-sm font-semibold transition-all ${
+                  picked === name
+                    ? "border-pink bg-pink/15 text-foreground"
+                    : "border-transparent bg-white/5 text-muted-foreground hover:bg-white/10"
+                }`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            Código secreto do casal
+          </label>
+          <input
+            type="password"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="palavra fofa de vocês"
+            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center font-display text-lg font-medium tracking-wider outline-none transition-all focus:border-pink/40 focus:bg-white/10 focus:ring-4 focus:ring-pink/20"
+            autoComplete="off"
+          />
+          <p className="text-center text-[11px] text-muted-foreground">
+            (dica: o código padrão é <span className="font-mono">mochi</span>)
+          </p>
+        </div>
+
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl bg-danger-soft/20 px-3 py-2 text-center text-xs font-medium text-danger-soft"
+          >
+            {error}
+          </motion.p>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="rounded-2xl bg-gradient-to-r from-pink to-lilac px-6 py-3.5 font-display text-base font-bold text-white shadow-[var(--shadow-glow)] transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+        >
+          {loading ? "abrindo a porta…" : "entrar no cantinho"}
+        </button>
+      </motion.form>
+    </div>
+  );
+}
