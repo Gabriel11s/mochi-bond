@@ -35,26 +35,28 @@ export function WardrobeDrawer({ open, onClose, currentSkin, currentAccessory, o
             onClick={onClose}
           />
           <motion.div
-            className="glass-strong fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-hidden rounded-t-3xl pb-safe"
+            className="glass-strong fixed inset-x-0 bottom-0 z-50 flex max-h-[85vh] flex-col overflow-hidden rounded-t-3xl pb-safe"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 220, damping: 28 }}
           >
-            <div className="flex flex-col">
-              <div className="flex justify-center pt-3">
-                <div className="h-1.5 w-12 rounded-full bg-white/20" />
-              </div>
+            <div className="flex justify-center pt-3">
+              <div className="h-1.5 w-12 rounded-full bg-white/20" />
+            </div>
 
-              <div className="px-6 pt-4 pb-2">
-                <h3 className="font-display text-2xl font-bold">Guarda-roupa do Mochi</h3>
-                <p className="text-sm text-muted-foreground">Deixa ele do jeitinho de vocês</p>
+            <div className="flex items-center gap-4 px-6 pt-3 pb-1">
+              {/* compact preview */}
+              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/5">
+                <div className="absolute inset-0 flex items-center justify-center" style={{ transform: "scale(0.28)", transformOrigin: "center" }}>
+                  <Mochi mood="happy" skinId={skin} accessoryId={acc} />
+                </div>
               </div>
-
-              {/* preview */}
-              <div className="flex justify-center -mt-2 -mb-4 scale-75">
-                <Mochi mood="happy" skinId={skin} accessoryId={acc} />
+              <div className="min-w-0 flex-1">
+                <h3 className="font-display text-xl font-bold leading-tight">Guarda-roupa</h3>
+                <p className="text-xs text-muted-foreground">Deixa ele do jeitinho de vocês</p>
               </div>
+            </div>
 
               {/* tabs */}
               <div className="mx-6 mt-2 flex rounded-full bg-white/5 p-1">
