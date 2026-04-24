@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { motion } from "framer-motion";
 import type { Mood } from "@/lib/mochi-types";
 import { getSkin, getAccessory } from "@/lib/mochi-cosmetics";
@@ -13,6 +14,9 @@ interface Props {
 export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = "none" }: Props) {
   const skin = getSkin(skinId);
   const acc = getAccessory(accessoryId);
+  const uid = useId().replace(/:/g, "");
+  const bodyGradId = `mochi-body-${uid}`;
+  const cheekGradId = `mochi-cheek-${uid}`;
 
   const eyesClosed = mood === "sleepy";
   const blush = mood === "happy" || mood === "excited" || mood === "smitten";
