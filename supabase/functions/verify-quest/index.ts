@@ -18,6 +18,8 @@ interface VerifyBody {
 interface VerifyResult {
   match: boolean;
   reason: string;
+  cuteness: number; // 1-10
+  vibe: "bonitinho" | "feio" | "meh";
 }
 
 Deno.serve(async (req) => {
@@ -128,7 +130,7 @@ Deno.serve(async (req) => {
             {
               role: "system",
               content:
-                "Você é um juíz fofo de um joguinho de tamagotchi. Avalia se a foto cumpre a missão pedida. Seja generoso quando o item está claramente visível, mas rejeite se for outra coisa, captura de tela óbvia ou imagem genérica baixada da internet. Responda SEMPRE chamando a função evaluate_quest.",
+                "Você é o Mochi, um juíz fofo (e meio exigente) de um joguinho de tamagotchi de casal. Avalia se a foto cumpre a missão pedida E também avalia o quão fofa/bonitinha a foto é. Seja generoso quando o item está claramente visível, mas rejeite se for outra coisa, captura de tela óbvia ou imagem genérica baixada da internet. Para cuteness: 1-3 = feio/sujo/baguncado/sem graça, 4-6 = ok/médio, 7-10 = realmente bonitinho/aconchegante/com vibe fofa. Vibe: 'bonitinho' se cuteness>=7, 'meh' se 4-6, 'feio' se <=3. Responda SEMPRE chamando a função evaluate_quest.",
             },
             {
               role: "user",
@@ -149,7 +151,7 @@ Deno.serve(async (req) => {
               type: "function",
               function: {
                 name: "evaluate_quest",
-                description: "Avalia se a foto cumpre a missão",
+                description: "Avalia se a foto cumpre a missão e o quanto é fofa",
                 parameters: {
                   type: "object",
                   properties: {
@@ -162,8 +164,19 @@ Deno.serve(async (req) => {
                       description:
                         "explicação curta e fofa em português (máx 80 chars)",
                     },
+                    cuteness: {
+                      type: "integer",
+                      description: "nota de fofura da foto, de 1 (feio) a 10 (lindo)",
+                      minimum: 1,
+                      maximum: 10,
+                    },
+                    vibe: {
+                      type: "string",
+                      enum: ["bonitinho", "feio", "meh"],
+                      description: "veredito visual do Mochi",
+                    },
                   },
-                  required: ["match", "reason"],
+                  required: ["match", "reason", "cuteness", "vibe"],
                   additionalProperties: false,
                 },
               },
@@ -213,10 +226,18 @@ Deno.serve(async (req) => {
     let result: VerifyResult = {
       match: false,
       reason: "Mochi não soube responder",
+      cuteness: 5,
+      vibe: "meh",
     };
     if (toolCall?.function?.arguments) {
       try {
         result = JSON.parse(toolCall.function.arguments) as VerifyResult;
+        // sanitiza
+        if (typeof result.cuteness !== "number") result.cuteness = 5;
+        result.cuteness = Math.max(1, Math.min(10, Math.round(result.cuteness)));
+        if (!["bonitinho", "feio", "meh"].includes(result.vibe)) {
+          result.vibe = result.cuteness >= 7 ? "bonitinho" : result.cuteness <= 3 ? "feio" : "meh";
+        }
       } catch {
         // mantém default
       }
@@ -236,10 +257,12 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             status: "rejected",
             ai_reason: result.reason,
+            cuteness: result.cuteness,
+            vibe: result.vibe,
           }),
         },
       );
-      return json({ status: "rejected", reason: result.reason }, 200);
+      return json({ status: "rejected", reason: result.reason, cuteness: result.cuteness, vibe: result.vibe }, 200);
     }
 
     // 6. Aprovada — sortear N comidinhas da raridade certa, criar pantry_items, dar XP
@@ -311,10 +334,25 @@ Deno.serve(async (req) => {
       level: number;
       happiness: number;
     }>)[0];
+    // Bônus/penalidade de humor de acordo com a fofura da foto
+    // cute >=8: +10 happiness, XP cheio
+    // cute 4-7: +5 happiness (padrão), XP cheio
+    // cute <=3: -3 happiness (Mochi achou feio), XP reduzido
+    let happinessDelta = 5;
+    let xpMultiplier = 1;
+    if (result.cuteness >= 8) {
+      happinessDelta = 10;
+      xpMultiplier = 1;
+    } else if (result.cuteness <= 3) {
+      happinessDelta = -3;
+      xpMultiplier = 0.5;
+    }
+    const xpReward = Math.max(1, Math.round(quest.reward_xp * xpMultiplier));
+
     if (pet) {
-      const newXp = pet.xp + quest.reward_xp;
+      const newXp = pet.xp + xpReward;
       const newLevel = Math.floor(newXp / 100) + 1;
-      const newHappy = Math.min(100, pet.happiness + 5);
+      const newHappy = Math.max(0, Math.min(100, pet.happiness + happinessDelta));
       await fetch(`${SUPABASE_URL}/rest/v1/pet_state?id=eq.1`, {
         method: "PATCH",
         headers: {
@@ -334,6 +372,12 @@ Deno.serve(async (req) => {
     }
 
     // log na timeline
+    const vibeMsg =
+      result.vibe === "bonitinho"
+        ? "achou super fofo"
+        : result.vibe === "feio"
+          ? "torceu o nariz mas aceitou"
+          : "achou ok";
     await fetch(`${SUPABASE_URL}/rest/v1/interactions`, {
       method: "POST",
       headers: {
@@ -344,8 +388,9 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         partner_name: body.partner_name,
         interaction_type: "quest",
-        xp_delta: quest.reward_xp,
-        message: `cumpriu a missão "${quest.title}" e ganhou ${picked
+        xp_delta: xpReward,
+        happiness_delta: happinessDelta,
+        message: `${vibeMsg} a foto de "${quest.title}" e ganhou ${picked
           .map((p) => p.emoji)
           .join("")}`,
       }),
@@ -364,6 +409,8 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           status: "approved",
           ai_reason: result.reason,
+          cuteness: result.cuteness,
+          vibe: result.vibe,
         }),
       },
     );
@@ -373,7 +420,10 @@ Deno.serve(async (req) => {
         status: "approved",
         reason: result.reason,
         rewards: picked,
-        xp: quest.reward_xp,
+        xp: xpReward,
+        happiness_delta: happinessDelta,
+        cuteness: result.cuteness,
+        vibe: result.vibe,
       },
       200,
     );
