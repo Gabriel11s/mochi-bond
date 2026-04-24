@@ -216,6 +216,66 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBusy(false);
   };
 
+  const saveOutfit = async (skin: string, accessory: string) => {
+    if (!pet) return;
+    await supabase
+      .from("pet_state")
+      .update({ equipped_skin: skin, equipped_accessory: accessory, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    showToast("lookzinho novo ✨");
+  };
+
+  const showPhoto = async (photo: Photo) => {
+    if (!pet || busy) return;
+    setBusy(true);
+    setShownPhoto(photo);
+    setSmitten(true);
+    burstParticles("💗", 10);
+
+    const dHappy = photo.happiness_boost;
+    const newHappiness = clamp(pet.happiness + dHappy);
+    const xp = 8;
+    const newXp = pet.xp + xp;
+    const newLevel = Math.floor(newXp / 100) + 1;
+    const leveled = newLevel > pet.level;
+    const now = new Date().toISOString();
+
+    await supabase
+      .from("pet_state")
+      .update({
+        happiness: newHappiness,
+        xp: newXp,
+        level: newLevel,
+        current_mood: computeMood(pet.hunger, newHappiness, pet.energy),
+        last_interaction_at: now,
+        last_interaction_by: partnerName,
+        updated_at: now,
+      })
+      .eq("id", 1);
+
+    await supabase.from("interactions").insert({
+      partner_name: partnerName,
+      interaction_type: "photo",
+      happiness_delta: dHappy,
+      xp_delta: xp,
+      message: photo.caption ? `derreteu vendo "${photo.caption}"` : "derreteu vendo uma fotinho de vocês",
+    });
+
+    showToast("ele ficou apaixonadinho 💗");
+
+    if (leveled) {
+      setLevelUp(true);
+      window.setTimeout(() => setLevelUp(false), 2400);
+      burstParticles("✨", 12);
+    }
+
+    window.setTimeout(() => {
+      setSmitten(false);
+      setShownPhoto(null);
+      setBusy(false);
+    }, 3200);
+  };
+
   if (!pet) {
     return (
       <div className="flex min-h-[100dvh] items-center justify-center text-muted-foreground">
