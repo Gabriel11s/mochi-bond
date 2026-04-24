@@ -69,6 +69,12 @@ export function SpotifyPanel({ partnerName, onReaction, open, onOpenChange }: Pr
     }
   }, [partnerName, onOpenChange]);
 
+  useEffect(() => {
+    if (!justConnected || !status?.display_name) return;
+    const timeout = window.setTimeout(() => setJustConnected(false), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [justConnected, status?.display_name]);
+
   const loadNow = useMemo(
     () => async () => {
       setLoading(true);
