@@ -504,13 +504,23 @@ export function PetRoom({ partnerName, onLogout }: Props) {
             oi, {partnerName.toLowerCase()}
           </p>
         </div>
-        <button
-          onClick={toggle}
-          className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
-          aria-label="trocar tema"
-        >
-          {theme === "dark" ? "🌙" : "☀️"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setBackgroundOpen(true)}
+            className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
+            aria-label="trocar cenário"
+            title="trocar cenário"
+          >
+            🏞️
+          </button>
+          <button
+            onClick={toggle}
+            className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
+            aria-label="trocar tema"
+          >
+            {theme === "dark" ? "🌙" : "☀️"}
+          </button>
+        </div>
       </header>
 
       {/* Aviso de morte recente */}
