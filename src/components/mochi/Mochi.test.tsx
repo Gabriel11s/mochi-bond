@@ -26,7 +26,7 @@ describe("Mochi SVG component", () => {
   });
 
   it("renders without crashing across all moods", () => {
-    for (const mood of ["happy", "sad", "sleepy", "excited", "neutral"] as const) {
+    for (const mood of ["happy", "sad", "sleepy", "excited", "idle", "hungry"] as const) {
       const { container, unmount } = render(<Mochi mood={mood} />);
       expect(container.querySelector("svg")).not.toBeNull();
       unmount();
