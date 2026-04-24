@@ -378,6 +378,8 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
 
           {/* ===== Chapéu (overlay topo) ===== */}
           <Hat id={outfit.hat} />
+          </motion.g>
+          {/* ===== /HEAD GROUP ===== */}
 
           {/* ===== Lágrima triste ===== */}
           {sad && (
