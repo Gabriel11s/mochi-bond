@@ -55,25 +55,25 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
         transition={{ type: "spring", stiffness: 180, damping: 14 }}
       >
         <defs>
-          <radialGradient id="mochi-body" cx="50%" cy="40%" r="65%">
+          <radialGradient id={bodyGradId} cx="50%" cy="40%" r="65%">
             <stop offset="0%" stopColor={skin.body} />
             <stop offset="60%" stopColor={skin.bodyMid} />
             <stop offset="100%" stopColor={skin.bodyEdge} />
           </radialGradient>
-          <radialGradient id="mochi-cheek" cx="50%" cy="50%" r="50%">
+          <radialGradient id={cheekGradId} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="oklch(0.78 0.18 10)" stopOpacity="0.85" />
             <stop offset="100%" stopColor="oklch(0.78 0.18 10)" stopOpacity="0" />
           </radialGradient>
         </defs>
 
         {/* ears */}
-        <ellipse cx="62" cy="62" rx="14" ry="20" fill="url(#mochi-body)" transform="rotate(-25 62 62)" />
-        <ellipse cx="138" cy="62" rx="14" ry="20" fill="url(#mochi-body)" transform="rotate(25 138 62)" />
+        <ellipse cx="62" cy="62" rx="14" ry="20" fill="url(#${bodyGradId})" transform="rotate(-25 62 62)" />
+        <ellipse cx="138" cy="62" rx="14" ry="20" fill="url(#${bodyGradId})" transform="rotate(25 138 62)" />
         <ellipse cx="62" cy="66" rx="6" ry="10" fill={skin.earInner} transform="rotate(-25 62 66)" />
         <ellipse cx="138" cy="66" rx="6" ry="10" fill={skin.earInner} transform="rotate(25 138 66)" />
 
         {/* body */}
-        <ellipse cx="100" cy="115" rx="68" ry="62" fill="url(#mochi-body)" />
+        <ellipse cx="100" cy="115" rx="68" ry="62" fill="url(#${bodyGradId})" />
 
         {/* scarf (under face) */}
         {acc.id === "scarf" && (
@@ -86,8 +86,8 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
         {/* cheeks */}
         {blush && (
           <>
-            <ellipse cx="62" cy="125" rx="14" ry="9" fill="url(#mochi-cheek)" />
-            <ellipse cx="138" cy="125" rx="14" ry="9" fill="url(#mochi-cheek)" />
+            <ellipse cx="62" cy="125" rx="14" ry="9" fill="url(#${cheekGradId})" />
+            <ellipse cx="138" cy="125" rx="14" ry="9" fill="url(#${cheekGradId})" />
           </>
         )}
 
