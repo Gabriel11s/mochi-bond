@@ -36,7 +36,7 @@ function Index() {
     <>
       <AmbientStars />
       {session ? (
-        <PetRoom partnerName={session.partnerName} onLogout={logout} onSwitchPartner={login} />
+        <PetRoom partnerName={session.partnerName} onLogout={logout} />
       ) : (
         <LoginScreen onLogin={login} />
       )}

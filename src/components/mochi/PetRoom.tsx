@@ -13,42 +13,20 @@ import { StatusBars } from "./StatusBars";
 import { FoodDrawer } from "./FoodDrawer";
 import { InteractionHistory } from "./InteractionHistory";
 import { FloatingHearts } from "./FloatingHearts";
-import { OutfitDrawer } from "./OutfitDrawer";
 import { useTheme } from "@/hooks/use-theme";
-import {
-  type Outfit,
-  type OutfitItemId,
-  loadOutfit,
-  saveOutfit,
-  loadEnabled,
-  saveEnabled,
-} from "@/lib/mochi-outfit";
-import { type MochiTheme, loadMochiTheme, saveMochiTheme } from "@/lib/mochi-theme";
 
 interface Props {
   partnerName: string;
   onLogout: () => void;
-  onSwitchPartner: (name: string) => void;
 }
 
 let particleId = 0;
 
-export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
-  const [partners, setPartners] = useState<[string, string]>(["Gab", "Tita"]);
+export function PetRoom({ partnerName, onLogout }: Props) {
   const [pet, setPet] = useState<PetState | null>(null);
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [history, setHistory] = useState<Interaction[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [outfitOpen, setOutfitOpen] = useState(false);
-  const [outfit, setOutfit] = useState<Outfit>(() => loadOutfit());
-  const [enabledItems, setEnabledItems] = useState<Set<OutfitItemId>>(() =>
-    loadEnabled(),
-  );
-  const [mochiTheme, setMochiTheme] = useState<MochiTheme>(() => loadMochiTheme());
-  const updateMochiTheme = (t: MochiTheme) => {
-    setMochiTheme(t);
-    saveMochiTheme(t);
-  };
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
@@ -59,51 +37,17 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   const flightRef = useRef<{ id: number; emoji: string } | null>(null);
   const [flight, setFlight] = useState<{ id: number; emoji: string } | null>(null);
 
-  const updateOutfit = (next: Outfit) => {
-    setOutfit(next);
-    saveOutfit(next);
-  };
-
-  const toggleItemEnabled = (id: OutfitItemId) => {
-    setEnabledItems((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-        // Se a peça desabilitada estava em uso, volta pra "none" da categoria.
-        const fallback: Outfit = { ...outfit };
-        if (outfit.hat === (id as Outfit["hat"])) fallback.hat = "none";
-        if (outfit.bow === (id as Outfit["bow"])) fallback.bow = "none";
-        if (outfit.glasses === (id as Outfit["glasses"])) fallback.glasses = "none";
-        if (outfit.shirt === (id as Outfit["shirt"])) fallback.shirt = "none";
-        if (
-          fallback.hat !== outfit.hat ||
-          fallback.bow !== outfit.bow ||
-          fallback.glasses !== outfit.glasses ||
-          fallback.shirt !== outfit.shirt
-        ) {
-          updateOutfit(fallback);
-        }
-      } else {
-        next.add(id);
-      }
-      saveEnabled(next);
-      return next;
-    });
-  };
-
   // initial load + realtime
   useEffect(() => {
     const load = async () => {
-      const [{ data: petData }, { data: foodData }, { data: histData }, { data: settings }] = await Promise.all([
+      const [{ data: petData }, { data: foodData }, { data: histData }] = await Promise.all([
         supabase.from("pet_state").select("*").eq("id", 1).single(),
         supabase.from("food_items").select("*").eq("is_active", true).order("rarity"),
         supabase.from("interactions").select("*").order("created_at", { ascending: false }).limit(20),
-        supabase.from("couple_settings").select("partner_one_name, partner_two_name").eq("id", 1).single(),
       ]);
       if (petData) setPet(petData as PetState);
       if (foodData) setFoods(foodData as FoodItem[]);
       if (histData) setHistory(histData as Interaction[]);
-      if (settings) setPartners([settings.partner_one_name, settings.partner_two_name]);
     };
     load();
 
@@ -280,42 +224,23 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
       {/* top bar */}
-      <header className="flex items-center justify-between gap-2">
+      <header className="flex items-center justify-between">
         <button
           onClick={onLogout}
-          className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm"
+          className="glass flex h-10 w-10 items-center justify-center rounded-full text-sm"
           aria-label="sair"
           title="sair"
         >
           ←
         </button>
-
-        {/* partner switcher: who is caring right now */}
-        <div className="glass flex items-center gap-1 rounded-full p-1">
-          <span className="px-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-            cuidando
-          </span>
-          {partners.map((name) => {
-            const active = name === partnerName;
-            return (
-              <button
-                key={name}
-                onClick={() => !active && onSwitchPartner(name)}
-                className={`rounded-full px-3 py-1.5 text-xs font-display font-bold transition-all ${
-                  active
-                    ? "bg-gradient-to-r from-pink to-lilac text-white shadow-[var(--shadow-glow)]"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {name.toLowerCase()}
-              </button>
-            );
-          })}
+        <div className="text-center">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            oi, {partnerName.toLowerCase()}
+          </p>
         </div>
-
         <button
           onClick={toggle}
-          className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base"
+          className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
           aria-label="trocar tema"
         >
           {theme === "dark" ? "🌙" : "☀️"}
@@ -341,7 +266,7 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
       {/* mochi scene */}
       <div className="relative mt-2 flex justify-center">
         <FloatingHearts particles={particles} />
-        <Mochi mood={mood} eating={eating} bouncing={bouncing} outfit={outfit} theme={mochiTheme} />
+        <Mochi mood={mood} eating={eating} bouncing={bouncing} />
 
         {/* food flight */}
         <AnimatePresence>
@@ -376,34 +301,7 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* mochi style selector — alterna a estética em tempo real */}
-      <div className="mt-3 flex justify-center">
-        <div className="glass inline-flex items-center gap-1 rounded-full p-1 text-[11px]">
-          <span className="px-2 uppercase tracking-[0.18em] text-muted-foreground">
-            estilo
-          </span>
-          {(["cute", "premium"] as const).map((t) => {
-            const active = mochiTheme === t;
-            const label = t === "cute" ? "fofinho" : "artesanal";
-            const emoji = t === "cute" ? "🍡" : "✨";
-            return (
-              <button
-                key={t}
-                onClick={() => !active && updateMochiTheme(t)}
-                className={`rounded-full px-3 py-1.5 font-display text-xs font-bold transition-all ${
-                  active
-                    ? "bg-gradient-to-r from-pink to-lilac text-white shadow-[var(--shadow-glow)]"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                aria-pressed={active}
-              >
-                {emoji} {label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
+      {/* status bars */}
       <div className="glass mt-2 rounded-3xl p-5">
         <StatusBars hunger={pet.hunger} happiness={pet.happiness} energy={pet.energy} />
       </div>
@@ -432,10 +330,11 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
           🎈 brincar
         </button>
         <button
-          onClick={() => setOutfitOpen(true)}
-          className="glass rounded-2xl px-3 py-3 font-display text-sm font-semibold transition-all active:scale-[0.97]"
+          disabled
+          className="glass rounded-2xl px-3 py-3 font-display text-sm font-semibold opacity-40"
+          title="em breve"
         >
-          👕 vestir
+          📸 memórias
         </button>
       </div>
 
@@ -478,16 +377,6 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
         foods={foods}
         onPick={feed}
         busy={busy}
-      />
-
-      {/* outfit drawer */}
-      <OutfitDrawer
-        open={outfitOpen}
-        outfit={outfit}
-        enabled={enabledItems}
-        onChange={updateOutfit}
-        onToggleEnabled={toggleItemEnabled}
-        onClose={() => setOutfitOpen(false)}
       />
     </div>
   );
