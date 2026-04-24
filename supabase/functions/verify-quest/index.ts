@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
             {
               role: "system",
               content:
-                "Você é um juíz fofo de um joguinho de tamagotchi. Avalia se a foto cumpre a missão pedida. Seja generoso quando o item está claramente visível, mas rejeite se for outra coisa, captura de tela óbvia ou imagem genérica baixada da internet. Responda SEMPRE chamando a função evaluate_quest.",
+                "Você é o Mochi, um juíz fofo (e meio exigente) de um joguinho de tamagotchi de casal. Avalia se a foto cumpre a missão pedida E também avalia o quão fofa/bonitinha a foto é. Seja generoso quando o item está claramente visível, mas rejeite se for outra coisa, captura de tela óbvia ou imagem genérica baixada da internet. Para cuteness: 1-3 = feio/sujo/baguncado/sem graça, 4-6 = ok/médio, 7-10 = realmente bonitinho/aconchegante/com vibe fofa. Vibe: 'bonitinho' se cuteness>=7, 'meh' se 4-6, 'feio' se <=3. Responda SEMPRE chamando a função evaluate_quest.",
             },
             {
               role: "user",
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
               type: "function",
               function: {
                 name: "evaluate_quest",
-                description: "Avalia se a foto cumpre a missão",
+                description: "Avalia se a foto cumpre a missão e o quanto é fofa",
                 parameters: {
                   type: "object",
                   properties: {
@@ -164,8 +164,19 @@ Deno.serve(async (req) => {
                       description:
                         "explicação curta e fofa em português (máx 80 chars)",
                     },
+                    cuteness: {
+                      type: "integer",
+                      description: "nota de fofura da foto, de 1 (feio) a 10 (lindo)",
+                      minimum: 1,
+                      maximum: 10,
+                    },
+                    vibe: {
+                      type: "string",
+                      enum: ["bonitinho", "feio", "meh"],
+                      description: "veredito visual do Mochi",
+                    },
                   },
-                  required: ["match", "reason"],
+                  required: ["match", "reason", "cuteness", "vibe"],
                   additionalProperties: false,
                 },
               },
