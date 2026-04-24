@@ -248,6 +248,16 @@ export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props
           {/* ===== CAMISETA (overlay no corpo) ===== */}
           <Shirt id={outfit.shirt} />
 
+          {/* ===== HEAD GROUP (segue o cursor com tilt sutil) ===== */}
+          <motion.g
+            style={{
+              transformOrigin: "160px 200px",
+              transformBox: "fill-box",
+              rotate: headRotate,
+              x: headX,
+              y: headY,
+            }}
+          >
           {/* ===== ORELHAS animadas independentes ===== */}
           <motion.g
             style={{ transformOrigin: "108px 100px", transformBox: "fill-box" }}
