@@ -26,7 +26,7 @@ const RARITY_GRADIENT: Record<Rarity, string> = {
 };
 
 const VIBE_META: Record<QuestVibe, { emoji: string; label: string; color: string }> = {
-  bonitinho: { emoji: "😍", label: "achou super fofo", color: "bg-mint/25 text-foreground" },
+  bonitinho: { emoji: "👌", label: "curtiu", color: "bg-mint/25 text-foreground" },
   meh: { emoji: "🙂", label: "achou ok", color: "bg-white/10 text-foreground" },
   feio: { emoji: "🥲", label: "torceu o nariz", color: "bg-danger-soft/20 text-foreground" },
 };
