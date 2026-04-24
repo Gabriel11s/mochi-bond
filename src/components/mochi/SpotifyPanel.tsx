@@ -280,7 +280,7 @@ export function SpotifyPanel({
                     <NowPlayingCard now={now} loading={loading} onRefresh={loadNow} />
                   )}
                   {tab === "top" && <TopList tracks={top} loading={loading} />}
-                  {tab === "vibe" && <VibeCard now={now} partnerName={partnerName} />}
+                  {tab === "vibe" && <VibeCard now={now} partnerName={partnerName} petName={petName} />}
                 </div>
 
                 <button

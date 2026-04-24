@@ -35,6 +35,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   partnerName: string;
+  petName: string;
   onCompleted: (msg: string) => void;
 }
 
