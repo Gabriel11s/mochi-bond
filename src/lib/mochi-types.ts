@@ -29,6 +29,50 @@ export interface FoodItem {
   energy_value: number;
   rarity: Rarity;
   is_active: boolean;
+  is_unlockable?: boolean;
+}
+
+export type QuestCategory = "casa" | "casal" | "romantico";
+
+export interface Quest {
+  id: string;
+  slug: string;
+  title: string;
+  hint: string;
+  emoji: string;
+  proof_type: string;
+  proof_target: string;
+  category: QuestCategory;
+  reward_food_rarity: Rarity;
+  reward_food_count: number;
+  reward_xp: number;
+  cooldown_minutes: number;
+  is_active: boolean;
+}
+
+export interface QuestCompletion {
+  id: string;
+  quest_id: string;
+  partner_name: string;
+  photo_id: string | null;
+  photo_path: string | null;
+  status: "pending" | "approved" | "rejected";
+  ai_reason: string | null;
+  created_at: string;
+}
+
+export interface PantryItem {
+  id: string;
+  partner_name: string;
+  food_id: string;
+  source_quest_id: string | null;
+  consumed: boolean;
+  consumed_at: string | null;
+  created_at: string;
+}
+
+export interface PantryItemWithFood extends PantryItem {
+  food: FoodItem;
 }
 
 export interface Interaction {
