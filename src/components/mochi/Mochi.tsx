@@ -26,7 +26,9 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
 
   const animClass = eating
     ? "animate-mochi-eat"
-    : bouncing || mood === "smitten"
+    : mood === "smitten"
+    ? "animate-mochi-smitten"
+    : bouncing
     ? "animate-mochi-bounce"
     : mood === "sleepy"
     ? "animate-mochi-sleep"
@@ -35,7 +37,9 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
   return (
     <div className="relative flex h-72 w-72 items-end justify-center sm:h-80 sm:w-80">
       <div
-        className="pointer-events-none absolute inset-0 rounded-full blur-3xl opacity-60"
+        className={`pointer-events-none absolute inset-0 rounded-full blur-3xl ${
+          heartEyes ? "animate-smitten-glow" : "opacity-60"
+        }`}
         style={{
           background: heartEyes
             ? "radial-gradient(circle, oklch(0.78 0.2 0) 0%, transparent 65%)"
