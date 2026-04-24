@@ -27,6 +27,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   partnerName: string;
+  petName: string;
   /** chamado com { food, pantryItemId | null } */
   onPick: (entry: { food: FoodItem; pantryItemId: string | null }) => void;
   busy?: boolean;
