@@ -226,10 +226,18 @@ Deno.serve(async (req) => {
     let result: VerifyResult = {
       match: false,
       reason: "Mochi não soube responder",
+      cuteness: 5,
+      vibe: "meh",
     };
     if (toolCall?.function?.arguments) {
       try {
         result = JSON.parse(toolCall.function.arguments) as VerifyResult;
+        // sanitiza
+        if (typeof result.cuteness !== "number") result.cuteness = 5;
+        result.cuteness = Math.max(1, Math.min(10, Math.round(result.cuteness)));
+        if (!["bonitinho", "feio", "meh"].includes(result.vibe)) {
+          result.vibe = result.cuteness >= 7 ? "bonitinho" : result.cuteness <= 3 ? "feio" : "meh";
+        }
       } catch {
         // mantém default
       }
@@ -249,10 +257,12 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             status: "rejected",
             ai_reason: result.reason,
+            cuteness: result.cuteness,
+            vibe: result.vibe,
           }),
         },
       );
-      return json({ status: "rejected", reason: result.reason }, 200);
+      return json({ status: "rejected", reason: result.reason, cuteness: result.cuteness, vibe: result.vibe }, 200);
     }
 
     // 6. Aprovada — sortear N comidinhas da raridade certa, criar pantry_items, dar XP
