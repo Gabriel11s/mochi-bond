@@ -23,6 +23,13 @@ import type { NowPlayingResponse } from "@/lib/spotify-types";
 import { buildMochiReaction, vibeLabel } from "@/lib/spotify-vibe";
 import { partnerKeyFromName, pickGreeting } from "@/lib/mochi-greetings";
 import { useTheme } from "@/hooks/use-theme";
+import { BackgroundScene } from "./BackgroundScene";
+import { BackgroundDrawer } from "./BackgroundDrawer";
+import {
+  loadBackgroundId,
+  saveBackgroundId,
+  type BackgroundId,
+} from "@/lib/mochi-backgrounds";
 
 interface Props {
   partnerName: string;
@@ -40,6 +47,8 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [photosOpen, setPhotosOpen] = useState(false);
   const [questsOpen, setQuestsOpen] = useState(false);
   const [spotifyOpen, setSpotifyOpen] = useState(false);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const [backgroundId, setBackgroundId] = useState<BackgroundId>("quartinho");
   const [nowPlaying, setNowPlaying] = useState<NowPlayingResponse | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
