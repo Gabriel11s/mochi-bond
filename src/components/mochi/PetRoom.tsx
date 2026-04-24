@@ -479,10 +479,11 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         </button>
         <button
           onClick={() => pet_action("play")}
-          disabled={busy || pet.energy < 10}
+          disabled={busy || pet.energy < 10 || playLocked}
           className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97] disabled:opacity-50"
+          title={playLocked ? `brincadeira só 1x/dia — ${playLockedLabel}` : "brincar"}
         >
-          🎈 brincar
+          {playLocked ? `🎈 ${playLockedLabel}` : "🎈 brincar"}
         </button>
         <button
           onClick={() => setPhotosOpen(true)}
