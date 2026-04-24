@@ -23,7 +23,8 @@ interface Props {
 
 let particleId = 0;
 
-export function PetRoom({ partnerName, onLogout }: Props) {
+export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
+  const [partners, setPartners] = useState<[string, string]>(["Gab", "Tita"]);
   const [pet, setPet] = useState<PetState | null>(null);
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [history, setHistory] = useState<Interaction[]>([]);
