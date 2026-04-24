@@ -362,11 +362,10 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
           🎈 brincar
         </button>
         <button
-          disabled
-          className="glass rounded-2xl px-3 py-3 font-display text-sm font-semibold opacity-40"
-          title="em breve"
+          onClick={() => setOutfitOpen(true)}
+          className="glass rounded-2xl px-3 py-3 font-display text-sm font-semibold transition-all active:scale-[0.97]"
         >
-          📸 memórias
+          👕 vestir
         </button>
       </div>
 
