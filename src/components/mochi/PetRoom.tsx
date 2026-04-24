@@ -228,23 +228,42 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
       {/* top bar */}
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between gap-2">
         <button
           onClick={onLogout}
-          className="glass flex h-10 w-10 items-center justify-center rounded-full text-sm"
+          className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm"
           aria-label="sair"
           title="sair"
         >
           ←
         </button>
-        <div className="text-center">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            oi, {partnerName.toLowerCase()}
-          </p>
+
+        {/* partner switcher: who is caring right now */}
+        <div className="glass flex items-center gap-1 rounded-full p-1">
+          <span className="px-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            cuidando
+          </span>
+          {partners.map((name) => {
+            const active = name === partnerName;
+            return (
+              <button
+                key={name}
+                onClick={() => !active && onSwitchPartner(name)}
+                className={`rounded-full px-3 py-1.5 text-xs font-display font-bold transition-all ${
+                  active
+                    ? "bg-gradient-to-r from-pink to-lilac text-white shadow-[var(--shadow-glow)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {name.toLowerCase()}
+              </button>
+            );
+          })}
         </div>
+
         <button
           onClick={toggle}
-          className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
+          className="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base"
           aria-label="trocar tema"
         >
           {theme === "dark" ? "🌙" : "☀️"}
