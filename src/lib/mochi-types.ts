@@ -17,6 +17,9 @@ export interface PetState {
   updated_at: string;
   equipped_skin: string;
   equipped_accessory: string;
+  last_fed_by_gab: string | null;
+  last_fed_by_tita: string | null;
+  died_at: string | null;
 }
 
 export interface FoodItem {
