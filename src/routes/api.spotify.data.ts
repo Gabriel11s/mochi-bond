@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  fetchArtists,
   fetchAudioFeatures,
   fetchNowPlaying,
   fetchTopTracks,
