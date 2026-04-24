@@ -371,6 +371,8 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       <PhotoWall />
       <SpotifyPanel
         partnerName={partnerName}
+        open={spotifyOpen}
+        onOpenChange={setSpotifyOpen}
         onReaction={(r) => {
           setSpeech(r.message);
           window.setTimeout(() => setSpeech(null), 5500);
