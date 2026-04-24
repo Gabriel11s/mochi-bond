@@ -132,48 +132,51 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
           </g>
         )}
 
-        {/* nerd glasses — armação wayfarer preta grossa estilo cachorrinho da foto */}
-        {acc.id === "nerd" && (
+        {/* óculos da vitória — armação dourada borboleta com lente rosa translúcida */}
+        {acc.id === "victory" && (
           <g>
-            {/* lentes (preenchimento translúcido pra dar vidro) */}
+            {/* lente esquerda (formato butterfly: levanta na ponta) */}
             <path
-              d="M 60 100 Q 60 94 66 94 L 92 94 Q 96 94 96 100 L 96 116 Q 96 122 90 122 L 66 122 Q 60 122 60 116 Z"
-              fill="oklch(1 0 0 / 0.08)"
-              stroke="oklch(0.15 0.01 300)"
-              strokeWidth="3.5"
+              d="M 56 102 Q 58 92 72 92 L 92 92 Q 96 92 96 100 L 95 114 Q 94 122 84 122 L 70 122 Q 58 122 56 112 Z"
+              fill="oklch(0.78 0.12 20 / 0.45)"
+              stroke="oklch(0.78 0.13 80)"
+              strokeWidth="3"
               strokeLinejoin="round"
             />
+            {/* lente direita (espelhada) */}
             <path
-              d="M 104 100 Q 104 94 108 94 L 134 94 Q 140 94 140 100 L 140 116 Q 140 122 134 122 L 110 122 Q 104 122 104 116 Z"
-              fill="oklch(1 0 0 / 0.08)"
-              stroke="oklch(0.15 0.01 300)"
-              strokeWidth="3.5"
+              d="M 144 102 Q 142 92 128 92 L 108 92 Q 104 92 104 100 L 105 114 Q 106 122 116 122 L 130 122 Q 142 122 144 112 Z"
+              fill="oklch(0.78 0.12 20 / 0.45)"
+              stroke="oklch(0.78 0.13 80)"
+              strokeWidth="3"
               strokeLinejoin="round"
             />
-            {/* ponte */}
+            {/* ponte fininha */}
             <path
-              d="M 96 102 Q 100 99 104 102"
-              stroke="oklch(0.15 0.01 300)"
-              strokeWidth="3.5"
-              fill="none"
+              d="M 96 100 L 104 100"
+              stroke="oklch(0.78 0.13 80)"
+              strokeWidth="3"
               strokeLinecap="round"
             />
             {/* hastes nas laterais */}
             <path
-              d="M 60 104 L 52 102"
-              stroke="oklch(0.15 0.01 300)"
-              strokeWidth="3"
+              d="M 56 104 L 48 100"
+              stroke="oklch(0.78 0.13 80)"
+              strokeWidth="2.5"
               strokeLinecap="round"
             />
             <path
-              d="M 140 104 L 148 102"
-              stroke="oklch(0.15 0.01 300)"
-              strokeWidth="3"
+              d="M 144 104 L 152 100"
+              stroke="oklch(0.78 0.13 80)"
+              strokeWidth="2.5"
               strokeLinecap="round"
             />
-            {/* reflexo branquinho nos cantos das lentes (igual a foto) */}
-            <rect x="86" y="98" width="5" height="2.2" rx="1" fill="white" opacity="0.95" />
-            <rect x="130" y="98" width="5" height="2.2" rx="1" fill="white" opacity="0.95" />
+            {/* brilho dourado nos cantinhos altos (toque vitória) */}
+            <circle cx="70" cy="96" r="2" fill="oklch(0.92 0.16 90)" />
+            <circle cx="130" cy="96" r="2" fill="oklch(0.92 0.16 90)" />
+            {/* reflexo branco nas lentes */}
+            <rect x="80" y="98" width="6" height="2.2" rx="1" fill="white" opacity="0.85" />
+            <rect x="114" y="98" width="6" height="2.2" rx="1" fill="white" opacity="0.85" />
           </g>
         )}
 
