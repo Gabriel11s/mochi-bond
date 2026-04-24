@@ -353,3 +353,72 @@ export function vibeLabel(vibe: SpotifyVibe): string {
     default: return "no clima 🎧";
   }
 }
+
+// ---------------------------------------------------------------------------
+// Estimativa de "energia / alegria / dança" quando o Spotify não devolve
+// audio-features (que está restrito desde nov/2024 pra apps novos).
+// Tira valores plausíveis a partir da vibe + popularidade do artista.
+// Sempre retorna 0..1 — nunca null — pra UI nunca ficar vazia.
+const VIBE_PROFILE: Record<SpotifyVibe, { energy: number; valence: number; danceability: number }> = {
+  hype:     { energy: 0.92, valence: 0.78, danceability: 0.9 },
+  feliz:    { energy: 0.65, valence: 0.85, danceability: 0.7 },
+  chill:    { energy: 0.32, valence: 0.55, danceability: 0.45 },
+  melanco:  { energy: 0.38, valence: 0.22, danceability: 0.4 },
+  intensa:  { energy: 0.95, valence: 0.45, danceability: 0.55 },
+  rock:     { energy: 0.78, valence: 0.6, danceability: 0.55 },
+  rap:      { energy: 0.72, valence: 0.6, danceability: 0.85 },
+  latina:   { energy: 0.82, valence: 0.82, danceability: 0.92 },
+  classica: { energy: 0.35, valence: 0.55, danceability: 0.25 },
+  jazz:     { energy: 0.5, valence: 0.65, danceability: 0.6 },
+  kpop:     { energy: 0.82, valence: 0.78, danceability: 0.88 },
+  neutra:   { energy: 0.55, valence: 0.6, danceability: 0.55 },
+};
+
+/**
+ * Devolve sempre 3 valores 0..1 pra mostrar nas barrinhas do painel.
+ * - Se o Spotify mandou features reais → usa elas (com leve mistura).
+ * - Senão → estima por vibe + popularidade + uma variação determinística
+ *   por trackId pra cada música ter números levemente diferentes.
+ */
+export function estimateAudioStats(
+  vibe: SpotifyVibe,
+  features: AudioFeaturesLite | null | undefined,
+  opts: { trackId?: string; artistPopularity?: number | null } = {},
+): { energy: number; valence: number; danceability: number; isEstimated: boolean } {
+  const profile = VIBE_PROFILE[vibe] ?? VIBE_PROFILE.neutra;
+
+  // Variação ±0.08 por trackId pra músicas distintas não ficarem idênticas
+  const seed = opts.trackId ? hashSeed(opts.trackId) : 0;
+  const wobble = (offset: number) => {
+    const w = (((seed + offset) % 100) / 100) * 0.16 - 0.08;
+    return w;
+  };
+
+  // Popularidade do artista (0..100) puxa energia/valência ligeiramente
+  const pop = typeof opts.artistPopularity === "number" ? opts.artistPopularity / 100 : 0.5;
+  const popBoost = (pop - 0.5) * 0.1;
+
+  const hasReal =
+    !!features &&
+    (features.energy != null || features.valence != null || features.danceability != null);
+
+  const pick = (key: "energy" | "valence" | "danceability", offset: number) => {
+    const real = features?.[key];
+    const est = profile[key] + wobble(offset) + popBoost;
+    const v = real != null ? real * 0.7 + est * 0.3 : est;
+    return Math.max(0.02, Math.min(0.99, v));
+  };
+
+  return {
+    energy: pick("energy", 1),
+    valence: pick("valence", 7),
+    danceability: pick("danceability", 13),
+    isEstimated: !hasReal,
+  };
+}
+
+function hashSeed(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
