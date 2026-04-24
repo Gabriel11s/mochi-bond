@@ -108,7 +108,14 @@ export function SpotifyPanel({
           `/api/spotify/data?partner=${encodeURIComponent(partnerName)}&kind=now`,
         );
         if (!r.ok) {
-          const empty = { is_playing: false, progress_ms: null, track: null, features: null };
+          const empty: NowPlayingResponse = {
+            is_playing: false,
+            progress_ms: null,
+            track: null,
+            features: null,
+            genres: [],
+            artist_popularity: null,
+          };
           setNow(empty);
           onNowChange?.(empty);
           return;
