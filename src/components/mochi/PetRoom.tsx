@@ -18,6 +18,7 @@ import { useTheme } from "@/hooks/use-theme";
 interface Props {
   partnerName: string;
   onLogout: () => void;
+  onSwitchPartner: (name: string) => void;
 }
 
 let particleId = 0;
