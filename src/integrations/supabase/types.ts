@@ -14,7 +14,167 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      couple_settings: {
+        Row: {
+          created_at: string
+          id: number
+          partner_one_name: string
+          partner_two_name: string
+          secret_code: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          partner_one_name?: string
+          partner_two_name?: string
+          secret_code?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          partner_one_name?: string
+          partner_two_name?: string
+          secret_code?: string
+        }
+        Relationships: []
+      }
+      food_items: {
+        Row: {
+          category: string
+          created_at: string
+          emoji: string
+          energy_value: number
+          happiness_value: number
+          hunger_value: number
+          id: string
+          is_active: boolean
+          name: string
+          rarity: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          emoji: string
+          energy_value?: number
+          happiness_value?: number
+          hunger_value?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          rarity?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          emoji?: string
+          energy_value?: number
+          happiness_value?: number
+          hunger_value?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          rarity?: string
+        }
+        Relationships: []
+      }
+      interactions: {
+        Row: {
+          created_at: string
+          energy_delta: number
+          food_emoji: string | null
+          food_id: string | null
+          food_name: string | null
+          happiness_delta: number
+          hunger_delta: number
+          id: string
+          interaction_type: string
+          message: string | null
+          partner_name: string
+          xp_delta: number
+        }
+        Insert: {
+          created_at?: string
+          energy_delta?: number
+          food_emoji?: string | null
+          food_id?: string | null
+          food_name?: string | null
+          happiness_delta?: number
+          hunger_delta?: number
+          id?: string
+          interaction_type: string
+          message?: string | null
+          partner_name: string
+          xp_delta?: number
+        }
+        Update: {
+          created_at?: string
+          energy_delta?: number
+          food_emoji?: string | null
+          food_id?: string | null
+          food_name?: string | null
+          happiness_delta?: number
+          hunger_delta?: number
+          id?: string
+          interaction_type?: string
+          message?: string | null
+          partner_name?: string
+          xp_delta?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interactions_food_id_fkey"
+            columns: ["food_id"]
+            isOneToOne: false
+            referencedRelation: "food_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pet_state: {
+        Row: {
+          current_mood: string
+          energy: number
+          happiness: number
+          hunger: number
+          id: number
+          last_fed_at: string | null
+          last_interaction_at: string | null
+          last_interaction_by: string | null
+          level: number
+          pet_name: string
+          updated_at: string
+          xp: number
+        }
+        Insert: {
+          current_mood?: string
+          energy?: number
+          happiness?: number
+          hunger?: number
+          id?: number
+          last_fed_at?: string | null
+          last_interaction_at?: string | null
+          last_interaction_by?: string | null
+          level?: number
+          pet_name?: string
+          updated_at?: string
+          xp?: number
+        }
+        Update: {
+          current_mood?: string
+          energy?: number
+          happiness?: number
+          hunger?: number
+          id?: number
+          last_fed_at?: string | null
+          last_interaction_at?: string | null
+          last_interaction_by?: string | null
+          level?: number
+          pet_name?: string
+          updated_at?: string
+          xp?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
