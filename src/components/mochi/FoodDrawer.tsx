@@ -34,7 +34,7 @@ interface Props {
   onOpenQuests?: () => void;
 }
 
-export function FoodDrawer({ open, onClose, partnerName, onPick, busy, onOpenQuests }: Props) {
+export function FoodDrawer({ open, onClose, partnerName, petName, onPick, busy, onOpenQuests }: Props) {
   const [tab, setTab] = useState<"pantry" | "starters">("pantry");
   const [pantryEntries, setPantryEntries] = useState<PantryEntry[]>([]);
   const [starters, setStarters] = useState<FoodItem[]>([]);
@@ -147,7 +147,7 @@ export function FoodDrawer({ open, onClose, partnerName, onPick, busy, onOpenQue
 
             <div className="px-6 pt-3 pb-2">
               <h3 className="font-display text-2xl font-bold">Despensa de {partnerName.toLowerCase()}</h3>
-              <p className="text-sm text-muted-foreground">Escolha o que oferecer ao Mochi</p>
+              <p className="text-sm text-muted-foreground">Escolha o que oferecer a {petName}</p>
             </div>
 
             {/* tabs */}

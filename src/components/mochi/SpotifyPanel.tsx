@@ -12,6 +12,7 @@ import { clamp } from "@/lib/mochi-types";
 
 interface Props {
   partnerName: string;
+  petName: string;
   /** Quando o Mochi reage à música, dispara um balão de fala no PetRoom. */
   onReaction?: (reaction: MochiMusicReaction) => void;
   /** Estado controlado de abertura do painel (controlado pelo PetRoom). */
