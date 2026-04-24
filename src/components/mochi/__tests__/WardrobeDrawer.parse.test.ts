@@ -17,7 +17,7 @@ import { Transpiler } from "bun";
  *      has a matching closing tag (motion.div, div, button counts balance).
  */
 
-const SRC = join(import.meta.dir, "..", "WardrobeDrawer.tsx");
+const SRC = join(process.cwd(), "src/components/mochi/WardrobeDrawer.tsx");
 
 function readSource(): string {
   return readFileSync(SRC, "utf8");
