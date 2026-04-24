@@ -506,28 +506,36 @@ function Hat({ id }: { id: Outfit["hat"] }) {
   if (id === "tophat") {
     return (
       <g filter="url(#softShadow)">
-        <rect x="118" y="40" width="84" height="50" rx="4" fill="#1a1a24" />
-        <rect x="100" y="86" width="120" height="10" rx="3" fill="#1a1a24" />
-        <rect x="118" y="60" width="84" height="6" fill="#c9a84c" opacity="0.85" />
+        <rect x="118" y="40" width="84" height="50" rx="4" fill="#3a2a4a" />
+        <rect x="100" y="86" width="120" height="10" rx="3" fill="#3a2a4a" />
+        <rect x="118" y="60" width="84" height="6" fill="#c9b3ff" opacity="0.85" />
       </g>
     );
   }
-  if (id === "beret") {
+  if (id === "beret_lilac") {
     return (
       <g filter="url(#softShadow)">
-        <ellipse cx="160" cy="78" rx="58" ry="22" fill="#c0392b" />
-        <ellipse cx="160" cy="74" rx="50" ry="16" fill="#e74c3c" />
-        <circle cx="160" cy="58" r="6" fill="#922a1d" />
+        <ellipse cx="160" cy="78" rx="58" ry="22" fill="#8a6fd4" />
+        <ellipse cx="160" cy="74" rx="50" ry="16" fill="#c9b3ff" />
+        <circle cx="160" cy="58" r="6" fill="#6b4fb8" />
       </g>
     );
   }
-  if (id === "beanie") {
+  if (id === "beanie_mint") {
     return (
       <g filter="url(#softShadow)">
-        <path d="M 102 92 Q 160 30 218 92 Z" fill="#7e9bd6" />
-        <rect x="100" y="86" width="120" height="14" rx="4" fill="#5b78b3" />
-        <circle cx="160" cy="38" r="10" fill="#fff8ee" />
+        <path d="M 102 92 Q 160 30 218 92 Z" fill="#a8e6cf" />
+        <rect x="100" y="86" width="120" height="14" rx="4" fill="#5fb89a" />
+        <circle cx="160" cy="38" r="10" fill="#fff3d6" />
         <circle cx="160" cy="38" r="10" fill="#ffffff" opacity="0.4" />
+        {/* tricô texture */}
+        <g stroke="#5fb89a" strokeWidth="0.8" opacity="0.6">
+          <path d="M 110 70 L 130 90" />
+          <path d="M 130 60 L 150 90" />
+          <path d="M 150 52 L 170 90" />
+          <path d="M 170 52 L 190 90" />
+          <path d="M 190 60 L 210 90" />
+        </g>
       </g>
     );
   }
@@ -536,14 +544,30 @@ function Hat({ id }: { id: Outfit["hat"] }) {
       <g filter="url(#softShadow)">
         <path
           d="M 110 90 L 118 50 L 138 78 L 160 42 L 182 78 L 202 50 L 210 90 Z"
-          fill="#f5c518"
-          stroke="#c79a0e"
+          fill="#fff3d6"
+          stroke="#d4b88a"
           strokeWidth="2"
           strokeLinejoin="round"
         />
-        <circle cx="138" cy="80" r="3" fill="#ff5c8a" />
-        <circle cx="160" cy="74" r="3" fill="#5cc8ff" />
-        <circle cx="182" cy="80" r="3" fill="#5cffa1" />
+        <circle cx="138" cy="80" r="3" fill="#c9b3ff" />
+        <circle cx="160" cy="74" r="3" fill="#a8e6cf" />
+        <circle cx="182" cy="80" r="3" fill="#c9b3ff" />
+      </g>
+    );
+  }
+  if (id === "flower_cream") {
+    // 5 pétalas creme com miolo lilás, atrás da orelha esquerda
+    return (
+      <g filter="url(#softShadow)">
+        <g transform="translate(108 96)">
+          <ellipse cx="0" cy="-12" rx="9" ry="11" fill="#fff3d6" />
+          <ellipse cx="11" cy="-4" rx="9" ry="11" fill="#fff3d6" transform="rotate(72 11 -4)" />
+          <ellipse cx="7" cy="10" rx="9" ry="11" fill="#fff3d6" transform="rotate(144 7 10)" />
+          <ellipse cx="-7" cy="10" rx="9" ry="11" fill="#fff3d6" transform="rotate(216 -7 10)" />
+          <ellipse cx="-11" cy="-4" rx="9" ry="11" fill="#fff3d6" transform="rotate(288 -11 -4)" />
+          <circle r="6" fill="#c9b3ff" />
+          <circle r="2.5" fill="#fff3d6" />
+        </g>
       </g>
     );
   }
@@ -553,32 +577,24 @@ function Hat({ id }: { id: Outfit["hat"] }) {
 function Bow({ id }: { id: Outfit["bow"] }) {
   if (id === "none") return null;
   const colors: Record<string, { main: string; dark: string }> = {
-    pink: { main: "#ff8fb5", dark: "#d6577f" },
-    red: { main: "#e74c3c", dark: "#a3271a" },
-    blue: { main: "#5cb0ff", dark: "#2a72c0" },
+    lilac: { main: "#c9b3ff", dark: "#8a6fd4" },
+    mint: { main: "#a8e6cf", dark: "#5fb89a" },
+    cream: { main: "#fff3d6", dark: "#d4b88a" },
   };
-  if (id === "necktie") {
+  if (id === "necktie_lilac") {
     return (
       <g filter="url(#softShadow)">
-        <path d="M 152 232 L 168 232 L 174 248 L 160 296 L 146 248 Z" fill="#3a2a55" />
-        <path d="M 152 232 L 168 232 L 164 244 L 156 244 Z" fill="#5d4380" />
+        <path d="M 152 232 L 168 232 L 174 248 L 160 296 L 146 248 Z" fill="#8a6fd4" />
+        <path d="M 152 232 L 168 232 L 164 244 L 156 244 Z" fill="#c9b3ff" />
       </g>
     );
   }
   const c = colors[id];
   return (
     <g filter="url(#softShadow)">
-      {/* nó central */}
       <ellipse cx="160" cy="232" rx="6" ry="8" fill={c.dark} />
-      {/* abas */}
-      <path
-        d="M 160 232 Q 138 218 130 234 Q 138 250 160 232 Z"
-        fill={c.main}
-      />
-      <path
-        d="M 160 232 Q 182 218 190 234 Q 182 250 160 232 Z"
-        fill={c.main}
-      />
+      <path d="M 160 232 Q 138 218 130 234 Q 138 250 160 232 Z" fill={c.main} />
+      <path d="M 160 232 Q 182 218 190 234 Q 182 250 160 232 Z" fill={c.main} />
       <path d="M 134 226 Q 142 232 134 240" stroke={c.dark} strokeWidth="1.2" fill="none" opacity="0.5" />
       <path d="M 186 226 Q 178 232 186 240" stroke={c.dark} strokeWidth="1.2" fill="none" opacity="0.5" />
     </g>
@@ -587,32 +603,32 @@ function Bow({ id }: { id: Outfit["bow"] }) {
 
 function Glasses({ id }: { id: Outfit["glasses"] }) {
   if (id === "none") return null;
-  if (id === "round") {
+  if (id === "round_cream") {
     return (
-      <g fill="none" stroke="#3a2a4a" strokeWidth="3">
-        <circle cx="128" cy="170" r="20" />
-        <circle cx="192" cy="170" r="20" />
+      <g fill="none" stroke="#d4b88a" strokeWidth="3">
+        <circle cx="128" cy="170" r="20" fill="#fff3d6" fillOpacity="0.18" />
+        <circle cx="192" cy="170" r="20" fill="#fff3d6" fillOpacity="0.18" />
         <path d="M 148 170 L 172 170" />
       </g>
     );
   }
-  if (id === "sun") {
+  if (id === "sun_lilac") {
     return (
       <g>
-        <rect x="106" y="158" width="44" height="22" rx="8" fill="#1a1a24" />
-        <rect x="170" y="158" width="44" height="22" rx="8" fill="#1a1a24" />
-        <rect x="148" y="166" width="24" height="4" fill="#1a1a24" />
-        <rect x="112" y="162" width="14" height="6" rx="2" fill="#ffffff" opacity="0.45" />
-        <rect x="176" y="162" width="14" height="6" rx="2" fill="#ffffff" opacity="0.45" />
+        <rect x="106" y="158" width="44" height="22" rx="10" fill="#3a2a4a" />
+        <rect x="170" y="158" width="44" height="22" rx="10" fill="#3a2a4a" />
+        <rect x="148" y="166" width="24" height="4" fill="#3a2a4a" />
+        <rect x="112" y="162" width="14" height="6" rx="2" fill="#c9b3ff" opacity="0.65" />
+        <rect x="176" y="162" width="14" height="6" rx="2" fill="#c9b3ff" opacity="0.65" />
       </g>
     );
   }
-  if (id === "heart") {
+  if (id === "heart_mint") {
     return (
-      <g fill="#ff5c8a" stroke="#c83770" strokeWidth="2">
+      <g fill="#a8e6cf" stroke="#5fb89a" strokeWidth="2">
         <path d="M 128 158 C 116 148 104 158 116 172 L 128 184 L 140 172 C 152 158 140 148 128 158 Z" />
         <path d="M 192 158 C 180 148 168 158 180 172 L 192 184 L 204 172 C 216 158 204 148 192 158 Z" />
-        <path d="M 148 168 L 172 168" stroke="#c83770" strokeWidth="2" fill="none" />
+        <path d="M 148 168 L 172 168" stroke="#5fb89a" strokeWidth="2" fill="none" />
       </g>
     );
   }
@@ -621,71 +637,82 @@ function Glasses({ id }: { id: Outfit["glasses"] }) {
 
 function Shirt({ id }: { id: Outfit["shirt"] }) {
   if (id === "none") return null;
-  if (id === "stripe") {
+  if (id === "stripe_mint") {
     return (
-      <g clipPath="url(#bodyClip)" opacity="0.95">
+      <g opacity="0.95">
         <defs>
-          <clipPath id="bodyClip">
+          <clipPath id="bodyClipStripe">
             <ellipse cx="160" cy="240" rx="78" ry="50" />
           </clipPath>
         </defs>
-        <rect x="80" y="220" width="160" height="8" fill="#3a86ff" />
-        <rect x="80" y="234" width="160" height="8" fill="#fff8ee" />
-        <rect x="80" y="248" width="160" height="8" fill="#3a86ff" />
-        <rect x="80" y="262" width="160" height="8" fill="#fff8ee" />
+        <g clipPath="url(#bodyClipStripe)">
+          <rect x="80" y="220" width="160" height="8" fill="#a8e6cf" />
+          <rect x="80" y="234" width="160" height="8" fill="#fff3d6" />
+          <rect x="80" y="248" width="160" height="8" fill="#a8e6cf" />
+          <rect x="80" y="262" width="160" height="8" fill="#fff3d6" />
+          <rect x="80" y="276" width="160" height="8" fill="#a8e6cf" />
+        </g>
       </g>
     );
   }
-  if (id === "hoodie") {
+  if (id === "hoodie_lilac") {
     return (
       <g filter="url(#softShadow)">
         {/* capuz atrás */}
-        <ellipse cx="160" cy="172" rx="98" ry="28" fill="#5b78b3" opacity="0.95" />
-        {/* corpo do moletom */}
+        <ellipse cx="160" cy="172" rx="98" ry="28" fill="#8a6fd4" opacity="0.95" />
         <path
           d="M 90 240 Q 90 215 115 215 L 205 215 Q 230 215 230 240 L 230 290 L 90 290 Z"
-          fill="#7e9bd6"
+          fill="#c9b3ff"
         />
-        <circle cx="148" cy="248" r="3" fill="#fff8ee" />
-        <circle cx="172" cy="248" r="3" fill="#fff8ee" />
-        <path d="M 150 248 L 150 268 M 170 248 L 170 268" stroke="#fff8ee" strokeWidth="1.5" />
+        <circle cx="148" cy="248" r="3" fill="#fff3d6" />
+        <circle cx="172" cy="248" r="3" fill="#fff3d6" />
+        <path d="M 150 248 L 150 268 M 170 248 L 170 268" stroke="#fff3d6" strokeWidth="1.5" />
       </g>
     );
   }
-  if (id === "overall") {
-    return (
-      <g filter="url(#softShadow)">
-        <path
-          d="M 100 245 L 100 290 L 220 290 L 220 245 Q 220 222 200 222 L 200 232 Q 200 240 192 240 L 128 240 Q 120 240 120 232 L 120 222 Q 100 222 100 245 Z"
-          fill="#3b6fa0"
-        />
-        <rect x="125" y="200" width="10" height="32" rx="3" fill="#3b6fa0" />
-        <rect x="185" y="200" width="10" height="32" rx="3" fill="#3b6fa0" />
-        <circle cx="130" cy="230" r="3" fill="#f5c518" />
-        <circle cx="190" cy="230" r="3" fill="#f5c518" />
-        <rect x="148" y="252" width="24" height="18" rx="2" fill="#2c5483" />
-      </g>
-    );
-  }
-  if (id === "sweater") {
+  if (id === "sweater_cream") {
     return (
       <g filter="url(#softShadow)">
         <path
           d="M 92 240 Q 92 218 116 218 L 204 218 Q 228 218 228 240 L 228 290 L 92 290 Z"
-          fill="#d97757"
+          fill="#fff3d6"
         />
-        {/* tricô textura */}
-        <g stroke="#a85a3f" strokeWidth="1" opacity="0.4">
+        <g stroke="#d4b88a" strokeWidth="1" opacity="0.55">
           <path d="M 100 230 L 220 230" />
           <path d="M 100 244 L 220 244" />
           <path d="M 100 258 L 220 258" />
           <path d="M 100 272 L 220 272" />
         </g>
-        <g stroke="#a85a3f" strokeWidth="1" opacity="0.3">
+        <g stroke="#d4b88a" strokeWidth="1" opacity="0.4">
           <path d="M 120 218 L 120 290" />
           <path d="M 145 218 L 145 290" />
           <path d="M 175 218 L 175 290" />
           <path d="M 200 218 L 200 290" />
+        </g>
+        {/* corações pequenos */}
+        <text x="148" y="266" fontSize="14" fill="#c9b3ff" opacity="0.8">♡</text>
+        <text x="178" y="252" fontSize="10" fill="#a8e6cf" opacity="0.8">♡</text>
+      </g>
+    );
+  }
+  if (id === "scarf_mint") {
+    // Cachecol envolto no pescoço (não cobre corpo, mais leve)
+    return (
+      <g filter="url(#softShadow)">
+        <path
+          d="M 108 222 Q 160 232 212 222 L 220 244 Q 160 256 100 244 Z"
+          fill="#a8e6cf"
+        />
+        {/* ponta caindo */}
+        <path
+          d="M 200 244 Q 210 268 224 270 L 230 250 Q 218 248 212 240 Z"
+          fill="#5fb89a"
+        />
+        {/* franjas */}
+        <g stroke="#5fb89a" strokeWidth="1.5" strokeLinecap="round">
+          <path d="M 222 270 L 220 282" />
+          <path d="M 226 268 L 226 282" />
+          <path d="M 230 264 L 232 278" />
         </g>
       </g>
     );

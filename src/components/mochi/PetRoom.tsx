@@ -15,7 +15,14 @@ import { InteractionHistory } from "./InteractionHistory";
 import { FloatingHearts } from "./FloatingHearts";
 import { OutfitDrawer } from "./OutfitDrawer";
 import { useTheme } from "@/hooks/use-theme";
-import { type Outfit, loadOutfit, saveOutfit } from "@/lib/mochi-outfit";
+import {
+  type Outfit,
+  type OutfitItemId,
+  loadOutfit,
+  saveOutfit,
+  loadEnabled,
+  saveEnabled,
+} from "@/lib/mochi-outfit";
 
 interface Props {
   partnerName: string;
@@ -33,6 +40,9 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [outfitOpen, setOutfitOpen] = useState(false);
   const [outfit, setOutfit] = useState<Outfit>(() => loadOutfit());
+  const [enabledItems, setEnabledItems] = useState<Set<OutfitItemId>>(() =>
+    loadEnabled(),
+  );
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
@@ -46,6 +56,33 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
   const updateOutfit = (next: Outfit) => {
     setOutfit(next);
     saveOutfit(next);
+  };
+
+  const toggleItemEnabled = (id: OutfitItemId) => {
+    setEnabledItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        // Se a peça desabilitada estava em uso, volta pra "none" da categoria.
+        const fallback: Outfit = { ...outfit };
+        if (outfit.hat === (id as Outfit["hat"])) fallback.hat = "none";
+        if (outfit.bow === (id as Outfit["bow"])) fallback.bow = "none";
+        if (outfit.glasses === (id as Outfit["glasses"])) fallback.glasses = "none";
+        if (outfit.shirt === (id as Outfit["shirt"])) fallback.shirt = "none";
+        if (
+          fallback.hat !== outfit.hat ||
+          fallback.bow !== outfit.bow ||
+          fallback.glasses !== outfit.glasses ||
+          fallback.shirt !== outfit.shirt
+        ) {
+          updateOutfit(fallback);
+        }
+      } else {
+        next.add(id);
+      }
+      saveEnabled(next);
+      return next;
+    });
   };
 
   // initial load + realtime
@@ -414,7 +451,9 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
       <OutfitDrawer
         open={outfitOpen}
         outfit={outfit}
+        enabled={enabledItems}
         onChange={updateOutfit}
+        onToggleEnabled={toggleItemEnabled}
         onClose={() => setOutfitOpen(false)}
       />
     </div>

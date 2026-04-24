@@ -1,6 +1,9 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   type Outfit,
+  type OutfitItemId,
+  type OutfitOption,
   HAT_OPTIONS,
   BOW_OPTIONS,
   GLASSES_OPTIONS,
@@ -10,11 +13,22 @@ import {
 interface Props {
   open: boolean;
   outfit: Outfit;
+  enabled: Set<OutfitItemId>;
   onChange: (next: Outfit) => void;
+  onToggleEnabled: (id: OutfitItemId) => void;
   onClose: () => void;
 }
 
-export function OutfitDrawer({ open, outfit, onChange, onClose }: Props) {
+export function OutfitDrawer({
+  open,
+  outfit,
+  enabled,
+  onChange,
+  onToggleEnabled,
+  onClose,
+}: Props) {
+  const [editMode, setEditMode] = useState(false);
+
   return (
     <AnimatePresence>
       {open && (
@@ -34,40 +48,71 @@ export function OutfitDrawer({ open, outfit, onChange, onClose }: Props) {
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
           >
             <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-white/20" />
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between gap-2">
               <h2 className="font-display text-2xl font-bold">guarda-roupa</h2>
-              <button
-                onClick={onClose}
-                className="rounded-full bg-white/10 px-3 py-1 text-xs"
-              >
-                fechar
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setEditMode((v) => !v)}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    editMode
+                      ? "bg-pink/40 text-foreground ring-1 ring-pink"
+                      : "bg-white/10 text-muted-foreground hover:text-foreground"
+                  }`}
+                  title="ativar/desativar peças"
+                >
+                  {editMode ? "✓ editando" : "✏️ gerenciar"}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="rounded-full bg-white/10 px-3 py-1 text-xs"
+                >
+                  fechar
+                </button>
+              </div>
             </div>
 
-            <div className="max-h-[55vh] space-y-5 overflow-y-auto pr-1">
+            {editMode && (
+              <p className="mb-3 rounded-xl bg-pink/10 px-3 py-2 text-[11px] text-muted-foreground">
+                toque numa peça pra <strong className="text-foreground">esconder/mostrar</strong> ela do guarda-roupa.
+              </p>
+            )}
+
+            <div className="max-h-[58vh] space-y-5 overflow-y-auto pr-1">
               <Section
                 title="chapéu"
                 options={HAT_OPTIONS}
                 value={outfit.hat}
+                enabled={enabled}
+                editMode={editMode}
                 onPick={(v) => onChange({ ...outfit, hat: v })}
+                onToggleEnabled={onToggleEnabled}
               />
               <Section
                 title="laço"
                 options={BOW_OPTIONS}
                 value={outfit.bow}
+                enabled={enabled}
+                editMode={editMode}
                 onPick={(v) => onChange({ ...outfit, bow: v })}
+                onToggleEnabled={onToggleEnabled}
               />
               <Section
                 title="óculos"
                 options={GLASSES_OPTIONS}
                 value={outfit.glasses}
+                enabled={enabled}
+                editMode={editMode}
                 onPick={(v) => onChange({ ...outfit, glasses: v })}
+                onToggleEnabled={onToggleEnabled}
               />
               <Section
                 title="roupinha"
                 options={SHIRT_OPTIONS}
                 value={outfit.shirt}
+                enabled={enabled}
+                editMode={editMode}
                 onPick={(v) => onChange({ ...outfit, shirt: v })}
+                onToggleEnabled={onToggleEnabled}
               />
             </div>
           </motion.div>
@@ -77,39 +122,72 @@ export function OutfitDrawer({ open, outfit, onChange, onClose }: Props) {
   );
 }
 
-function Section<T extends string>({
+function Section<T extends OutfitItemId>({
   title,
   options,
   value,
+  enabled,
+  editMode,
   onPick,
+  onToggleEnabled,
 }: {
   title: string;
-  options: { id: T; label: string; emoji: string }[];
+  options: OutfitOption<T>[];
   value: T;
+  enabled: Set<OutfitItemId>;
+  editMode: boolean;
   onPick: (v: T) => void;
+  onToggleEnabled: (id: OutfitItemId) => void;
 }) {
+  // No modo normal escondemos peças desabilitadas (mas sempre mostramos "none").
+  const visible = editMode
+    ? options
+    : options.filter((o) => o.id === "none" || enabled.has(o.id));
+
   return (
     <div>
       <h3 className="mb-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
         {title}
       </h3>
       <div className="grid grid-cols-5 gap-2">
-        {options.map((opt) => {
+        {visible.map((opt) => {
           const active = opt.id === value;
+          const isEnabled = opt.id === "none" || enabled.has(opt.id);
+          const handleClick = () => {
+            if (editMode && opt.id !== "none") {
+              onToggleEnabled(opt.id);
+            } else {
+              onPick(opt.id);
+            }
+          };
           return (
             <button
               key={opt.id}
-              onClick={() => onPick(opt.id)}
-              className={`flex flex-col items-center gap-1 rounded-2xl p-2 text-center transition-all active:scale-95 ${
-                active
+              onClick={handleClick}
+              className={`relative flex flex-col items-center gap-1 rounded-2xl p-2 text-center transition-all active:scale-95 ${
+                active && !editMode
                   ? "bg-gradient-to-br from-pink/40 to-lilac/40 ring-2 ring-pink"
-                  : "bg-white/5 hover:bg-white/10"
+                  : isEnabled
+                  ? "bg-white/5 hover:bg-white/10"
+                  : "bg-white/5 opacity-40"
               }`}
             >
               <span className="text-2xl">{opt.emoji}</span>
               <span className="text-[10px] font-medium leading-tight">
                 {opt.label}
               </span>
+              {editMode && opt.id !== "none" && (
+                <span
+                  className={`absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold ${
+                    isEnabled
+                      ? "bg-mint text-foreground"
+                      : "bg-white/20 text-muted-foreground"
+                  }`}
+                  aria-hidden
+                >
+                  {isEnabled ? "✓" : "—"}
+                </span>
+              )}
             </button>
           );
         })}
