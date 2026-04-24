@@ -50,6 +50,8 @@ export interface Quest {
   is_active: boolean;
 }
 
+export type QuestVibe = "bonitinho" | "feio" | "meh";
+
 export interface QuestCompletion {
   id: string;
   quest_id: string;
@@ -58,6 +60,8 @@ export interface QuestCompletion {
   photo_path: string | null;
   status: "pending" | "approved" | "rejected";
   ai_reason: string | null;
+  cuteness: number | null;
+  vibe: QuestVibe | null;
   created_at: string;
 }
 
