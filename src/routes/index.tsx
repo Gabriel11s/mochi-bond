@@ -1,26 +1,45 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useSession } from "@/hooks/use-session";
+import { LoginScreen } from "@/components/mochi/LoginScreen";
+import { PetRoom } from "@/components/mochi/PetRoom";
+import { AmbientStars } from "@/components/mochi/AmbientStars";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Mochi Room — o cantinho de vocês" },
+      {
+        name: "description",
+        content:
+          "Um cantinho digital privado para duas pessoas cuidarem de um bichinho fofo, juntas.",
+      },
+      { property: "og:title", content: "Mochi Room" },
+      {
+        property: "og:description",
+        content:
+          "Um cantinho digital privado para duas pessoas cuidarem de um bichinho fofo, juntas.",
+      },
+      { name: "theme-color", content: "#0f0d14" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. For sites with multiple pages (About, Services, Contact, etc.),
-// create separate route files (about.tsx, services.tsx, contact.tsx) — don't put all pages in this file.
-function PlaceholderIndex() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
-
 function Index() {
-  return <PlaceholderIndex />;
+  const { session, hydrated, login, logout } = useSession();
+
+  if (!hydrated) {
+    return <div className="min-h-[100dvh]" />;
+  }
+
+  return (
+    <>
+      <AmbientStars />
+      {session ? (
+        <PetRoom partnerName={session.partnerName} onLogout={logout} />
+      ) : (
+        <LoginScreen onLogin={login} />
+      )}
+    </>
+  );
 }
