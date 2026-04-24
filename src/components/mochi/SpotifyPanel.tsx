@@ -403,7 +403,13 @@ function VibeCard({
       </p>
     );
   }
-  const reaction = buildMochiReaction(now.features, partnerName, now.track.name);
+  const artistNames = now.track.artists.map((a) => a.name);
+  const reaction = buildMochiReaction(
+    now.features,
+    partnerName,
+    now.track.name,
+    artistNames,
+  );
   const f = now.features;
   return (
     <div className="space-y-2">
