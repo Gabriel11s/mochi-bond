@@ -67,13 +67,13 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
         </defs>
 
         {/* ears */}
-        <ellipse cx="62" cy="62" rx="14" ry="20" fill="url(#${bodyGradId})" transform="rotate(-25 62 62)" />
-        <ellipse cx="138" cy="62" rx="14" ry="20" fill="url(#${bodyGradId})" transform="rotate(25 138 62)" />
+        <ellipse cx="62" cy="62" rx="14" ry="20" fill={`url(#${bodyGradId})`} transform="rotate(-25 62 62)" />
+        <ellipse cx="138" cy="62" rx="14" ry="20" fill={`url(#${bodyGradId})`} transform="rotate(25 138 62)" />
         <ellipse cx="62" cy="66" rx="6" ry="10" fill={skin.earInner} transform="rotate(-25 62 66)" />
         <ellipse cx="138" cy="66" rx="6" ry="10" fill={skin.earInner} transform="rotate(25 138 66)" />
 
         {/* body */}
-        <ellipse cx="100" cy="115" rx="68" ry="62" fill="url(#${bodyGradId})" />
+        <ellipse cx="100" cy="115" rx="68" ry="62" fill={`url(#${bodyGradId})`} />
 
         {/* scarf (under face) */}
         {acc.id === "scarf" && (
@@ -86,8 +86,8 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
         {/* cheeks */}
         {blush && (
           <>
-            <ellipse cx="62" cy="125" rx="14" ry="9" fill="url(#${cheekGradId})" />
-            <ellipse cx="138" cy="125" rx="14" ry="9" fill="url(#${cheekGradId})" />
+            <ellipse cx="62" cy="125" rx="14" ry="9" fill={`url(#${cheekGradId})`} />
+            <ellipse cx="138" cy="125" rx="14" ry="9" fill={`url(#${cheekGradId})`} />
           </>
         )}
 
