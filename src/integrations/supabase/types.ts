@@ -260,32 +260,38 @@ export type Database = {
         Row: {
           ai_reason: string | null
           created_at: string
+          cuteness: number | null
           id: string
           partner_name: string
           photo_id: string | null
           photo_path: string | null
           quest_id: string
           status: string
+          vibe: string | null
         }
         Insert: {
           ai_reason?: string | null
           created_at?: string
+          cuteness?: number | null
           id?: string
           partner_name: string
           photo_id?: string | null
           photo_path?: string | null
           quest_id: string
           status?: string
+          vibe?: string | null
         }
         Update: {
           ai_reason?: string | null
           created_at?: string
+          cuteness?: number | null
           id?: string
           partner_name?: string
           photo_id?: string | null
           photo_path?: string | null
           quest_id?: string
           status?: string
+          vibe?: string | null
         }
         Relationships: [
           {
