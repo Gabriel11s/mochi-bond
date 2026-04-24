@@ -27,7 +27,7 @@ interface Props {
  * - estados: feliz, triste, sleepy, eating
  * Suporta acessórios (chapéu, laço, óculos, camisetinha) por overlay.
  */
-export function Mochi({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props) {
+export function MochiPremium({ mood, eating, bouncing, outfit = DEFAULT_OUTFIT }: Props) {
   const sleeping = mood === "sleepy" && !eating;
   const sad = mood === "sad" && !eating;
   const happy = (mood === "happy" || mood === "excited") && !eating;
