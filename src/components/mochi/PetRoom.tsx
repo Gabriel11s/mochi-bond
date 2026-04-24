@@ -408,6 +408,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       {/* mochi scene */}
       <div className="relative mt-2 flex justify-center">
         <FloatingHearts particles={particles} />
+        <MochiSpeechBubble message={speech} />
         <Mochi
           mood={mood}
           eating={eating}
