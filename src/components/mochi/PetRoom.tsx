@@ -376,7 +376,34 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
         </AnimatePresence>
       </div>
 
-      {/* status bars */}
+      {/* mochi style selector — alterna a estética em tempo real */}
+      <div className="mt-3 flex justify-center">
+        <div className="glass inline-flex items-center gap-1 rounded-full p-1 text-[11px]">
+          <span className="px-2 uppercase tracking-[0.18em] text-muted-foreground">
+            estilo
+          </span>
+          {(["cute", "premium"] as const).map((t) => {
+            const active = mochiTheme === t;
+            const label = t === "cute" ? "fofinho" : "artesanal";
+            const emoji = t === "cute" ? "🍡" : "✨";
+            return (
+              <button
+                key={t}
+                onClick={() => !active && updateMochiTheme(t)}
+                className={`rounded-full px-3 py-1.5 font-display text-xs font-bold transition-all ${
+                  active
+                    ? "bg-gradient-to-r from-pink to-lilac text-white shadow-[var(--shadow-glow)]"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-pressed={active}
+              >
+                {emoji} {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div className="glass mt-2 rounded-3xl p-5">
         <StatusBars hunger={pet.hunger} happiness={pet.happiness} energy={pet.energy} />
       </div>
