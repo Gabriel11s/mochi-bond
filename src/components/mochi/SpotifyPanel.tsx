@@ -14,6 +14,9 @@ interface Props {
   partnerName: string;
   /** Quando o Mochi reage à música, dispara um balão de fala no PetRoom. */
   onReaction?: (reaction: MochiMusicReaction) => void;
+  /** Estado controlado de abertura do painel (controlado pelo PetRoom). */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 type Tab = "now" | "top" | "vibe";
