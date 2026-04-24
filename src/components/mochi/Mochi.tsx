@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  type MotionValue,
+} from "framer-motion";
 import type { Mood } from "@/lib/mochi-types";
 import type { Outfit } from "@/lib/mochi-outfit";
 import { DEFAULT_OUTFIT } from "@/lib/mochi-outfit";
