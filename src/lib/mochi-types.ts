@@ -1,4 +1,4 @@
-export type Mood = "happy" | "hungry" | "sleepy" | "excited" | "sad" | "idle" | "eating";
+export type Mood = "happy" | "hungry" | "sleepy" | "excited" | "sad" | "idle" | "eating" | "smitten";
 
 export type Rarity = "common" | "uncommon" | "rare" | "special";
 
@@ -15,6 +15,8 @@ export interface PetState {
   last_interaction_at: string | null;
   last_interaction_by: string | null;
   updated_at: string;
+  equipped_skin: string;
+  equipped_accessory: string;
 }
 
 export interface FoodItem {
@@ -73,6 +75,7 @@ export function moodLabel(mood: Mood): string {
     case "excited": return "tá animadinho";
     case "sad": return "tá meio cabisbaixo";
     case "eating": return "comendo";
+    case "smitten": return "apaixonadinho";
     default: return "tá tranquilo";
   }
 }
@@ -85,6 +88,7 @@ export function moodCopy(mood: Mood): string {
     case "excited": return "Tá pulando de alegria";
     case "sad": return "Precisa de um pouquinho de carinho";
     case "eating": return "Mastigando devagarzinho";
+    case "smitten": return "Derretendo com a fotinho de vocês 💗";
     default: return "Tá curtindo o quartinho";
   }
 }
