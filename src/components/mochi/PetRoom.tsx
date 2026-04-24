@@ -43,9 +43,33 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [particles, setParticles] = useState<{ id: number; emoji: string; x: number }[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [levelUp, setLevelUp] = useState(false);
+  const [speech, setSpeech] = useState<string | null>(null);
   const { theme, toggle } = useTheme();
   const flightRef = useRef<{ id: number; emoji: string } | null>(null);
   const [flight, setFlight] = useState<{ id: number; emoji: string } | null>(null);
+
+  const partnerKey = partnerKeyFromName(partnerName);
+
+  // Saudação inicial: o Mochi fala um balão pra Tita ou pro Gab quando entra no quartinho
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setSpeech(pickGreeting(partnerKey));
+    }, 600);
+    const hide = window.setTimeout(() => setSpeech(null), 6500);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(hide);
+    };
+  }, [partnerKey]);
+
+  // Troca a frase a cada ~25s enquanto o usuário tá no quartinho
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      setSpeech(pickGreeting(partnerKey, Date.now()));
+      window.setTimeout(() => setSpeech(null), 5500);
+    }, 25000);
+    return () => window.clearInterval(t);
+  }, [partnerKey]);
 
   // initial load + realtime
   useEffect(() => {
