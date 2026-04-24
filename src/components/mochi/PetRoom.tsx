@@ -483,6 +483,23 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         onPick={feed}
         busy={busy}
       />
+
+      {/* wardrobe drawer */}
+      <WardrobeDrawer
+        open={wardrobeOpen}
+        onClose={() => setWardrobeOpen(false)}
+        currentSkin={pet.equipped_skin}
+        currentAccessory={pet.equipped_accessory}
+        onSave={saveOutfit}
+      />
+
+      {/* photos drawer */}
+      <PhotosDrawer
+        open={photosOpen}
+        onClose={() => setPhotosOpen(false)}
+        partnerName={partnerName}
+        onShowToMochi={showPhoto}
+      />
     </div>
   );
 }
