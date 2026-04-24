@@ -108,7 +108,14 @@ export function SpotifyPanel({
           `/api/spotify/data?partner=${encodeURIComponent(partnerName)}&kind=now`,
         );
         if (!r.ok) {
-          const empty = { is_playing: false, progress_ms: null, track: null, features: null };
+          const empty: NowPlayingResponse = {
+            is_playing: false,
+            progress_ms: null,
+            track: null,
+            features: null,
+            genres: [],
+            artist_popularity: null,
+          };
           setNow(empty);
           onNowChange?.(empty);
           return;
@@ -158,30 +165,48 @@ export function SpotifyPanel({
     loadTop();
   }, [open, status?.connected, tab, loadTop]);
 
-  // Mochi reage à música nova (só uma vez por faixa, com cooldown via track id)
+  // Pet reage à música nova (uma vez por faixa, com cooldown via track id).
+  // Antes de reagir, puxa quantas vezes essa música já tocou pra calibrar
+  // a frase e o boost (anti-farm + memória afetiva).
   useEffect(() => {
     if (!now?.track || !now.is_playing) return;
-    if (lastReactedTrackRef.current === now.track.id) return;
-    lastReactedTrackRef.current = now.track.id;
+    const trackId = now.track.id;
+    if (lastReactedTrackRef.current === trackId) return;
+    lastReactedTrackRef.current = trackId;
 
-    const artistNames = now.track.artists.map((a) => a.name);
-    const reaction = buildMochiReaction(
-      now.features,
-      partnerName,
-      now.track.name,
-      artistNames,
-    );
-    onReaction?.(reaction);
+    let cancelled = false;
+    (async () => {
+      // conta plays anteriores (qualquer partner) — fonte da "memória"
+      const { count } = await supabase
+        .from("music_reactions")
+        .select("id", { count: "exact", head: true })
+        .eq("track_id", trackId);
+      if (cancelled || !now?.track) return;
 
-    // aplica boost sutil nos stats (com cooldown anti-spam: máx 1 boost por faixa)
-    if (reaction.happinessDelta !== 0 || reaction.energyDelta !== 0) {
-      applyMusicBoost({
+      const artistNames = now.track.artists.map((a) => a.name);
+      const reaction = buildMochiReaction({
+        features: now.features,
         partnerName,
-        track: now.track,
-        reaction,
-      }).catch((e) => console.warn("music boost falhou:", e));
-    }
-  }, [now?.track?.id, now?.is_playing, now?.features, partnerName, onReaction]);
+        trackName: now.track.name,
+        artistNames,
+        genres: now.genres ?? [],
+        playCount: count ?? 0,
+      });
+      onReaction?.(reaction);
+
+      if (reaction.happinessDelta !== 0 || reaction.energyDelta !== 0) {
+        applyMusicBoost({
+          partnerName,
+          track: now.track,
+          reaction,
+        }).catch((e) => console.warn("music boost falhou:", e));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [now?.track?.id, now?.is_playing, now?.features, now?.genres, partnerName, onReaction]);
 
   const handleConnect = () => {
     if (typeof window === "undefined") return;
@@ -408,13 +433,16 @@ function VibeCard({
     );
   }
   const artistNames = now.track.artists.map((a) => a.name);
-  const reaction = buildMochiReaction(
-    now.features,
+  const reaction = buildMochiReaction({
+    features: now.features,
     partnerName,
-    now.track.name,
+    trackName: now.track.name,
     artistNames,
-  );
+    genres: now.genres ?? [],
+    playCount: 0,
+  });
   const f = now.features;
+  const topGenres = (now.genres ?? []).slice(0, 3);
   return (
     <div className="space-y-2">
       <p className="text-xs italic leading-snug">"{reaction.message}"</p>
@@ -423,6 +451,11 @@ function VibeCard({
         <Stat label="alegria" v={f?.valence} />
         <Stat label="dança" v={f?.danceability} />
       </div>
+      {topGenres.length > 0 && (
+        <p className="text-center text-[10px] text-muted-foreground">
+          gêneros: {topGenres.join(" · ")}
+        </p>
+      )}
       <p className="text-center text-[10px] text-muted-foreground">
         vibe detectada: <span className="font-semibold">{reaction.vibe}</span>
       </p>
@@ -461,8 +494,11 @@ async function applyMusicBoost({
   try {
     const raw = window.localStorage.getItem(BOOST_KEY(partnerName));
     const prev = raw ? (JSON.parse(raw) as { trackId: string; t: number }) : null;
-    if (prev?.trackId === track.id) return;
-    if (prev && Date.now() - prev.t < BOOST_COOLDOWN_MS) return;
+    // Anti-spam apenas para o MESMO track em sequência. O ajuste por
+    // playCount já cuida de não inflar stats com música repetida.
+    if (prev?.trackId === track.id && Date.now() - prev.t < BOOST_COOLDOWN_MS) {
+      return;
+    }
 
     const { data: pet } = await supabase.from("pet_state").select("*").eq("id", 1).single();
     if (!pet) return;

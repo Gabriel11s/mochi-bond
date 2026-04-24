@@ -235,3 +235,21 @@ export async function fetchAudioFeatures(accessToken: string, trackId: string) {
     tempo: number | null;
   }>(accessToken, `v1/audio-features/${trackId}`);
 }
+
+/**
+ * Busca dados de até 50 artistas em uma chamada. O endpoint /v1/artists?ids=
+ * é estável e retorna `genres[]` e `popularity` — perfeito para classificar
+ * a vibe quando audio-features está bloqueado pelo Spotify (403).
+ */
+export async function fetchArtists(accessToken: string, artistIds: string[]) {
+  const ids = artistIds.filter(Boolean).slice(0, 50).join(",");
+  if (!ids) return null;
+  return spotifyGet<{
+    artists: Array<{
+      id: string;
+      name: string;
+      genres: string[];
+      popularity: number;
+    }>;
+  }>(accessToken, `v1/artists?ids=${encodeURIComponent(ids)}`);
+}
