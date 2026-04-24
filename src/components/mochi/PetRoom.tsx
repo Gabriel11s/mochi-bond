@@ -409,6 +409,14 @@ export function PetRoom({ partnerName, onLogout, onSwitchPartner }: Props) {
         onPick={feed}
         busy={busy}
       />
+
+      {/* outfit drawer */}
+      <OutfitDrawer
+        open={outfitOpen}
+        outfit={outfit}
+        onChange={updateOutfit}
+        onClose={() => setOutfitOpen(false)}
+      />
     </div>
   );
 }
