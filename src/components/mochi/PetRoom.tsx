@@ -365,6 +365,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
   const mood: Mood = smitten ? "smitten" : eating ? "eating" : (pet.current_mood as Mood);
   const xpInLevel = pet.xp % 100;
+  const showSpotifySuggestion = mood === "sad" || mood === "sleepy";
+  const spotifySuggestionCopy =
+    mood === "sad"
+      ? "abrir Spotify"
+      : mood === "sleepy"
+        ? "tocar algo levinho"
+        : "ouvir música";
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
