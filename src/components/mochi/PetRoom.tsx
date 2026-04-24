@@ -16,6 +16,8 @@ import { FloatingHearts } from "./FloatingHearts";
 import { WardrobeDrawer } from "./WardrobeDrawer";
 import { PhotosDrawer, type Photo } from "./PhotosDrawer";
 import { QuestsDrawer } from "./QuestsDrawer";
+import { MochiSpeechBubble } from "./MochiSpeechBubble";
+import { partnerKeyFromName, pickGreeting } from "@/lib/mochi-greetings";
 import { useTheme } from "@/hooks/use-theme";
 
 interface Props {

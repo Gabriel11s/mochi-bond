@@ -16,10 +16,10 @@ export function MochiSpeechBubble({ message }: Props) {
           transition={{ type: "spring", stiffness: 220, damping: 20 }}
           className="pointer-events-none absolute left-1/2 top-2 z-30 -translate-x-1/2"
         >
-          <div className="relative max-w-[260px] rounded-2xl bg-white/95 px-4 py-2 text-center text-[13px] font-medium text-zinc-800 shadow-[0_8px_24px_-8px_rgba(0,0,0,0.4)] dark:bg-white/90">
+          <div className="glass-strong relative max-w-[260px] rounded-2xl px-4 py-2 text-center text-[13px] font-medium text-foreground shadow-lg ring-1 ring-inset ring-white/10">
             {message}
             {/* tail */}
-            <div className="absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1.5 rotate-45 bg-white/95 dark:bg-white/90" />
+            <div className="glass-strong absolute left-1/2 top-full h-3 w-3 -translate-x-1/2 -translate-y-1.5 rotate-45 ring-1 ring-inset ring-white/10" />
           </div>
         </motion.div>
       )}
