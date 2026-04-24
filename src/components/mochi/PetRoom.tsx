@@ -15,6 +15,7 @@ import { InteractionHistory } from "./InteractionHistory";
 import { FloatingHearts } from "./FloatingHearts";
 import { WardrobeDrawer } from "./WardrobeDrawer";
 import { PhotosDrawer, type Photo } from "./PhotosDrawer";
+import { QuestsDrawer } from "./QuestsDrawer";
 import { useTheme } from "@/hooks/use-theme";
 
 interface Props {
@@ -31,6 +32,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(false);
+  const [questsOpen, setQuestsOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [eating, setEating] = useState(false);
   const [bouncing, setBouncing] = useState(false);
@@ -509,9 +511,18 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       <FoodDrawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        foods={foods}
+        partnerName={partnerName}
         onPick={feed}
         busy={busy}
+        onOpenQuests={() => setQuestsOpen(true)}
+      />
+
+      {/* quests drawer */}
+      <QuestsDrawer
+        open={questsOpen}
+        onClose={() => setQuestsOpen(false)}
+        partnerName={partnerName}
+        onCompleted={(msg) => showToast(msg)}
       />
 
       {/* wardrobe drawer */}
