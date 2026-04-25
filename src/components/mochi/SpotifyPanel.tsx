@@ -7,7 +7,7 @@ import type {
   SpotifyTrackLite,
   TopTracksResponse,
 } from "@/lib/spotify-types";
-import { buildMochiReaction, estimateAudioStats, type MochiMusicReaction } from "@/lib/spotify-vibe";
+import { buildMochiReaction, estimateAudioStats, musicMemoryComment, type MochiMusicReaction } from "@/lib/spotify-vibe";
 import { clamp } from "@/lib/mochi-types";
 
 interface Props {
@@ -219,9 +219,17 @@ export function SpotifyPanel({
   // e era o motivo pelo qual só o Gab conseguia conectar.
   const handleConnect = () => {
     if (typeof window === "undefined") return;
-    const loginUrl = new URL("/api/spotify/login", getSpotifyAppOrigin());
-    loginUrl.searchParams.set("partner", partnerName);
-    window.location.href = loginUrl.toString();
+    try {
+      const origin = getSpotifyAppOrigin();
+      const loginUrl = new URL("/api/spotify/login", origin);
+      loginUrl.searchParams.set("partner", partnerName);
+      console.log("[Spotify] connecting via:", loginUrl.toString());
+      window.location.href = loginUrl.toString();
+    } catch (err) {
+      console.error("[Spotify] connect error:", err);
+      // Fallback: tenta direto com path relativo
+      window.location.href = `/api/spotify/login?partner=${encodeURIComponent(partnerName)}`;
+    }
   };
 
   const handleDisconnect = async () => {
@@ -425,6 +433,13 @@ function TopList({ tracks, loading }: { tracks: SpotifyTrackLite[]; loading: boo
   );
 }
 
+interface FavoriteTrack {
+  track_id: string;
+  track_name: string | null;
+  artist_name: string | null;
+  plays: number;
+}
+
 function VibeCard({
   now,
   partnerName,
@@ -434,11 +449,56 @@ function VibeCard({
   partnerName: string;
   petName: string;
 }) {
+  // Feature #12: Memória musical — playCount do track atual + top 3 do casal
+  const [playCount, setPlayCount] = useState(0);
+  const [favorites, setFavorites] = useState<FavoriteTrack[]>([]);
+
+  // Top 3 mais ouvidas do casal — agregadas da tabela music_reactions
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("music_reactions")
+        .select("track_id, track_name, artist_name")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (cancelled || !data) return;
+      const byTrack = new Map<string, FavoriteTrack>();
+      for (const row of data) {
+        const cur = byTrack.get(row.track_id);
+        if (cur) cur.plays++;
+        else byTrack.set(row.track_id, { ...row, plays: 1 });
+      }
+      const top = [...byTrack.values()]
+        .sort((a, b) => b.plays - a.plays)
+        .slice(0, 3);
+      setFavorites(top);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // PlayCount do track atual — pra alimentar o memory comment
+  useEffect(() => {
+    if (!now?.track?.id) { setPlayCount(0); return; }
+    let cancelled = false;
+    (async () => {
+      const { count } = await supabase
+        .from("music_reactions")
+        .select("id", { count: "exact", head: true })
+        .eq("track_id", now.track!.id);
+      if (!cancelled) setPlayCount(count ?? 0);
+    })();
+    return () => { cancelled = true; };
+  }, [now?.track?.id]);
+
   if (!now?.track) {
     return (
-      <p className="py-6 text-center text-xs text-muted-foreground">
-        toca alguma coisa pra {petName} sentir a vibe 🎶
-      </p>
+      <div className="space-y-3">
+        <p className="py-6 text-center text-xs text-muted-foreground">
+          toca alguma coisa pra {petName} sentir a vibe 🎶
+        </p>
+        <FavoritesList favorites={favorites} />
+      </div>
     );
   }
   const artistNames = now.track.artists.map((a) => a.name);
@@ -448,16 +508,23 @@ function VibeCard({
     trackName: now.track.name,
     artistNames,
     genres: now.genres ?? [],
-    playCount: 0,
+    playCount,
   });
   const stats = estimateAudioStats(reaction.vibe, now.features, {
     trackId: now.track.id,
     artistPopularity: now.artist_popularity,
   });
   const topGenres = (now.genres ?? []).slice(0, 3);
+  // Feature #12: comentário de memória baseado em quantas vezes já tocou
+  const memory = musicMemoryComment(playCount, now.track.name);
   return (
     <div className="space-y-2">
       <p className="text-xs italic leading-snug">"{reaction.message}"</p>
+      {memory && playCount >= 2 && (
+        <p className="text-[10px] italic text-pink/90 text-center">
+          💗 {memory}
+        </p>
+      )}
       <div className="grid grid-cols-3 gap-1 text-[10px]">
         <Stat label="energia" v={stats.energy} />
         <Stat label="alegria" v={stats.valence} />
@@ -472,6 +539,34 @@ function VibeCard({
         vibe detectada: <span className="font-semibold">{reaction.vibe}</span>
         {stats.isEstimated && <span className="ml-1 opacity-70">· estimado por gênero</span>}
       </p>
+      <FavoritesList favorites={favorites} />
+    </div>
+  );
+}
+
+function FavoritesList({ favorites }: { favorites: FavoriteTrack[] }) {
+  if (favorites.length === 0) return null;
+  return (
+    <div className="mt-3 rounded-xl bg-pink/5 p-2 ring-1 ring-pink/15">
+      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-pink/90">
+        💗 favoritas do casal
+      </p>
+      <ol className="space-y-1">
+        {favorites.map((f, i) => (
+          <li key={f.track_id} className="flex items-center gap-2 text-[10px]">
+            <span className="w-3 text-center font-bold text-muted-foreground">{i + 1}</span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold">{f.track_name ?? "—"}</p>
+              {f.artist_name && (
+                <p className="truncate text-muted-foreground">{f.artist_name}</p>
+              )}
+            </div>
+            <span className="rounded-full bg-pink/15 px-1.5 py-0.5 text-[9px] font-semibold text-pink">
+              {f.plays}×
+            </span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

@@ -21,15 +21,28 @@ import { PhotoWall } from "./PhotoWall";
 import { SpotifyPanel } from "./SpotifyPanel";
 import type { NowPlayingResponse } from "@/lib/spotify-types";
 import { buildMochiReaction, vibeLabel } from "@/lib/spotify-vibe";
-import { partnerKeyFromName, pickGreeting } from "@/lib/mochi-greetings";
+import { partnerKeyFromName, pickGreeting, pickSecret } from "@/lib/mochi-greetings";
 import { usePartnerTheme } from "@/hooks/use-theme";
 import { BackgroundScene } from "./BackgroundScene";
 import { BackgroundDrawer } from "./BackgroundDrawer";
+import { DreamBubbles } from "./DreamBubbles";
 import {
   loadBackgroundId,
   saveBackgroundId,
   type BackgroundId,
 } from "@/lib/mochi-backgrounds";
+import { getSeasonTheme, getDayPhaseOverlay, getDaysTogetherInfo } from "@/lib/mochi-seasons";
+import { computeStreak, type StreakInfo } from "@/lib/mochi-streak";
+import { useKonamiCode } from "@/lib/mochi-secrets";
+import { LoveNotesDrawer } from "./LoveNotesDrawer";
+import { AchievementsDrawer } from "./AchievementsDrawer";
+import {
+  checkAchievements,
+  trackBackgroundVisit,
+  getVisitedBackgroundCount,
+  achievementLabel,
+  achievementEmoji,
+} from "@/lib/mochi-achievements";
 
 interface Props {
   partnerName: string;
@@ -48,6 +61,8 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [questsOpen, setQuestsOpen] = useState(false);
   const [spotifyOpen, setSpotifyOpen] = useState(false);
   const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [achievementsOpen, setAchievementsOpen] = useState(false);
   const [backgroundId, setBackgroundId] = useState<BackgroundId>("quartinho");
   const [nowPlaying, setNowPlaying] = useState<NowPlayingResponse | null>(null);
   // nonce que dispara o shimmer no casal do cinema quando alimenta/faz carinho
@@ -65,9 +80,34 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [speech, setSpeech] = useState<string | null>(null);
   const flightRef = useRef<{ id: number; emoji: string } | null>(null);
   const [flight, setFlight] = useState<{ id: number; emoji: string } | null>(null);
+  // Feature #2: easter egg do toque duplo no XP
+  const [secretShown, setSecretShown] = useState(false);
+  // Feature #6: streak de cuidado
+  const [streak, setStreak] = useState<StreakInfo>({ days: 0, emoji: "", label: "", brokeToday: false });
+  // Feature #9: estação/data especial
+  const seasonTheme = getSeasonTheme();
+  // Feature #8: overlay dia/noite
+  const dayOverlay = getDayPhaseOverlay();
+  // Feature #5: contador do casal
+  const coupleInfo = getDaysTogetherInfo();
+  // Feature #1: Konami Code rainbow mode
+  const [rainbowMode, setRainbowMode] = useState(false);
 
   const partnerKey = partnerKeyFromName(partnerName);
   const { theme } = usePartnerTheme(partnerKey);
+
+  // Feature #1: Konami Code easter egg
+  useKonamiCode(() => {
+    setRainbowMode(true);
+    setSpeech("descobriu o segredo! te amo extra hoje 💗✨🌈");
+    burstParticles("🌈", 8);
+    burstParticles("✨", 10);
+    burstParticles("💗", 6);
+    window.setTimeout(() => {
+      setRainbowMode(false);
+      setSpeech(null);
+    }, 10000);
+  });
 
   // Saudação inicial: o Mochi fala um balão pra Tita ou pro Gab quando entra no quartinho
   useEffect(() => {
@@ -95,9 +135,68 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBackgroundId(loadBackgroundId());
   }, []);
 
+  // Feature #6: calcula streak ao montar
+  useEffect(() => {
+    computeStreak().then(setStreak);
+  }, []);
+
+  // Feature #11: registra cenário inicial e verifica conquistas
+  useEffect(() => {
+    trackBackgroundVisit(backgroundId);
+  }, [backgroundId]);
+
+  // Feature #11: roda detector de conquistas quando o estado muda
+  useEffect(() => {
+    if (!pet) return;
+    const run = async () => {
+      const newly = await checkAchievements({
+        partnerName,
+        petLevel: pet.level,
+        streakDays: streak.days,
+        daysTogether: coupleInfo.days,
+        visitedBackgrounds: getVisitedBackgroundCount(),
+        hourOfVisit: new Date().getHours(),
+      });
+      if (newly.length > 0) {
+        // Mostra a primeira como toast principal, anuncia as outras com delay
+        newly.forEach((key, idx) => {
+          window.setTimeout(() => {
+            showToast(`${achievementEmoji(key)} conquista: ${achievementLabel(key)}!`);
+            burstParticles("✨", 6);
+          }, idx * 2400);
+        });
+      }
+    };
+    run();
+  }, [pet?.level, streak.days, coupleInfo.days, partnerName]);
+
+  // Feature #9: greeting de estação especial na entrada
+  useEffect(() => {
+    if (seasonTheme.greeting) {
+      const t = window.setTimeout(() => {
+        setSpeech(seasonTheme.greeting!);
+      }, 7000); // depois do greeting normal
+      const h = window.setTimeout(() => setSpeech(null), 13000);
+      return () => { window.clearTimeout(t); window.clearTimeout(h); };
+    }
+  }, [seasonTheme.greeting]);
+
+  // Feature #5: milestone do casal
+  useEffect(() => {
+    if (coupleInfo.milestone) {
+      const t = window.setTimeout(() => {
+        setSpeech(coupleInfo.milestone!);
+        burstParticles("🎉", 8);
+      }, 14000);
+      const h = window.setTimeout(() => setSpeech(null), 20000);
+      return () => { window.clearTimeout(t); window.clearTimeout(h); };
+    }
+  }, [coupleInfo.milestone]);
+
   const pickBackground = (id: BackgroundId) => {
     setBackgroundId(id);
     saveBackgroundId(id);
+    trackBackgroundVisit(id); // Feature #11: progresso pra "Exploradores"
     showToast(`cantinho trocado ✨`);
   };
 
@@ -154,6 +253,18 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         if (newInt.partner_name === partnerName) {
           if (newInt.interaction_type === "play") setLastPlayAt(newInt.created_at);
           if (newInt.interaction_type === "pet") setLastPetAt(newInt.created_at);
+        }
+        // Feature #7: notifica quando o OUTRO partner faz algo
+        if (newInt.partner_name !== partnerName) {
+          const name = newInt.partner_name.toLowerCase();
+          const actionMap: Record<string, string> = {
+            feed: `${name} alimentou o Mochi! 🍙`,
+            pet: `${name} deu carinho no Mochi 💗`,
+            play: `${name} brincou com o Mochi ✨`,
+            photo: `${name} mostrou uma foto pro Mochi 📸`,
+          };
+          const msg = actionMap[newInt.interaction_type];
+          if (msg) showToast(msg);
         }
       })
       .subscribe();
@@ -215,105 +326,109 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBusy(true);
     setDrawerOpen(false);
 
-    // food flight animation
-    flightRef.current = { id: ++particleId, emoji: food.emoji };
-    setFlight(flightRef.current);
-    await new Promise((r) => setTimeout(r, 600));
-    setFlight(null);
+    try {
+      // food flight animation
+      flightRef.current = { id: ++particleId, emoji: food.emoji };
+      setFlight(flightRef.current);
+      await new Promise((r) => setTimeout(r, 600));
+      setFlight(null);
 
-    // eat animation
-    setEating(true);
-    await new Promise((r) => setTimeout(r, 600));
+      // eat animation
+      setEating(true);
+      await new Promise((r) => setTimeout(r, 600));
 
-    const xpGain = RARITY_XP[food.rarity];
-    const newHunger = clamp(pet.hunger + food.hunger_value);
-    const newHappiness = clamp(pet.happiness + food.happiness_value);
-    const newEnergy = clamp(pet.energy + food.energy_value);
-    const newXp = pet.xp + xpGain;
-    const newLevel = Math.floor(newXp / 100) + 1;
-    const newMood: Mood = computeMood(newHunger, newHappiness, newEnergy);
-    const leveled = newLevel > pet.level;
+      // FIX 22P02: Math.round() em todos os valores numéricos —
+      // applyDecay produz floats (67.234) que PostgreSQL integer rejeita.
+      const xpGain = RARITY_XP[food.rarity] ?? 5;
+      const newHunger = Math.round(clamp(pet.hunger + food.hunger_value));
+      const newHappiness = Math.round(clamp(pet.happiness + food.happiness_value));
+      const newEnergy = Math.round(clamp(pet.energy + food.energy_value));
+      const newXp = Math.round(pet.xp + xpGain);
+      const newLevel = Math.floor(newXp / 100) + 1;
+      const newMood: Mood = computeMood(newHunger, newHappiness, newEnergy);
+      const leveled = newLevel > pet.level;
 
-    const now = new Date().toISOString();
+      const now = new Date().toISOString();
 
-    // Marca a coluna correta de quem alimentou (gab/tita) — usado pelo
-    // mecanismo de "morte por inanição" (cron a cada hora no Supabase).
-    const fedByPatch: Record<string, string> =
-      partnerKey === "gab"
-        ? { last_fed_by_gab: now }
-        : partnerKey === "tita"
-          ? { last_fed_by_tita: now }
-          : {};
+      const fedByPatch: Record<string, string> =
+        partnerKey === "gab"
+          ? { last_fed_by_gab: now }
+          : partnerKey === "tita"
+            ? { last_fed_by_tita: now }
+            : {};
 
-    const { error: petErr } = await supabase
-      .from("pet_state")
-      .update({
-        hunger: newHunger,
-        happiness: newHappiness,
-        energy: newEnergy,
-        xp: newXp,
-        level: newLevel,
-        current_mood: newMood,
-        last_fed_at: now,
-        last_interaction_at: now,
-        last_interaction_by: partnerName,
-        updated_at: now,
-        ...fedByPatch,
-      })
-      .eq("id", 1);
+      const { error: petErr } = await supabase
+        .from("pet_state")
+        .update({
+          hunger: newHunger,
+          happiness: newHappiness,
+          energy: newEnergy,
+          xp: newXp,
+          level: newLevel,
+          current_mood: newMood,
+          last_fed_at: now,
+          last_interaction_at: now,
+          last_interaction_by: partnerName,
+          updated_at: now,
+          ...fedByPatch,
+        })
+        .eq("id", 1);
 
-    if (petErr) {
-      console.error("feed pet_state error:", petErr);
-      const detail = petErr.code === "42501"
-        ? "sem permissão pra alimentar — tenta sair e entrar de novo 🔑"
-        : petErr.message?.includes("JWT")
-          ? "sessão expirou — recarrega a página 🔄"
-          : `algo deu errado 🥺 (${petErr.code ?? "erro"})`;
-      showToast(detail);
+      if (petErr) {
+        console.error("feed pet_state error:", petErr);
+        const detail = petErr.code === "42501"
+          ? "sem permissão pra alimentar — tenta sair e entrar de novo 🔑"
+          : petErr.message?.includes("JWT")
+            ? "sessão expirou — recarrega a página 🔄"
+            : `algo deu errado 🥺 (${petErr.code ?? "erro"})`;
+        showToast(detail);
+        return;
+      }
+
+      if (pantryItemId) {
+        const { data: consumed, error: pantryErr } = await supabase
+          .from("pantry_items")
+          .update({ consumed: true, consumed_at: now })
+          .eq("id", pantryItemId)
+          .eq("consumed", false)
+          .select("id")
+          .maybeSingle();
+        if (pantryErr || !consumed) {
+          console.warn("pantry item já consumido ou erro:", pantryErr);
+        }
+      }
+
+      await supabase.from("interactions").insert({
+        partner_name: partnerName,
+        interaction_type: "feed",
+        food_id: food.id,
+        food_name: food.name,
+        food_emoji: food.emoji,
+        hunger_delta: Math.round(food.hunger_value),
+        happiness_delta: Math.round(food.happiness_value),
+        energy_delta: Math.round(food.energy_value),
+        xp_delta: Math.round(xpGain),
+        message: `Ele amou ${food.name.toLowerCase()}`,
+      });
+
+      setEating(false);
+      setBouncing(true);
+      burstParticles("💗", 5);
+      setCouplePulse((n) => n + 1);
+      showToast(`ele amou ${food.name.toLowerCase()} ${food.emoji}`);
+      if (leveled) {
+        setLevelUp(true);
+        window.setTimeout(() => setLevelUp(false), 2400);
+        burstParticles("✨", 12);
+      }
+      window.setTimeout(() => setBouncing(false), 700);
+    } catch (err) {
+      console.error("feed exception:", err);
+      showToast("algo deu errado 🥺 tenta de novo");
+    } finally {
       setEating(false);
       setBusy(false);
-      return;
     }
-
-    // Fix #8: consome o item da despensa com validação de concorrência
-    if (pantryItemId) {
-      const { data: consumed, error: pantryErr } = await supabase
-        .from("pantry_items")
-        .update({ consumed: true, consumed_at: now })
-        .eq("id", pantryItemId)
-        .eq("consumed", false) // só consome se ainda não foi
-        .select("id")
-        .maybeSingle();
-      if (pantryErr || !consumed) {
-        console.warn("pantry item já consumido ou erro:", pantryErr);
-      }
-    }
-
-    await supabase.from("interactions").insert({
-      partner_name: partnerName,
-      interaction_type: "feed",
-      food_id: food.id,
-      food_name: food.name,
-      food_emoji: food.emoji,
-      hunger_delta: food.hunger_value,
-      happiness_delta: food.happiness_value,
-      energy_delta: food.energy_value,
-      xp_delta: xpGain,
-      message: `Ele amou ${food.name.toLowerCase()}`,
-    });
-
-    setEating(false);
-    setBouncing(true);
-    burstParticles("💗", 5);
-    setCouplePulse((n) => n + 1); // shimmer no casal do cinema
-    showToast(`ele amou ${food.name.toLowerCase()} ${food.emoji}`);
-    if (leveled) {
-      setLevelUp(true);
-      window.setTimeout(() => setLevelUp(false), 2400);
-      burstParticles("✨", 12);
-    }
-    window.setTimeout(() => setBouncing(false), 700);
-    setBusy(false);
   };
 
   // Fix #5: cooldown agora usa state dedicado (lastPlayAt, lastPetAt)
@@ -347,45 +462,51 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       return;
     }
     setBusy(true);
-    setBouncing(true);
-    burstParticles(type === "pet" ? "💗" : "✨", 5);
-    setCouplePulse((n) => n + 1); // shimmer no casal do cinema
-    const dHappy = type === "pet" ? 8 : 12;
-    const dEnergy = type === "pet" ? 0 : -10;
-    const xp = 3;
-    const newHunger = pet.hunger;
-    const newHappiness = clamp(pet.happiness + dHappy);
-    const newEnergy = clamp(pet.energy + dEnergy);
-    const newXp = pet.xp + xp;
-    const newLevel = Math.floor(newXp / 100) + 1;
-    const now = new Date().toISOString();
+    try {
+      setBouncing(true);
+      burstParticles(type === "pet" ? "💗" : "✨", 5);
+      setCouplePulse((n) => n + 1);
+      const dHappy = type === "pet" ? 8 : 12;
+      const dEnergy = type === "pet" ? 0 : -10;
+      const xp = 3;
+      // FIX 22P02: Math.round em todos os valores
+      const newHappiness = Math.round(clamp(pet.happiness + dHappy));
+      const newEnergy = Math.round(clamp(pet.energy + dEnergy));
+      const newXp = Math.round(pet.xp + xp);
+      const newLevel = Math.floor(newXp / 100) + 1;
+      const now = new Date().toISOString();
 
-    await supabase
-      .from("pet_state")
-      .update({
-        happiness: newHappiness,
-        energy: newEnergy,
-        xp: newXp,
-        level: newLevel,
-        current_mood: computeMood(newHunger, newHappiness, newEnergy),
-        last_interaction_at: now,
-        last_interaction_by: partnerName,
-        updated_at: now,
-      })
-      .eq("id", 1);
+      await supabase
+        .from("pet_state")
+        .update({
+          happiness: newHappiness,
+          energy: newEnergy,
+          xp: newXp,
+          level: newLevel,
+          current_mood: computeMood(Math.round(pet.hunger), newHappiness, newEnergy),
+          last_interaction_at: now,
+          last_interaction_by: partnerName,
+          updated_at: now,
+        })
+        .eq("id", 1);
 
-    await supabase.from("interactions").insert({
-      partner_name: partnerName,
-      interaction_type: type,
-      happiness_delta: dHappy,
-      energy_delta: dEnergy,
-      xp_delta: xp,
-      message: type === "pet" ? "carinho cheio de amor" : "uma brincadeirinha rápida",
-    });
+      await supabase.from("interactions").insert({
+        partner_name: partnerName,
+        interaction_type: type,
+        happiness_delta: dHappy,
+        energy_delta: dEnergy,
+        xp_delta: xp,
+        message: type === "pet" ? "carinho cheio de amor" : "uma brincadeirinha rápida",
+      });
 
-    showToast(type === "pet" ? "ele ronronou de felicidade 💗" : "ele se divertiu muito ✨");
-    window.setTimeout(() => setBouncing(false), 700);
-    setBusy(false);
+      showToast(type === "pet" ? "ele ronronou de felicidade 💗" : "ele se divertiu muito ✨");
+      window.setTimeout(() => setBouncing(false), 700);
+    } catch (err) {
+      console.error("pet_action error:", err);
+      showToast("algo deu errado 🥺");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const saveOutfit = async (skin: string, accessory: string) => {
@@ -425,54 +546,59 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setShownPhoto(photo);
     setSmitten(true);
 
-    // staggered heart bursts to feel continuous, not a single pop
     const burstTimers: number[] = [];
-    burstParticles("💗", 4);
-    burstTimers.push(
-      window.setTimeout(() => burstParticles("💞", 3), 600),
-      window.setTimeout(() => burstParticles("💗", 4), 1300),
-      window.setTimeout(() => burstParticles("💕", 3), 2100),
-      window.setTimeout(() => burstParticles("💗", 3), 2900),
-    );
+    try {
+      burstParticles("💗", 4);
+      burstTimers.push(
+        window.setTimeout(() => burstParticles("💞", 3), 600),
+        window.setTimeout(() => burstParticles("💗", 4), 1300),
+        window.setTimeout(() => burstParticles("💕", 3), 2100),
+        window.setTimeout(() => burstParticles("💗", 3), 2900),
+      );
 
-    const dHappy = photo.happiness_boost;
-    const newHappiness = clamp(pet.happiness + dHappy);
-    const xp = 8;
-    const newXp = pet.xp + xp;
-    const newLevel = Math.floor(newXp / 100) + 1;
-    const leveled = newLevel > pet.level;
-    const now = new Date().toISOString();
+      const dHappy = Math.round(photo.happiness_boost);
+      // FIX 22P02: Math.round em todos os valores
+      const newHappiness = Math.round(clamp(pet.happiness + dHappy));
+      const xp = 8;
+      const newXp = Math.round(pet.xp + xp);
+      const newLevel = Math.floor(newXp / 100) + 1;
+      const leveled = newLevel > pet.level;
+      const now = new Date().toISOString();
 
-    await supabase
-      .from("pet_state")
-      .update({
-        happiness: newHappiness,
-        xp: newXp,
-        level: newLevel,
-        current_mood: computeMood(pet.hunger, newHappiness, pet.energy),
-        last_interaction_at: now,
-        last_interaction_by: partnerName,
-        updated_at: now,
-      })
-      .eq("id", 1);
+      await supabase
+        .from("pet_state")
+        .update({
+          happiness: newHappiness,
+          xp: newXp,
+          level: newLevel,
+          current_mood: computeMood(Math.round(pet.hunger), newHappiness, Math.round(pet.energy)),
+          last_interaction_at: now,
+          last_interaction_by: partnerName,
+          updated_at: now,
+        })
+        .eq("id", 1);
 
-    await supabase.from("interactions").insert({
-      partner_name: partnerName,
-      interaction_type: "photo",
-      happiness_delta: dHappy,
-      xp_delta: xp,
-      message: photo.caption ? `derreteu vendo "${photo.caption}"` : "derreteu vendo uma fotinho de vocês",
-    });
+      await supabase.from("interactions").insert({
+        partner_name: partnerName,
+        interaction_type: "photo",
+        happiness_delta: dHappy,
+        xp_delta: xp,
+        message: photo.caption ? `derreteu vendo "${photo.caption}"` : "derreteu vendo uma fotinho de vocês",
+      });
 
-    showToast("ele ficou apaixonadinho 💗");
+      showToast("ele ficou apaixonadinho 💗");
 
-    if (leveled) {
-      setLevelUp(true);
-      window.setTimeout(() => setLevelUp(false), 2400);
-      burstParticles("✨", 12);
+      if (leveled) {
+        setLevelUp(true);
+        window.setTimeout(() => setLevelUp(false), 2400);
+        burstParticles("✨", 12);
+      }
+    } catch (err) {
+      console.error("showPhoto error:", err);
+      showToast("algo deu errado 🥺");
     }
 
-    // ~2 full smitten cycles (1.8s each) so the loop ends naturally
+    // ~2 full smitten cycles then cleanup — sempre roda
     window.setTimeout(() => {
       burstTimers.forEach((t) => window.clearTimeout(t));
       setSmitten(false);
@@ -544,6 +670,31 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
       <BackgroundScene backgroundId={backgroundId} reactPulse={couplePulse} />
+      {/* Feature #8: overlay de ciclo dia/noite */}
+      {dayOverlay && (
+        <div
+          className="pointer-events-none fixed inset-0 z-[1]"
+          style={{ background: dayOverlay.bg, opacity: dayOverlay.opacity }}
+        />
+      )}
+      {/* Feature #9: partículas sazonais */}
+      {seasonTheme.particles.length > 0 && (
+        <div className="pointer-events-none fixed inset-0 z-[2] overflow-hidden" aria-hidden>
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute text-lg animate-season-fall"
+              style={{
+                left: `${(i * 137.508) % 100}%`,
+                animationDelay: `${i * 0.8}s`,
+                animationDuration: `${6 + (i % 4)}s`,
+              }}
+            >
+              {seasonTheme.particles[i % seasonTheme.particles.length]}
+            </div>
+          ))}
+        </div>
+      )}
       <PhotoWall />
       <SpotifyPanel
         partnerName={partnerName}
@@ -676,7 +827,19 @@ export function PetRoom({ partnerName, onLogout }: Props) {
             )}
           </button>
         </div>
-        <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs">
+        {/* Feature #2: toque duplo secreto no badge de nível */}
+        <button
+          type="button"
+          className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-xs transition-all hover:bg-white/10 active:scale-95"
+          onDoubleClick={() => {
+            if (!secretShown) {
+              setSecretShown(true);
+              setSpeech(pickSecret());
+              burstParticles("💗", 6);
+              window.setTimeout(() => setSpeech(null), 5000);
+            }
+          }}
+        >
           <span className="font-bold text-pink">nível {pet.level}</span>
           <span className="h-1 w-16 overflow-hidden rounded-full bg-white/10">
             <span
@@ -685,7 +848,15 @@ export function PetRoom({ partnerName, onLogout }: Props) {
             />
           </span>
           <span className="tabular-nums text-muted-foreground">{xpInLevel}/100</span>
-        </div>
+        </button>
+        {/* Feature #5: contador do casal */}
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          {coupleInfo.isTodayAnniversary ? "🎉 " : "💗 "}
+          gab & tita · {coupleInfo.label}
+          {streak.days > 0 && (
+            <span className="ml-2">{streak.emoji} {streak.label}</span>
+          )}
+        </p>
       </div>
 
       {/* Barra da vibe (sempre visível quando algo está tocando) */}
@@ -726,11 +897,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       <div className="relative mt-2 flex justify-center">
         <FloatingHearts particles={particles} />
         <MochiSpeechBubble message={speech} />
+        {/* Feature #10: sonhos do Mochi — ativo quando sleepy ou de madrugada */}
+        <DreamBubbles active={mood === "sleepy" || new Date().getHours() < 5} />
         <Mochi
           mood={mood}
           eating={eating}
           bouncing={bouncing}
-          skinId={pet.equipped_skin}
+          skinId={rainbowMode ? "galaxy" : pet.equipped_skin}
           accessoryId={pet.equipped_accessory}
           hunger={pet.hunger}
           happiness={pet.happiness}
@@ -885,6 +1058,18 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         >
           🎀 vestir
         </button>
+        <button
+          onClick={() => setNotesOpen(true)}
+          className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97]"
+        >
+          💌 bilhete
+        </button>
+        <button
+          onClick={() => setAchievementsOpen(true)}
+          className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97]"
+        >
+          🏅 conquistas
+        </button>
       </div>
 
       {/* last care */}
@@ -972,7 +1157,25 @@ export function PetRoom({ partnerName, onLogout }: Props) {
           onError={(msg) => showToast(msg)}
         />
       )}
-      {/* Fix #1: removida instância duplicada do PhotosDrawer */}
+
+      {notesOpen && (
+        <LoveNotesDrawer
+          partnerName={partnerName}
+          open={notesOpen}
+          onOpenChange={setNotesOpen}
+          onNewNote={() => {
+            showToast("bilhetinho enviado 💌");
+            burstParticles("💌", 4);
+          }}
+        />
+      )}
+
+      {achievementsOpen && (
+        <AchievementsDrawer
+          open={achievementsOpen}
+          onOpenChange={setAchievementsOpen}
+        />
+      )}
       </div>
     </div>
   );

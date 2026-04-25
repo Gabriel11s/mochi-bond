@@ -422,3 +422,12 @@ function hashSeed(s: string): number {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h);
 }
+
+// Feature #12: Memória Musical — frases contextuais por play count
+export function musicMemoryComment(playCount: number, trackName: string): string | null {
+  if (playCount <= 1) return `opa, música nova! 🎵`;
+  if (playCount <= 3) return `essa eu já conheço! vocês gostam de "${trackName}" né 😊`;
+  if (playCount <= 6) return `"${trackName}" de novo? essa é daquelas! 🎶`;
+  if (playCount <= 10) return `nossa, essa é DAQUELAS! vocês ficam diferentes quando toca 💗`;
+  return `"${trackName}" é a música de vocês, eu sei 🥰💗`;
+}
