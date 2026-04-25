@@ -858,5 +858,8 @@ function SceneDecorations({ id, dots, accent, reactPulse = 0 }: DecoProps) {
           <div className="absolute bottom-[8%] right-[20%] text-3xl">🌿</div>
         </>
       );
+    default:
+      return null;
   }
+}
 }
