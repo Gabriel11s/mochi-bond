@@ -35,7 +35,7 @@ export function BackgroundScene({ backgroundId, reactPulse = 0 }: Props) {
       <div className="absolute inset-0" style={{ background: bg.sky }} />
 
       {/* Decorações específicas por cena */}
-      <SceneDecorations id={backgroundId} dots={dots} accent={bg.accent} />
+      <SceneDecorations id={backgroundId} dots={dots} accent={bg.accent} reactPulse={reactPulse} />
 
       {/* Chão */}
       <div
@@ -214,9 +214,10 @@ interface DecoProps {
   id: BackgroundId;
   dots: { x: number; y: number; size: number; delay: number }[];
   accent: string;
+  reactPulse?: number;
 }
 
-function SceneDecorations({ id, dots, accent }: DecoProps) {
+function SceneDecorations({ id, dots, accent, reactPulse = 0 }: DecoProps) {
   switch (id) {
     case "quartinho":
       return (
@@ -296,7 +297,7 @@ function SceneDecorations({ id, dots, accent }: DecoProps) {
             <div className="absolute inset-2 rounded-sm bg-gradient-to-br from-pink-200/10 via-purple-200/15 to-yellow-200/10" />
           </div>
           {/* casal aconchegado na poltrona — silhueta de costas vendo o filme */}
-          <CoupleOnCouch accent={accent} />
+          <CoupleOnCouch accent={accent} reactPulse={reactPulse} />
           {/* balde de pipoca */}
           <div className="absolute bottom-[12%] right-[10%] h-10 w-8">
             <div className="h-2 w-full rounded-full bg-yellow-100" />
