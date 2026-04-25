@@ -862,4 +862,3 @@ function SceneDecorations({ id, dots, accent, reactPulse = 0 }: DecoProps) {
       return null;
   }
 }
-}
