@@ -27,7 +27,7 @@ export function BackgroundScene({ backgroundId }: Props) {
   );
 
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       {/* Céu / parede */}
       <div className="absolute inset-0" style={{ background: bg.sky }} />
 

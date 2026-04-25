@@ -65,8 +65,8 @@ export function PhotoWall() {
       aria-hidden
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
     >
-      {/* leve vinheta pra que o conteúdo central fique legível */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_var(--background)_72%)]" />
+      {/* leve vinheta translúcida pra legibilidade — não cobre o cenário */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_oklch(0_0_0/0.25)_85%)]" />
 
       {photos.map((photo, i) => {
         const slot = SLOTS[i % SLOTS.length];
