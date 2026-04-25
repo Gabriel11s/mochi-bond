@@ -240,14 +240,14 @@ function MochiInner({
           </g>
         )}
 
-        {/* óculos da vitória — armação dourada borboleta com lente rosa translúcida */}
+        {/* óculos da vitória — armação preta borboleta com lente rosa translúcida */}
         {acc.id === "victory" && (
           <g>
             {/* lente esquerda (formato butterfly: levanta na ponta) */}
             <path
               d="M 56 102 Q 58 92 72 92 L 92 92 Q 96 92 96 100 L 95 114 Q 94 122 84 122 L 70 122 Q 58 122 56 112 Z"
               fill="oklch(0.78 0.12 20 / 0.45)"
-              stroke="oklch(0.78 0.13 80)"
+              stroke="oklch(0.18 0.01 280)"
               strokeWidth="3"
               strokeLinejoin="round"
             />
@@ -255,27 +255,27 @@ function MochiInner({
             <path
               d="M 144 102 Q 142 92 128 92 L 108 92 Q 104 92 104 100 L 105 114 Q 106 122 116 122 L 130 122 Q 142 122 144 112 Z"
               fill="oklch(0.78 0.12 20 / 0.45)"
-              stroke="oklch(0.78 0.13 80)"
+              stroke="oklch(0.18 0.01 280)"
               strokeWidth="3"
               strokeLinejoin="round"
             />
             {/* ponte fininha */}
             <path
               d="M 96 100 L 104 100"
-              stroke="oklch(0.78 0.13 80)"
+              stroke="oklch(0.18 0.01 280)"
               strokeWidth="3"
               strokeLinecap="round"
             />
-            {/* hastes nas laterais */}
+            {/* hastes nas laterais (braços pretos) */}
             <path
               d="M 56 104 L 48 100"
-              stroke="oklch(0.78 0.13 80)"
+              stroke="oklch(0.18 0.01 280)"
               strokeWidth="2.5"
               strokeLinecap="round"
             />
             <path
               d="M 144 104 L 152 100"
-              stroke="oklch(0.78 0.13 80)"
+              stroke="oklch(0.18 0.01 280)"
               strokeWidth="2.5"
               strokeLinecap="round"
             />
