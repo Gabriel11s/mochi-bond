@@ -73,22 +73,16 @@ export function PhotoWall() {
         const url = supabase.storage.from(BUCKET).getPublicUrl(photo.storage_path).data
           .publicUrl;
         return (
-          <motion.div
+          <div
             key={photo.id}
-            initial={{ opacity: 0, scale: 0.6, rotate: slot.rotate * 1.5 }}
-            animate={{ opacity: 0.55, scale: 1, rotate: slot.rotate }}
-            transition={{
-              duration: 0.7,
-              delay: i * 0.04,
-              type: "spring",
-              stiffness: 110,
-              damping: 14,
-            }}
             style={{
               top: slot.top,
               left: slot.left,
               right: slot.right,
               width: slot.size,
+              transform: `rotate(${slot.rotate}deg)`,
+              opacity: 0.55,
+              animation: `photo-fade-in 0.6s ${i * 0.04}s both ease-out`,
             }}
             className="absolute"
           >
@@ -97,11 +91,12 @@ export function PhotoWall() {
                 src={url}
                 alt=""
                 loading="lazy"
+                decoding="async"
                 className="aspect-square w-full rounded-sm object-cover"
                 style={{ filter: "saturate(0.9)" }}
               />
             </div>
-          </motion.div>
+          </div>
         );
       })}
     </div>
