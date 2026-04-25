@@ -7,7 +7,7 @@ import type {
   Interaction,
   Mood,
 } from "@/lib/mochi-types";
-import { computeMood, moodCopy, moodLabel, RARITY_XP, clamp, timeAgo } from "@/lib/mochi-types";
+import { computeMood, moodCopy, moodLabel, RARITY_XP, clamp, timeAgo, applyDecay } from "@/lib/mochi-types";
 import { Mochi } from "./Mochi";
 import { StatusBars } from "./StatusBars";
 import { FoodDrawer } from "./FoodDrawer";
