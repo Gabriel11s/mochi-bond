@@ -37,6 +37,8 @@ import { useKonamiCode } from "@/lib/mochi-secrets";
 import { LoveNotesDrawer } from "./LoveNotesDrawer";
 import { AchievementsDrawer } from "./AchievementsDrawer";
 import { GalleryDrawer } from "./GalleryDrawer";
+import { WordleDrawer } from "./WordleDrawer";
+import { getTodayKey } from "@/lib/mochi-wordle";
 import {
   checkAchievements,
   trackBackgroundVisit,
@@ -95,6 +97,9 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [notesOpen, setNotesOpen] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [wordleOpen, setWordleOpen] = useState(false);
+  // Pra mostrar badge "🆕" no botão se ainda não jogou hoje
+  const [wordlePlayedToday, setWordlePlayedToday] = useState(false);
   const [backgroundId, setBackgroundId] = useState<BackgroundId>("quartinho");
   const [nowPlaying, setNowPlaying] = useState<NowPlayingResponse | null>(null);
   // nonce que dispara o shimmer no casal do cinema quando alimenta/faz carinho
@@ -181,6 +186,48 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   useEffect(() => {
     computeStreak().then(setStreak);
   }, []);
+
+  // Wordle: verifica se já jogou hoje pra mostrar/esconder badge "🆕"
+  useEffect(() => {
+    const checkToday = async () => {
+      const { data } = await (supabase as any)
+        .from("word_game_daily")
+        .select("finished")
+        .eq("game_date", getTodayKey())
+        .ilike("partner_name", partnerName)
+        .maybeSingle();
+      setWordlePlayedToday(!!data?.finished);
+    };
+    checkToday();
+    const ch = supabase
+      .channel("mochi-wordle-played")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "word_game_daily" },
+        () => checkToday(),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [partnerName]);
+
+  // Recompensa quando ganha o Wordle: aplica delta no pet
+  const handleWordleWin = async (xp: number, happiness: number) => {
+    if (!pet) return;
+    const newHappiness = Math.round(clamp(pet.happiness + happiness));
+    const newXp = Math.round(pet.xp + xp);
+    const newLevel = Math.floor(newXp / 100) + 1;
+    await supabase
+      .from("pet_state")
+      .update({
+        happiness: newHappiness,
+        xp: newXp,
+        level: newLevel,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", 1);
+    showToast(`🔤 acertou! +${xp} XP, +${happiness} happiness 💗`);
+    burstParticles("✨", 8);
+  };
 
   // Bilhetes não lidos: count inicial + realtime + recount quando o
   // drawer fecha (porque marcar como lido é dentro do drawer).
@@ -1265,6 +1312,17 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         >
           📷 galeria
         </button>
+        <button
+          onClick={() => setWordleOpen(true)}
+          className="glass relative rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97]"
+        >
+          🔤 palavra
+          {!wordlePlayedToday && (
+            <span className="absolute -right-1 -top-1 rounded-full bg-pink px-1.5 py-0.5 text-[8px] font-bold text-white shadow-md ring-2 ring-background">
+              🆕
+            </span>
+          )}
+        </button>
       </div>
 
       {/* last care */}
@@ -1382,6 +1440,18 @@ export function PetRoom({ partnerName, onLogout }: Props) {
           fallbackSkin={pet.equipped_skin}
           fallbackAccessory={pet.equipped_accessory}
           fallbackMood={mood}
+        />
+      )}
+
+      {wordleOpen && (
+        <WordleDrawer
+          open={wordleOpen}
+          onOpenChange={setWordleOpen}
+          partnerName={partnerName}
+          otherPartnerName={
+            partnerName.toLowerCase() === partnerOne.toLowerCase() ? partnerTwo : partnerOne
+          }
+          onWin={handleWordleWin}
         />
       )}
       </div>

@@ -315,6 +315,14 @@
 .animate-lily-glow  { animation: lily-glow 3.2s ease-in-out infinite; }
 .animate-pollen     { animation: pollen-drift 4s ease-out infinite; }
 
+/* Wordle: shake quando palpite é inválido */
+@keyframes wordle-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+.animate-shake { animation: wordle-shake 0.35s ease-in-out; }
+
 /* Feature #9: partículas sazonais caindo */
 @keyframes season-fall {
   0%   { transform: translateY(-20px) rotate(0deg); opacity: 0; }
