@@ -214,8 +214,18 @@ function CoupleOnCouch({ accent, reactPulse = 0 }: { accent: string; reactPulse?
           }
         `}</style>
 
-        {/* casal — cada pessoa num <g> com origem própria pra animar */}
-        <g fill="oklch(0.04 0.01 290 / 0.95)">
+        {/* casal — cada pessoa num <g> com origem própria pra animar.
+            O wrapper externo recebe um "kick" sutil sincronizado com o
+            bouncing do pet (~700ms) sempre que reactPulse muda. */}
+        <g
+          key={`couch-${reactPulse}`}
+          fill="oklch(0.04 0.01 290 / 0.95)"
+          style={{
+            transformOrigin: "120px 130px",
+            transformBox: "fill-box" as React.CSSProperties["transformBox"],
+            animation: reacting ? "couch-kick 700ms ease-out" : undefined,
+          }}
+        >
           {/* pessoa da esquerda */}
           <g
             style={{
