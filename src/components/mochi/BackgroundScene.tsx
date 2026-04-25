@@ -40,8 +40,8 @@ export function BackgroundScene({ backgroundId }: Props) {
         style={{ background: bg.floor }}
       />
 
-      {/* Casal na poltrona — silhueta de costas, fixa em todos os cenários */}
-      <CoupleOnCouch />
+
+
 
       {/* Vinheta sutil */}
       <div
