@@ -36,6 +36,7 @@ import { computeStreak, type StreakInfo } from "@/lib/mochi-streak";
 import { useKonamiCode } from "@/lib/mochi-secrets";
 import { LoveNotesDrawer } from "./LoveNotesDrawer";
 import { AchievementsDrawer } from "./AchievementsDrawer";
+import { GalleryDrawer } from "./GalleryDrawer";
 import {
   checkAchievements,
   trackBackgroundVisit,
@@ -51,6 +52,36 @@ interface Props {
 
 let particleId = 0;
 
+interface SuggestedTrack { id: string; name: string; artist: string }
+
+// Sugere uma trilha sonora pra foto:
+// 1) se o Spotify tá tocando agora, usa esse track
+// 2) senão, puxa uma aleatória do histórico de música do casal
+async function pickSuggestedTrack(
+  nowPlaying: NowPlayingResponse | null
+): Promise<SuggestedTrack | null> {
+  if (nowPlaying?.is_playing && nowPlaying.track) {
+    return {
+      id: nowPlaying.track.id,
+      name: nowPlaying.track.name,
+      artist: nowPlaying.track.artists.map((a) => a.name).join(", "),
+    };
+  }
+  const { data } = await supabase
+    .from("music_reactions")
+    .select("track_id, track_name, artist_name")
+    .not("track_name", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (!data || data.length === 0) return null;
+  const pick = data[Math.floor(Math.random() * data.length)];
+  return {
+    id: pick.track_id,
+    name: pick.track_name ?? "música misteriosa",
+    artist: pick.artist_name ?? "",
+  };
+}
+
 export function PetRoom({ partnerName, onLogout }: Props) {
   const [pet, setPet] = useState<PetState | null>(null);
   const [foods, setFoods] = useState<FoodItem[]>([]);
@@ -63,6 +94,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [backgroundOpen, setBackgroundOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [backgroundId, setBackgroundId] = useState<BackgroundId>("quartinho");
   const [nowPlaying, setNowPlaying] = useState<NowPlayingResponse | null>(null);
   // nonce que dispara o shimmer no casal do cinema quando alimenta/faz carinho
@@ -586,6 +618,24 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         message: photo.caption ? `derreteu vendo "${photo.caption}"` : "derreteu vendo uma fotinho de vocês",
       });
 
+      // Spotlight de 24h + snapshot do Mochi + sugestão musical
+      // (cast as any: campos novos ainda não regenerados nos types)
+      const featuredUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const currentMood = computeMood(Math.round(pet.hunger), newHappiness, Math.round(pet.energy));
+      const suggested = await pickSuggestedTrack(nowPlaying);
+      await (supabase as any)
+        .from("photos")
+        .update({
+          featured_until: featuredUntil,
+          shown_skin: pet.equipped_skin,
+          shown_accessory: pet.equipped_accessory,
+          shown_mood: currentMood,
+          suggested_track_id: suggested?.id ?? null,
+          suggested_track_name: suggested?.name ?? null,
+          suggested_track_artist: suggested?.artist ?? null,
+        })
+        .eq("id", photo.id);
+
       showToast("ele ficou apaixonadinho 💗");
 
       if (leveled) {
@@ -1070,6 +1120,12 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         >
           🏅 conquistas
         </button>
+        <button
+          onClick={() => setGalleryOpen(true)}
+          className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97]"
+        >
+          📷 galeria
+        </button>
       </div>
 
       {/* last care */}
@@ -1174,6 +1230,16 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         <AchievementsDrawer
           open={achievementsOpen}
           onOpenChange={setAchievementsOpen}
+        />
+      )}
+
+      {galleryOpen && (
+        <GalleryDrawer
+          open={galleryOpen}
+          onOpenChange={setGalleryOpen}
+          fallbackSkin={pet.equipped_skin}
+          fallbackAccessory={pet.equipped_accessory}
+          fallbackMood={mood}
         />
       )}
       </div>

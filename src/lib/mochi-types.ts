@@ -112,9 +112,11 @@ export const RARITY_XP: Record<Rarity, number> = {
 };
 
 export function computeMood(hunger: number, happiness: number, energy: number): Mood {
-  if (hunger < 25) return "hungry";
-  if (energy < 25) return "sleepy";
-  if (happiness > 75) return "happy";
+  // Prioridade: estados negativos pegam primeiro pra forçar atenção do casal
+  if (hunger < 30) return "hungry";
+  if (energy < 28) return "sleepy";
+  if (happiness < 35) return "sad";
+  if (happiness > 80 && hunger > 60 && energy > 60) return "happy";
   return "idle";
 }
 
@@ -148,22 +150,86 @@ export function clamp(n: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, n));
 }
 
-// Decay por hora — cai naturalmente ao longo do dia
+// Decay base por hora — calibrado pra zerar em ~16-20h sem cuidado
+// (versus os ~33-50h antigos, que eram leniente demais).
 export const DECAY_PER_HOUR = {
-  hunger: 3,
-  happiness: 2,
-  energy: 2.5,
+  hunger: 6,      // mais agressivo: come a cada poucas horas
+  happiness: 4,   // queda firme se ninguém aparece
+  energy: 4,      // descansa dormindo, gasta acordado
 };
 
-// Aplica decaimento natural baseado em quanto tempo passou desde updated_at
+// Energia recupera SOZINHA enquanto Mochi dorme (madrugada).
+// Outras stats só sobem com cuidado humano.
+const ENERGY_REGEN_NIGHT = 3;
+
+// Modificador de decay por hora do dia — Mochi dorme de madrugada, então
+// gasta menos energia/fome nesse período. De dia, ritmo normal.
+function timePhaseMultiplier(hour: number): { decay: number; energyRegen: boolean } {
+  // Madrugada / Mochi dormindo (00-07): metade do decay, regenera energia
+  if (hour >= 0 && hour < 7) return { decay: 0.5, energyRegen: true };
+  // Manhã ativa (07-11)
+  if (hour < 11) return { decay: 1.0, energyRegen: false };
+  // Pico do dia (11-19) — decay máximo, Mochi mais ativo
+  if (hour < 19) return { decay: 1.15, energyRegen: false };
+  // Noite (19-22) — começando a desacelerar
+  if (hour < 22) return { decay: 0.9, energyRegen: false };
+  // Pré-sono (22-24)
+  return { decay: 0.7, energyRegen: false };
+}
+
+// Penalidade quando uma stat está crítica: cai +50% mais rápido pra
+// pressionar o casal a cuidar antes de morrer.
+function criticalMultiplier(value: number): number {
+  if (value < 25) return 1.5;
+  if (value < 15) return 1.8; // unreachable na prática mas explícito
+  return 1.0;
+}
+
+// Aplica decaimento natural baseado em quanto tempo passou desde updated_at.
+// Faz amostragem por hora pra que o multiplicador de fase do dia mude
+// corretamente quando o intervalo cruza várias faixas (ex: deixou aberto
+// das 18h às 9h da manhã).
 export function applyDecay(pet: PetState): PetState {
   if (!pet.updated_at) return pet;
-  const elapsedMs = Date.now() - new Date(pet.updated_at).getTime();
-  const hours = elapsedMs / 3600000;
-  if (hours <= 0) return pet;
-  const hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * hours);
-  const happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * hours);
-  const energy = clamp(pet.energy - DECAY_PER_HOUR.energy * hours);
+  const lastTs = new Date(pet.updated_at).getTime();
+  const elapsedMs = Date.now() - lastTs;
+  if (elapsedMs <= 0) return pet;
+
+  let hunger = pet.hunger;
+  let happiness = pet.happiness;
+  let energy = pet.energy;
+
+  // Avança em buckets de 1h pra que mudanças de fase sejam respeitadas.
+  // Cap em 48h pra evitar loop absurdo se o pet ficou esquecido por dias.
+  const totalHours = Math.min(elapsedMs / 3600000, 48);
+  const STEP = 0.25; // 15 min por iteração — suficiente pra suavizar
+  let remaining = totalHours;
+  let cursor = lastTs;
+
+  while (remaining > 0) {
+    const step = Math.min(STEP, remaining);
+    const hour = new Date(cursor).getHours();
+    const { decay, energyRegen } = timePhaseMultiplier(hour);
+
+    hunger = clamp(
+      hunger - DECAY_PER_HOUR.hunger * decay * criticalMultiplier(hunger) * step
+    );
+    happiness = clamp(
+      happiness - DECAY_PER_HOUR.happiness * decay * criticalMultiplier(happiness) * step
+    );
+    if (energyRegen) {
+      // Mochi dormindo: recupera energia em vez de perder
+      energy = clamp(energy + ENERGY_REGEN_NIGHT * step);
+    } else {
+      energy = clamp(
+        energy - DECAY_PER_HOUR.energy * decay * criticalMultiplier(energy) * step
+      );
+    }
+
+    remaining -= step;
+    cursor += step * 3600000;
+  }
+
   return {
     ...pet,
     hunger,

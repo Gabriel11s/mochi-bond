@@ -1,59 +1,59 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface PhotoRow {
+// PhotoWall agora mostra só as fotos em "spotlight" — aquelas que foram
+// mostradas pro Mochi nas últimas 24h (featured_until > now). Antes ficava
+// poluído com 14 fotos espalhadas; agora é 1-2 polaroids em destaque.
+// Quando expira, a foto sai do mural e vira histórico na Galeria.
+
+interface FeaturedPhoto {
   id: string;
   storage_path: string;
+  caption: string | null;
+  featured_until: string | null;
 }
 
 const BUCKET = "mochi-photos";
+const MAX_FEATURED = 2;
 
-// Disposição em "polaroid" pseudo-aleatória mas determinística (por índice)
-// para cada foto ficar num lugar bonito do painel.
-const SLOTS: Array<{ top: string; left?: string; right?: string; rotate: number; size: number }> = [
-  { top: "4%", left: "3%", rotate: -8, size: 64 },
-  { top: "8%", right: "4%", rotate: 6, size: 72 },
-  { top: "18%", left: "10%", rotate: 4, size: 56 },
-  { top: "22%", right: "12%", rotate: -7, size: 60 },
-  { top: "32%", left: "2%", rotate: -3, size: 70 },
-  { top: "36%", right: "3%", rotate: 9, size: 64 },
-  { top: "48%", left: "12%", rotate: -10, size: 54 },
-  { top: "52%", right: "10%", rotate: 5, size: 58 },
-  { top: "62%", left: "4%", rotate: 7, size: 66 },
-  { top: "66%", right: "6%", rotate: -6, size: 62 },
-  { top: "78%", left: "10%", rotate: -4, size: 56 },
-  { top: "82%", right: "12%", rotate: 8, size: 60 },
-  { top: "90%", left: "3%", rotate: 3, size: 52 },
-  { top: "92%", right: "4%", rotate: -9, size: 56 },
+// Posições fixas, fofas — esquerda e direita do topo, fora do caminho do Mochi
+const SLOTS = [
+  { top: "8%", left: "4%", rotate: -7 },
+  { top: "10%", right: "4%", rotate: 6 },
 ];
 
 export function PhotoWall() {
-  const [photos, setPhotos] = useState<PhotoRow[]>([]);
+  const [photos, setPhotos] = useState<FeaturedPhoto[]>([]);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const { data } = await supabase
+      const nowIso = new Date().toISOString();
+      // Cast as any: campos novos ainda não regenerados nos types
+      const { data } = await (supabase as any)
         .from("photos")
-        .select("id, storage_path")
-        .order("created_at", { ascending: false })
-        .limit(SLOTS.length);
-      if (active && data) setPhotos(data as PhotoRow[]);
+        .select("id, storage_path, caption, featured_until")
+        .gt("featured_until", nowIso)
+        .order("featured_until", { ascending: false })
+        .limit(MAX_FEATURED);
+      if (active && data) setPhotos(data as FeaturedPhoto[]);
     };
     load();
 
+    // Recarrega quando uma foto nova é mostrada (insert ou update do
+    // featured_until). Realtime cobre os dois eventos.
     const ch = supabase
       .channel("mochi-photo-wall")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "photos" },
-        () => load(),
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "photos" }, () => load())
       .subscribe();
+
+    // Atualiza quando o featured_until vence (sem realtime — só timer)
+    const t = window.setInterval(load, 5 * 60_000); // 5 min
 
     return () => {
       active = false;
       supabase.removeChannel(ch);
+      window.clearInterval(t);
     };
   }, []);
 
@@ -62,17 +62,13 @@ export function PhotoWall() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      className="pointer-events-none fixed inset-x-0 top-0 z-0 overflow-hidden"
+      style={{ height: "30%" }}
     >
-      {/* leve vinheta translúcida pra legibilidade — não cobre o cenário */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_oklch(0_0_0/0.25)_85%)]" />
-
       {photos.map((photo, i) => {
-        const slot = SLOTS[i % SLOTS.length];
-        // Fix #7: usa transform do Supabase Storage pra servir thumbnail pequeno
-        // em vez de carregar a foto inteira (que pode ser >5MB no mobile)
+        const slot = SLOTS[i] ?? SLOTS[0];
         const url = supabase.storage.from(BUCKET).getPublicUrl(photo.storage_path, {
-          transform: { width: 160, height: 160, resize: "cover", quality: 60 },
+          transform: { width: 240, height: 240, resize: "cover", quality: 75 },
         }).data.publicUrl;
         return (
           <div
@@ -81,22 +77,25 @@ export function PhotoWall() {
               top: slot.top,
               left: slot.left,
               right: slot.right,
-              width: slot.size,
               transform: `rotate(${slot.rotate}deg)`,
-              opacity: 0.45,
-              animation: `photo-fade-in 0.6s ${i * 0.04}s both ease-out`,
+              animation: `photo-fade-in 0.7s ${i * 0.1}s both ease-out`,
             }}
-            className="absolute"
+            className="absolute w-24"
           >
-            <div className="rounded-md bg-white/95 p-1 shadow-[0_6px_18px_-8px_rgba(0,0,0,0.5)] ring-1 ring-black/5 dark:bg-white/85">
+            {/* Polaroid em destaque — opacidade alta porque tá em "spotlight" */}
+            <div className="rounded-md bg-white p-1.5 pb-3 shadow-[0_10px_24px_-10px_rgba(0,0,0,0.6)] ring-1 ring-black/10">
               <img
                 src={url}
                 alt=""
                 loading="lazy"
                 decoding="async"
                 className="aspect-square w-full rounded-sm object-cover"
-                style={{ filter: "saturate(0.85)" }}
               />
+              {photo.caption && (
+                <p className="mt-1 px-0.5 text-center text-[8px] font-medium leading-tight text-zinc-700 line-clamp-1">
+                  {photo.caption}
+                </p>
+              )}
             </div>
           </div>
         );
