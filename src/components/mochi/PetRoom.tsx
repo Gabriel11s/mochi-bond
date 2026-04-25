@@ -109,7 +109,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         supabase.from("food_items").select("*").eq("is_active", true).order("rarity"),
         supabase.from("interactions").select("*").order("created_at", { ascending: false }).limit(20),
       ]);
-      if (petData) setPet(petData as PetState);
+      if (petData) setPet(applyDecay(petData as PetState));
       if (foodData) setFoods(foodData as FoodItem[]);
       if (histData) setHistory(histData as Interaction[]);
     };
