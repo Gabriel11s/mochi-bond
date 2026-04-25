@@ -538,13 +538,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
           >
             🏞️
           </button>
-          <button
-            onClick={toggle}
+          <div
             className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
-            aria-label="trocar tema"
+            aria-label={theme === "dark" ? "modo lua" : "modo sol"}
+            title={theme === "dark" ? "modo lua (tita)" : "modo sol (gab)"}
           >
             {theme === "dark" ? "🌙" : "☀️"}
-          </button>
+          </div>
         </div>
       </header>
 
