@@ -130,11 +130,32 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     };
   }, []);
 
-  // passive decay (visual only) — also re-renders mood copy
+  // passive decay — aplica decaimento derivado do tempo a cada 30s
+  // e persiste no banco a cada ~5min para manter consistência entre sessões
   useEffect(() => {
-    const t = setInterval(() => {
-      setPet((p) => p && { ...p });
-    }, 60000);
+    const lastPersist = { t: Date.now() };
+    const tick = async () => {
+      setPet((p) => (p ? applyDecay(p) : p));
+      // persiste no banco se passou mais de 5 min desde último persist
+      if (Date.now() - lastPersist.t > 5 * 60_000) {
+        lastPersist.t = Date.now();
+        const { data } = await supabase.from("pet_state").select("*").eq("id", 1).single();
+        if (data) {
+          const decayed = applyDecay(data as PetState);
+          await supabase
+            .from("pet_state")
+            .update({
+              hunger: Math.round(decayed.hunger),
+              happiness: Math.round(decayed.happiness),
+              energy: Math.round(decayed.energy),
+              current_mood: decayed.current_mood,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", 1);
+        }
+      }
+    };
+    const t = setInterval(tick, 30_000);
     return () => clearInterval(t);
   }, []);
 
