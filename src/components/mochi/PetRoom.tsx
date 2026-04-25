@@ -101,6 +101,11 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     showToast(`cantinho trocado ✨`);
   };
 
+  // Cooldown dedicado por tipo de interação — muito mais preciso do que
+  // procurar no histórico limitado de 20 itens.
+  const [lastPlayAt, setLastPlayAt] = useState<string | null>(null);
+  const [lastPetAt, setLastPetAt] = useState<string | null>(null);
+
   // initial load + realtime
   useEffect(() => {
     const load = async () => {
@@ -112,6 +117,28 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       if (petData) setPet(applyDecay(petData as PetState));
       if (foodData) setFoods(foodData as FoodItem[]);
       if (histData) setHistory(histData as Interaction[]);
+
+      // Fix #5: busca cooldown dedicado por tipo e por partner
+      const [{ data: playRow }, { data: petRow }] = await Promise.all([
+        supabase
+          .from("interactions")
+          .select("created_at")
+          .eq("partner_name", partnerName)
+          .eq("interaction_type", "play")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("interactions")
+          .select("created_at")
+          .eq("partner_name", partnerName)
+          .eq("interaction_type", "pet")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      setLastPlayAt(playRow?.created_at ?? null);
+      setLastPetAt(petRow?.created_at ?? null);
     };
     load();
 
@@ -121,14 +148,20 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         setPet(p.new as PetState);
       })
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "interactions" }, (p) => {
-        setHistory((h) => [p.new as Interaction, ...h].slice(0, 20));
+        const newInt = p.new as Interaction;
+        setHistory((h) => [newInt, ...h].slice(0, 20));
+        // Atualiza cooldown em tempo real
+        if (newInt.partner_name === partnerName) {
+          if (newInt.interaction_type === "play") setLastPlayAt(newInt.created_at);
+          if (newInt.interaction_type === "pet") setLastPetAt(newInt.created_at);
+        }
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(ch);
     };
-  }, []);
+  }, [partnerName]);
 
   // passive decay — aplica decaimento derivado do tempo a cada 30s
   // e persiste no banco a cada ~5min para manter consistência entre sessões
@@ -230,19 +263,30 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       .eq("id", 1);
 
     if (petErr) {
-      console.error(petErr);
-      showToast("algo deu errado 🥺");
+      console.error("feed pet_state error:", petErr);
+      const detail = petErr.code === "42501"
+        ? "sem permissão pra alimentar — tenta sair e entrar de novo 🔑"
+        : petErr.message?.includes("JWT")
+          ? "sessão expirou — recarrega a página 🔄"
+          : `algo deu errado 🥺 (${petErr.code ?? "erro"})`;
+      showToast(detail);
       setEating(false);
       setBusy(false);
       return;
     }
 
-    // consome o item da despensa (se vier de lá)
+    // Fix #8: consome o item da despensa com validação de concorrência
     if (pantryItemId) {
-      await supabase
+      const { data: consumed, error: pantryErr } = await supabase
         .from("pantry_items")
         .update({ consumed: true, consumed_at: now })
-        .eq("id", pantryItemId);
+        .eq("id", pantryItemId)
+        .eq("consumed", false) // só consome se ainda não foi
+        .select("id")
+        .maybeSingle();
+      if (pantryErr || !consumed) {
+        console.warn("pantry item já consumido ou erro:", pantryErr);
+      }
     }
 
     await supabase.from("interactions").insert({
@@ -272,20 +316,20 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBusy(false);
   };
 
+  // Fix #5: cooldown agora usa state dedicado (lastPlayAt, lastPetAt)
+  // em vez de procurar na history limitada a 20 itens
   const cooldownMs = 24 * 60 * 60 * 1000;
   const formatLeft = (ms: number) => {
     const h = Math.floor(ms / 3600000);
     const m = Math.floor((ms % 3600000) / 60000);
     return h > 0 ? `volta em ${h}h` : `volta em ${m}min`;
   };
-  const lastPlayAt = history.find((h) => h.interaction_type === "play")?.created_at ?? null;
   const playMsLeft = lastPlayAt
     ? Math.max(0, cooldownMs - (Date.now() - new Date(lastPlayAt).getTime()))
     : 0;
   const playLocked = playMsLeft > 0;
   const playLockedLabel = playLocked ? formatLeft(playMsLeft) : null;
 
-  const lastPetAt = history.find((h) => h.interaction_type === "pet")?.created_at ?? null;
   const petMsLeft = lastPetAt
     ? Math.max(0, cooldownMs - (Date.now() - new Date(lastPetAt).getTime()))
     : 0;
@@ -925,15 +969,10 @@ export function PetRoom({ partnerName, onLogout }: Props) {
           onClose={() => setPhotosOpen(false)}
           partnerName={partnerName}
           onShowToMochi={showPhoto}
+          onError={(msg) => showToast(msg)}
         />
       )}
-      {/* photos drawer */}
-      <PhotosDrawer
-        open={photosOpen}
-        onClose={() => setPhotosOpen(false)}
-        partnerName={partnerName}
-        onShowToMochi={showPhoto}
-      />
+      {/* Fix #1: removida instância duplicada do PhotosDrawer */}
       </div>
     </div>
   );

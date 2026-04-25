@@ -16,11 +16,12 @@ interface Props {
   onClose: () => void;
   partnerName: string;
   onShowToMochi: (photo: Photo) => void | Promise<void>;
+  onError?: (msg: string) => void;
 }
 
 const BUCKET = "mochi-photos";
 
-export function PhotosDrawer({ open, onClose, partnerName, onShowToMochi }: Props) {
+export function PhotosDrawer({ open, onClose, partnerName, onShowToMochi, onError }: Props) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -59,6 +60,11 @@ export function PhotosDrawer({ open, onClose, partnerName, onShowToMochi }: Prop
 
   const handleUpload = async (file: File) => {
     if (!file) return;
+    // Fix #4: validação de tamanho antes de enviar
+    if (file.size > 10 * 1024 * 1024) {
+      onError?.("foto muito grande — máximo 10MB 📸");
+      return;
+    }
     setUploading(true);
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -66,16 +72,27 @@ export function PhotosDrawer({ open, onClose, partnerName, onShowToMochi }: Prop
       .from(BUCKET)
       .upload(path, file, { contentType: file.type });
     if (!upErr) {
-      await supabase.from("photos").insert({
+      const { error: insertErr } = await supabase.from("photos").insert({
         storage_path: path,
         caption: caption.trim() || null,
         uploaded_by: partnerName,
         happiness_boost: 18,
       });
+      if (insertErr) {
+        console.error("photo insert error:", insertErr);
+        onError?.("não conseguiu salvar a foto 🥺");
+      }
       setCaption("");
       if (fileRef.current) fileRef.current.value = "";
     } else {
-      console.error(upErr);
+      console.error("upload error:", upErr);
+      // Fix #4: feedback visível de erro no upload
+      const msg = upErr.message?.includes("Payload too large")
+        ? "foto muito pesada — tenta uma menor 📸"
+        : upErr.message?.includes("storage")
+          ? "problema no armazenamento 🥺 tenta de novo"
+          : `erro ao enviar foto 🥺 (${upErr.message ?? "desconhecido"})`;
+      onError?.(msg);
     }
     setUploading(false);
   };
@@ -182,7 +199,7 @@ export function PhotosDrawer({ open, onClose, partnerName, onShowToMochi }: Prop
                     </div>
                     <button
                       onClick={() => handleDelete(p)}
-                      className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs opacity-0 transition-opacity group-hover:opacity-100"
+                      className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-xs text-white opacity-80 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                       aria-label="apagar"
                     >
                       ✕

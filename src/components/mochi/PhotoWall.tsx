@@ -69,8 +69,11 @@ export function PhotoWall() {
 
       {photos.map((photo, i) => {
         const slot = SLOTS[i % SLOTS.length];
-        const url = supabase.storage.from(BUCKET).getPublicUrl(photo.storage_path).data
-          .publicUrl;
+        // Fix #7: usa transform do Supabase Storage pra servir thumbnail pequeno
+        // em vez de carregar a foto inteira (que pode ser >5MB no mobile)
+        const url = supabase.storage.from(BUCKET).getPublicUrl(photo.storage_path, {
+          transform: { width: 160, height: 160, resize: "cover", quality: 60 },
+        }).data.publicUrl;
         return (
           <div
             key={photo.id}
@@ -80,7 +83,7 @@ export function PhotoWall() {
               right: slot.right,
               width: slot.size,
               transform: `rotate(${slot.rotate}deg)`,
-              opacity: 0.55,
+              opacity: 0.45,
               animation: `photo-fade-in 0.6s ${i * 0.04}s both ease-out`,
             }}
             className="absolute"
@@ -92,7 +95,7 @@ export function PhotoWall() {
                 loading="lazy"
                 decoding="async"
                 className="aspect-square w-full rounded-sm object-cover"
-                style={{ filter: "saturate(0.9)" }}
+                style={{ filter: "saturate(0.85)" }}
               />
             </div>
           </div>

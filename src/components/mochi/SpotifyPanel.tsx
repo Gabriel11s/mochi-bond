@@ -26,18 +26,11 @@ type Tab = "now" | "top" | "vibe";
 
 const POLL_MS = 20_000;
 
+// Fix #3: origin simplificada — usa sempre o origin atual.
+// A lógica antiga tentava usar document.referrer pra detectar o Lovable,
+// mas falhava quando o referrer estava vazio ou bloqueado.
 function getSpotifyAppOrigin() {
   if (typeof window === "undefined") return "";
-  try {
-    if (document.referrer) {
-      const referrerUrl = new URL(document.referrer);
-      if (referrerUrl.protocol === "https:" && referrerUrl.hostname.includes("lovable.app")) {
-        return referrerUrl.origin;
-      }
-    }
-  } catch {
-    // cai no origin atual
-  }
   return window.location.origin;
 }
 
@@ -108,6 +101,19 @@ export function SpotifyPanel({
           `/api/spotify/data?partner=${encodeURIComponent(partnerName)}&kind=now`,
         );
         if (!r.ok) {
+          // Fix #9: se receber 401 persistente, auto-desconecta
+          if (r.status === 401) {
+            try {
+              const body = await r.json();
+              if (body?.error === "token_error" || body?.error === "not_connected") {
+                setStatus({ connected: false, display_name: null, spotify_user_id: null });
+                setNow(null);
+                onNowChange?.(null);
+                setLoading(false);
+                return;
+              }
+            } catch { /* ignore parse errors */ }
+          }
           const empty: NowPlayingResponse = {
             is_playing: false,
             progress_ms: null,
@@ -208,11 +214,14 @@ export function SpotifyPanel({
     };
   }, [now?.track?.id, now?.is_playing, now?.features, now?.genres, partnerName, onReaction]);
 
+  // Fix #3: usa navegação direta em vez de window.open("_top").
+  // window.open("_top") falhava em certos contextos (iframes, PWA, Safari)
+  // e era o motivo pelo qual só o Gab conseguia conectar.
   const handleConnect = () => {
     if (typeof window === "undefined") return;
     const loginUrl = new URL("/api/spotify/login", getSpotifyAppOrigin());
     loginUrl.searchParams.set("partner", partnerName);
-    window.open(loginUrl.toString(), "_top");
+    window.location.href = loginUrl.toString();
   };
 
   const handleDisconnect = async () => {
