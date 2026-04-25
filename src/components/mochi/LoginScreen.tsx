@@ -1,17 +1,30 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { CoupleSettings } from "@/lib/mochi-types";
+import type { CoupleSettings, Mood, PetState } from "@/lib/mochi-types";
+import { applyDecay } from "@/lib/mochi-types";
 import { Mochi } from "./Mochi";
 
 interface Props {
   onLogin: (partnerName: string) => void;
 }
 
+interface MochiPreview {
+  skin: string;
+  accessory: string;
+  mood: Mood;
+  hunger: number;
+  happiness: number;
+  energy: number;
+}
+
 export function LoginScreen({ onLogin }: Props) {
   const [settings, setSettings] = useState<CoupleSettings | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Mostra o Mochi exatamente como ele tá agora — skin, acessório e humor
+  // (com decay aplicado) — pra que a tela de entrada seja sempre fiel.
+  const [preview, setPreview] = useState<MochiPreview | null>(null);
 
   useEffect(() => {
     supabase
@@ -21,6 +34,24 @@ export function LoginScreen({ onLogin }: Props) {
       .single()
       .then(({ data }) => {
         if (data) setSettings(data as CoupleSettings);
+      });
+
+    supabase
+      .from("pet_state")
+      .select("*")
+      .eq("id", 1)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        const decayed = applyDecay(data as PetState);
+        setPreview({
+          skin: decayed.equipped_skin,
+          accessory: decayed.equipped_accessory,
+          mood: decayed.current_mood as Mood,
+          hunger: decayed.hunger,
+          happiness: decayed.happiness,
+          energy: decayed.energy,
+        });
       });
   }, []);
 
@@ -42,7 +73,14 @@ export function LoginScreen({ onLogin }: Props) {
         transition={{ duration: 0.6 }}
         className="flex flex-col items-center"
       >
-        <Mochi mood="happy" />
+        <Mochi
+          mood={preview?.mood ?? "happy"}
+          skinId={preview?.skin}
+          accessoryId={preview?.accessory}
+          hunger={preview?.hunger}
+          happiness={preview?.happiness}
+          energy={preview?.energy}
+        />
       </motion.div>
 
       <motion.form
