@@ -108,21 +108,20 @@ export function getDayPhaseOverlay(): { bg: string; opacity: number } | null {
 }
 
 // Feature #5: contador do casal
-// Datas: 05/09 e 09/03 — usa a mais antiga
-const ANNIVERSARY_DATES = [
-  new Date(2024, 8, 5), // 05 de setembro
-  new Date(2024, 2, 9), // 09 de março
-];
+// Recebe a data de início (vinda de couple_settings.created_at). Se nada
+// for passado, devolve estado vazio em vez de chutar uma data.
 
-export function getDaysTogetherInfo(): {
+export function getDaysTogetherInfo(startDate: Date | null | undefined): {
   days: number;
   label: string;
   milestone: string | null;
   isTodayAnniversary: boolean;
 } {
+  if (!startDate) {
+    return { days: 0, label: "", milestone: null, isTodayAnniversary: false };
+  }
   const now = new Date();
-  const oldest = ANNIVERSARY_DATES.reduce((a, b) => (a < b ? a : b));
-  const days = Math.floor((now.getTime() - oldest.getTime()) / 86400000);
+  const days = Math.max(0, Math.floor((now.getTime() - startDate.getTime()) / 86400000));
 
   // Milestones
   let milestone: string | null = null;
@@ -133,15 +132,16 @@ export function getDaysTogetherInfo(): {
   else if (days === 730) milestone = "💗 2 anos juntos!";
   else if (days === 1000) milestone = "👑 1000 dias juntos!";
 
-  // Hoje é aniversário?
-  const isTodayAnniversary = ANNIVERSARY_DATES.some(
-    (d) => d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
-  );
+  // Aniversário = mesmo dia/mês da data de início (a partir do 1º ano)
+  const isTodayAnniversary =
+    days >= 365 &&
+    startDate.getMonth() === now.getMonth() &&
+    startDate.getDate() === now.getDate();
 
-  return {
-    days,
-    label: days === 1 ? "1 dia juntos" : `${days} dias juntos`,
-    milestone,
-    isTodayAnniversary,
-  };
+  const label =
+    days === 0 ? "começou hoje" :
+    days === 1 ? "1 dia juntos" :
+    `${days} dias juntos`;
+
+  return { days, label, milestone, isTodayAnniversary };
 }

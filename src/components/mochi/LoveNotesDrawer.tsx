@@ -14,18 +14,20 @@ interface LoveNote {
 
 interface Props {
   partnerName: string;
+  /** Nome do outro membro do casal — vem de couple_settings via PetRoom. */
+  otherPartnerName: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onNewNote?: () => void;
 }
 
-export function LoveNotesDrawer({ partnerName, open, onOpenChange, onNewNote }: Props) {
+export function LoveNotesDrawer({ partnerName, otherPartnerName, open, onOpenChange, onNewNote }: Props) {
   const [notes, setNotes] = useState<LoveNote[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [tab, setTab] = useState<"inbox" | "write">("inbox");
 
-  const otherPartner = partnerName.toLowerCase().includes("gab") ? "tita" : "gab";
+  const otherPartner = otherPartnerName.toLowerCase();
 
   useEffect(() => {
     if (!open) return;

@@ -120,8 +120,16 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const seasonTheme = getSeasonTheme();
   // Feature #8: overlay dia/noite
   const dayOverlay = getDayPhaseOverlay();
-  // Feature #5: contador do casal
-  const coupleInfo = getDaysTogetherInfo();
+  // Feature #5: contador do casal — usa couple_settings.created_at como
+  // referência (carregado abaixo). Enquanto não carrega, fica vazio.
+  const [coupleStart, setCoupleStart] = useState<Date | null>(null);
+  const coupleInfo = getDaysTogetherInfo(coupleStart);
+  // Nomes dinâmicos vindos de couple_settings (não mais hardcoded gab/tita)
+  const [partnerOne, setPartnerOne] = useState<string>("");
+  const [partnerTwo, setPartnerTwo] = useState<string>("");
+  const [editingNames, setEditingNames] = useState(false);
+  const [oneDraft, setOneDraft] = useState("");
+  const [twoDraft, setTwoDraft] = useState("");
   // Feature #1: Konami Code rainbow mode
   const [rainbowMode, setRainbowMode] = useState(false);
 
@@ -240,14 +248,25 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   // initial load + realtime
   useEffect(() => {
     const load = async () => {
-      const [{ data: petData }, { data: foodData }, { data: histData }] = await Promise.all([
+      const [
+        { data: petData },
+        { data: foodData },
+        { data: histData },
+        { data: settingsData },
+      ] = await Promise.all([
         supabase.from("pet_state").select("*").eq("id", 1).single(),
         supabase.from("food_items").select("*").eq("is_active", true).order("rarity"),
         supabase.from("interactions").select("*").order("created_at", { ascending: false }).limit(20),
+        supabase.from("couple_settings").select("created_at, partner_one_name, partner_two_name").eq("id", 1).maybeSingle(),
       ]);
       if (petData) setPet(applyDecay(petData as PetState));
       if (foodData) setFoods(foodData as FoodItem[]);
       if (histData) setHistory(histData as Interaction[]);
+      if (settingsData) {
+        setCoupleStart(settingsData.created_at ? new Date(settingsData.created_at) : null);
+        setPartnerOne(settingsData.partner_one_name ?? "");
+        setPartnerTwo(settingsData.partner_two_name ?? "");
+      }
 
       // Fix #5: busca cooldown dedicado por tipo e por partner
       const [{ data: playRow }, { data: petRow }] = await Promise.all([
@@ -554,6 +573,30 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     if (!pet) return;
     setNameDraft(pet.pet_name);
     setEditingName(true);
+  };
+
+  const startEditingNames = () => {
+    setOneDraft(partnerOne);
+    setTwoDraft(partnerTwo);
+    setEditingNames(true);
+  };
+
+  const savePartnerNames = async () => {
+    const one = oneDraft.trim().slice(0, 20);
+    const two = twoDraft.trim().slice(0, 20);
+    setEditingNames(false);
+    if (!one || !two || (one === partnerOne && two === partnerTwo)) return;
+    const { error } = await supabase
+      .from("couple_settings")
+      .update({ partner_one_name: one, partner_two_name: two })
+      .eq("id", 1);
+    if (error) {
+      showToast("não consegui renomear 🥺");
+      return;
+    }
+    setPartnerOne(one);
+    setPartnerTwo(two);
+    showToast("nomes atualizados 💗");
   };
 
   const saveName = async () => {
@@ -899,14 +942,49 @@ export function PetRoom({ partnerName, onLogout }: Props) {
           </span>
           <span className="tabular-nums text-muted-foreground">{xpInLevel}/100</span>
         </button>
-        {/* Feature #5: contador do casal */}
-        <p className="mt-1 text-[10px] text-muted-foreground">
-          {coupleInfo.isTodayAnniversary ? "🎉 " : "💗 "}
-          gab & tita · {coupleInfo.label}
-          {streak.days > 0 && (
-            <span className="ml-2">{streak.emoji} {streak.label}</span>
-          )}
-        </p>
+        {/* Feature #5: contador do casal — nomes vindos de couple_settings */}
+        {editingNames ? (
+          <div className="mt-1 flex items-center justify-center gap-1 text-[11px]">
+            <input
+              autoFocus
+              value={oneDraft}
+              onChange={(e) => setOneDraft(e.target.value.slice(0, 20))}
+              className="w-16 rounded bg-white/10 px-1 text-center outline-none ring-1 ring-white/20"
+              maxLength={20}
+            />
+            <span className="text-muted-foreground">&</span>
+            <input
+              value={twoDraft}
+              onChange={(e) => setTwoDraft(e.target.value.slice(0, 20))}
+              className="w-16 rounded bg-white/10 px-1 text-center outline-none ring-1 ring-white/20"
+              maxLength={20}
+            />
+            <button
+              onClick={savePartnerNames}
+              className="ml-1 rounded bg-pink/20 px-1.5 text-pink"
+              title="salvar"
+            >✓</button>
+            <button
+              onClick={() => setEditingNames(false)}
+              className="rounded px-1 text-muted-foreground"
+              title="cancelar"
+            >✕</button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={startEditingNames}
+            className="mt-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+            title="renomear o casal"
+          >
+            {coupleInfo.isTodayAnniversary ? "🎉 " : "💗 "}
+            {(partnerOne || "—").toLowerCase()} & {(partnerTwo || "—").toLowerCase()}
+            {coupleInfo.label && <> · {coupleInfo.label}</>}
+            {streak.days > 0 && (
+              <span className="ml-2">{streak.emoji} {streak.label}</span>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Barra da vibe (sempre visível quando algo está tocando) */}
@@ -1217,6 +1295,9 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       {notesOpen && (
         <LoveNotesDrawer
           partnerName={partnerName}
+          otherPartnerName={
+            partnerName.toLowerCase() === partnerOne.toLowerCase() ? partnerTwo : partnerOne
+          }
           open={notesOpen}
           onOpenChange={setNotesOpen}
           onNewNote={() => {
