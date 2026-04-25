@@ -1,28 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export type Theme = "dark" | "light";
 
-const STORAGE_KEY = "mochi-theme";
-
-export function useTheme() {
-  const [theme, setTheme] = useState<Theme>("dark");
+/**
+ * Aplica o tema fixo baseado no parceiro:
+ * - tita → dark (lua)
+ * - gab  → light (sol)
+ * Sem toggle: o tema é parte da identidade de cada um.
+ */
+export function usePartnerTheme(partnerKey: "gab" | "tita" | "outro") {
+  const theme: Theme = partnerKey === "gab" ? "light" : "dark";
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-    const initial: Theme = saved ?? "dark";
-    setTheme(initial);
-    document.documentElement.classList.toggle("light", initial === "light");
-    document.documentElement.classList.toggle("dark", initial === "dark");
-  }, []);
+    if (typeof document === "undefined") return;
+    document.documentElement.classList.toggle("light", theme === "light");
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
-  const toggle = () => {
-    const next: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    window.localStorage.setItem(STORAGE_KEY, next);
-    document.documentElement.classList.toggle("light", next === "light");
-    document.documentElement.classList.toggle("dark", next === "dark");
-  };
-
-  return { theme, toggle };
+  return { theme };
 }
