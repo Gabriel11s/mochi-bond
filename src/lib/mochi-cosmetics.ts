@@ -1,6 +1,10 @@
 export type SkinId = string;
 export type AccessoryId = string;
 
+/** Slots — só pode ter 1 acessório por slot ao mesmo tempo
+ *  (pra não ter 2 chapéus ou 2 óculos sobrepostos buggando). */
+export type AccessorySlot = "hat" | "glasses" | "face" | "neck" | "body" | "none";
+
 export interface Skin {
   id: SkinId;
   label: string;
@@ -15,6 +19,7 @@ export interface Accessory {
   id: AccessoryId;
   label: string;
   emoji: string;
+  slot: AccessorySlot;
 }
 
 // helper to build a skin from a single hue (oklch chroma curve)
