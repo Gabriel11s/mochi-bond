@@ -556,6 +556,8 @@ function SceneDecorations({ id, dots, accent, reactPulse = 0 }: DecoProps) {
               </svg>
             </div>
           </div>
+        </>
+      );
 
     case "praia":
       return (
