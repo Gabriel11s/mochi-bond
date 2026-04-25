@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getBackground, type BackgroundId } from "@/lib/mochi-backgrounds";
 
 interface Props {
   backgroundId: BackgroundId;
+  /** Nonce que dispara um shimmer rápido na manta do casal (cinema).
+   *  Cada incremento = uma reação. */
+  reactPulse?: number;
 }
 
 /**
@@ -11,7 +14,7 @@ interface Props {
  *
  * Camadas: céu (gradiente) → decorações (SVG) → chão (gradiente) → vinheta.
  */
-export function BackgroundScene({ backgroundId }: Props) {
+export function BackgroundScene({ backgroundId, reactPulse = 0 }: Props) {
   const bg = getBackground(backgroundId);
 
   // pontos aleatórios determinísticos pra estrelas/bolhas/flores etc.
@@ -32,7 +35,7 @@ export function BackgroundScene({ backgroundId }: Props) {
       <div className="absolute inset-0" style={{ background: bg.sky }} />
 
       {/* Decorações específicas por cena */}
-      <SceneDecorations id={backgroundId} dots={dots} accent={bg.accent} />
+      <SceneDecorations id={backgroundId} dots={dots} accent={bg.accent} reactPulse={reactPulse} />
 
       {/* Chão */}
       <div
@@ -60,7 +63,17 @@ export function BackgroundScene({ backgroundId }: Props) {
  * Fica posicionado na parte de baixo central da cena, criando sensação
  * de "estamos juntos vendo o cenário". Renderizado em SVG pra escalar bem.
  */
-function CoupleOnCouch({ accent }: { accent: string }) {
+function CoupleOnCouch({ accent, reactPulse = 0 }: { accent: string; reactPulse?: number }) {
+  // Quando o nonce muda, o casal "reage": shimmer quentinho na manta
+  // por ~2.4s. Ignora o valor inicial (0) pra não disparar no mount.
+  const [reacting, setReacting] = useState(false);
+  useEffect(() => {
+    if (!reactPulse) return;
+    setReacting(true);
+    const t = window.setTimeout(() => setReacting(false), 2400);
+    return () => window.clearTimeout(t);
+  }, [reactPulse]);
+
   return (
     <div
       className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center"
@@ -124,7 +137,44 @@ function CoupleOnCouch({ accent }: { accent: string }) {
           fill="oklch(0.14 0.03 305 / 0.85)"
         />
 
-        {/* keyframes locais — respiração + balanço bem leve */}
+        {/* shimmer/heat na manta — reage quando alimenta ou faz carinho.
+            Faixa quentinha que cruza a manta uma vez, com leve glow do accent. */}
+        {reacting && (
+          <g style={{ mixBlendMode: "screen" } as React.CSSProperties}>
+            <defs>
+              <linearGradient id="manta-shimmer" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={accent} stopOpacity="0" />
+                <stop offset="50%" stopColor={accent} stopOpacity="0.85" />
+                <stop offset="100%" stopColor={accent} stopOpacity="0" />
+              </linearGradient>
+              {/* clipa o shimmer dentro do shape da manta */}
+              <clipPath id="manta-clip">
+                <path d="M50 118 Q90 108 120 116 Q160 124 196 116 L200 150 L46 150 Z" />
+              </clipPath>
+            </defs>
+            <g clipPath="url(#manta-clip)">
+              <rect
+                x="-80"
+                y="108"
+                width="80"
+                height="48"
+                fill="url(#manta-shimmer)"
+                style={{
+                  animation: "manta-sweep 2.2s ease-out forwards",
+                }}
+              />
+            </g>
+            {/* glow geral curtinho na manta */}
+            <path
+              d="M50 118 Q90 108 120 116 Q160 124 196 116 L200 150 L46 150 Z"
+              fill={accent}
+              opacity="0"
+              style={{ animation: "manta-glow 2.4s ease-out forwards" }}
+            />
+          </g>
+        )}
+
+        {/* keyframes locais — respiração, balanço e shimmer */}
         <style>{`
           @keyframes couch-breathe-left {
             0%, 100% { transform: translateY(0) scaleY(1); }
@@ -141,6 +191,16 @@ function CoupleOnCouch({ accent }: { accent: string }) {
           @keyframes couch-sway-right {
             0%, 100% { transform: rotate(0deg); }
             50%      { transform: rotate(0.6deg); }
+          }
+          @keyframes manta-sweep {
+            0%   { transform: translateX(0); opacity: 0; }
+            15%  { opacity: 1; }
+            100% { transform: translateX(360px); opacity: 0; }
+          }
+          @keyframes manta-glow {
+            0%, 100% { opacity: 0; }
+            30%      { opacity: 0.22; }
+            60%      { opacity: 0.14; }
           }
         `}</style>
 
@@ -211,9 +271,10 @@ interface DecoProps {
   id: BackgroundId;
   dots: { x: number; y: number; size: number; delay: number }[];
   accent: string;
+  reactPulse?: number;
 }
 
-function SceneDecorations({ id, dots, accent }: DecoProps) {
+function SceneDecorations({ id, dots, accent, reactPulse = 0 }: DecoProps) {
   switch (id) {
     case "quartinho":
       return (
@@ -293,7 +354,7 @@ function SceneDecorations({ id, dots, accent }: DecoProps) {
             <div className="absolute inset-2 rounded-sm bg-gradient-to-br from-pink-200/10 via-purple-200/15 to-yellow-200/10" />
           </div>
           {/* casal aconchegado na poltrona — silhueta de costas vendo o filme */}
-          <CoupleOnCouch accent={accent} />
+          <CoupleOnCouch accent={accent} reactPulse={reactPulse} />
           {/* balde de pipoca */}
           <div className="absolute bottom-[12%] right-[10%] h-10 w-8">
             <div className="h-2 w-full rounded-full bg-yellow-100" />
