@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getBackground, type BackgroundId } from "@/lib/mochi-backgrounds";
 
 interface Props {
   backgroundId: BackgroundId;
+  /** Nonce que dispara um shimmer rápido na manta do casal (cinema).
+   *  Cada incremento = uma reação. */
+  reactPulse?: number;
 }
 
 /**
@@ -11,7 +14,7 @@ interface Props {
  *
  * Camadas: céu (gradiente) → decorações (SVG) → chão (gradiente) → vinheta.
  */
-export function BackgroundScene({ backgroundId }: Props) {
+export function BackgroundScene({ backgroundId, reactPulse = 0 }: Props) {
   const bg = getBackground(backgroundId);
 
   // pontos aleatórios determinísticos pra estrelas/bolhas/flores etc.
