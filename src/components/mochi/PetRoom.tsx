@@ -127,6 +127,8 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   // Nomes dinâmicos vindos de couple_settings (não mais hardcoded gab/tita)
   const [partnerOne, setPartnerOne] = useState<string>("");
   const [partnerTwo, setPartnerTwo] = useState<string>("");
+  // Bilhetes não lidos endereçados a este partner — pra badge no botão 💌
+  const [unreadNotes, setUnreadNotes] = useState(0);
   const [editingNames, setEditingNames] = useState(false);
   const [oneDraft, setOneDraft] = useState("");
   const [twoDraft, setTwoDraft] = useState("");
@@ -179,6 +181,57 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   useEffect(() => {
     computeStreak().then(setStreak);
   }, []);
+
+  // Bilhetes não lidos: count inicial + realtime + recount quando o
+  // drawer fecha (porque marcar como lido é dentro do drawer).
+  useEffect(() => {
+    const recount = async () => {
+      const { count } = await (supabase as any)
+        .from("love_notes")
+        .select("id", { count: "exact", head: true })
+        .ilike("to_partner", partnerName)
+        .eq("read", false);
+      setUnreadNotes(count ?? 0);
+    };
+    recount();
+
+    const ch = supabase
+      .channel("mochi-love-notes")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "love_notes" },
+        (payload) => {
+          const note = payload.new as { to_partner: string; from_partner: string; message: string };
+          if (note.to_partner.toLowerCase() === partnerName.toLowerCase()) {
+            setUnreadNotes((n) => n + 1);
+            const fromName = note.from_partner.toLowerCase();
+            showToast(`💌 ${fromName} mandou um bilhetinho!`);
+            burstParticles("💌", 4);
+          }
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "love_notes" },
+        () => recount(),
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(ch); };
+  }, [partnerName]);
+
+  // Quando o drawer fecha, dá refresh no count (caso tenha lido alguma)
+  useEffect(() => {
+    if (notesOpen) return;
+    (async () => {
+      const { count } = await (supabase as any)
+        .from("love_notes")
+        .select("id", { count: "exact", head: true })
+        .ilike("to_partner", partnerName)
+        .eq("read", false);
+      setUnreadNotes(count ?? 0);
+    })();
+  }, [notesOpen, partnerName]);
 
   // Feature #11: registra cenário inicial e verifica conquistas
   useEffect(() => {
@@ -1188,9 +1241,17 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         </button>
         <button
           onClick={() => setNotesOpen(true)}
-          className="glass rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97]"
+          className="glass relative rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97]"
         >
           💌 bilhete
+          {unreadNotes > 0 && (
+            <span
+              className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink px-1.5 text-[10px] font-bold text-white shadow-md ring-2 ring-background animate-pulse"
+              aria-label={`${unreadNotes} bilhete${unreadNotes > 1 ? "s" : ""} não lido${unreadNotes > 1 ? "s" : ""}`}
+            >
+              +{unreadNotes}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setAchievementsOpen(true)}
