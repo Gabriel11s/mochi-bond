@@ -124,19 +124,72 @@ function CoupleOnCouch({ accent }: { accent: string }) {
           fill="oklch(0.14 0.03 305 / 0.85)"
         />
 
-        {/* casal — duas cabeças encostadas, ombros curvos */}
-        <g fill="oklch(0.04 0.01 290 / 0.95)">
-          {/* pessoa da esquerda — cabeça inclinada pra direita (apoiada no par) */}
-          <ellipse cx="98" cy="62" rx="20" ry="22" />
-          {/* cabelo solto caindo um pouco no ombro */}
-          <path d="M78 64 Q76 84 86 96 L84 110 L70 108 Q68 88 78 64 Z" />
-          {/* ombro/torso esquerdo */}
-          <path d="M68 110 Q70 92 96 88 L120 88 L120 150 L60 150 Q58 128 68 110 Z" />
+        {/* keyframes locais — respiração + balanço bem leve */}
+        <style>{`
+          @keyframes couch-breathe-left {
+            0%, 100% { transform: translateY(0) scaleY(1); }
+            50%      { transform: translateY(-0.6px) scaleY(1.012); }
+          }
+          @keyframes couch-breathe-right {
+            0%, 100% { transform: translateY(0) scaleY(1); }
+            50%      { transform: translateY(-0.5px) scaleY(1.014); }
+          }
+          @keyframes couch-sway-left {
+            0%, 100% { transform: rotate(0deg); }
+            50%      { transform: rotate(-0.8deg); }
+          }
+          @keyframes couch-sway-right {
+            0%, 100% { transform: rotate(0deg); }
+            50%      { transform: rotate(0.6deg); }
+          }
+        `}</style>
 
-          {/* pessoa da direita — cabeça também inclinada pro centro */}
-          <ellipse cx="142" cy="58" rx="22" ry="24" />
-          {/* ombro/torso direito (mais largo) */}
-          <path d="M120 88 L150 86 Q176 90 178 112 Q182 132 180 150 L120 150 Z" />
+        {/* casal — cada pessoa num <g> com origem própria pra animar */}
+        <g fill="oklch(0.04 0.01 290 / 0.95)">
+          {/* pessoa da esquerda */}
+          <g
+            style={{
+              transformOrigin: "90px 130px",
+              transformBox: "fill-box" as React.CSSProperties["transformBox"],
+              animation: "couch-breathe-left 5.2s ease-in-out infinite",
+            }}
+          >
+            {/* cabeça com balanço próprio (origem no pescoço) */}
+            <g
+              style={{
+                transformOrigin: "98px 86px",
+                transformBox: "fill-box" as React.CSSProperties["transformBox"],
+                animation: "couch-sway-left 6.8s ease-in-out infinite",
+              }}
+            >
+              <ellipse cx="98" cy="62" rx="20" ry="22" />
+              <path d="M78 64 Q76 84 86 96 L84 110 L70 108 Q68 88 78 64 Z" />
+            </g>
+            {/* ombro/torso esquerdo */}
+            <path d="M68 110 Q70 92 96 88 L120 88 L120 150 L60 150 Q58 128 68 110 Z" />
+          </g>
+
+          {/* pessoa da direita */}
+          <g
+            style={{
+              transformOrigin: "150px 130px",
+              transformBox: "fill-box" as React.CSSProperties["transformBox"],
+              animation: "couch-breathe-right 4.6s ease-in-out infinite",
+            }}
+          >
+            {/* cabeça da direita encostada na esquerda */}
+            <g
+              style={{
+                transformOrigin: "142px 84px",
+                transformBox: "fill-box" as React.CSSProperties["transformBox"],
+                animation: "couch-sway-right 7.4s ease-in-out infinite",
+              }}
+            >
+              <ellipse cx="142" cy="58" rx="22" ry="24" />
+            </g>
+            {/* ombro/torso direito (mais largo) */}
+            <path d="M120 88 L150 86 Q176 90 178 112 Q182 132 180 150 L120 150 Z" />
+          </g>
         </g>
 
         {/* rim light no topo das cabeças e ombros, usando o accent —
