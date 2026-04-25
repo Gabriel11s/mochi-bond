@@ -455,6 +455,107 @@ function SceneDecorations({ id, dots, accent, reactPulse = 0 }: DecoProps) {
           <div className="absolute right-[20%] top-[30%] text-3xl" style={{ animation: "float-up 6s ease-in-out infinite" }}>
             🦋
           </div>
+          {/* lírio trombeta amarelo — destaque do jardim */}
+          <div
+            className="pointer-events-none absolute bottom-[8%] left-[14%]"
+            style={{ width: 110, height: 180 }}
+            aria-hidden
+          >
+            <div className="absolute inset-0 animate-lily-sway">
+              <svg viewBox="0 0 110 180" className="h-full w-full overflow-visible">
+                <defs>
+                  <linearGradient id="lily-stem" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="oklch(0.55 0.16 140)" />
+                    <stop offset="100%" stopColor="oklch(0.38 0.14 145)" />
+                  </linearGradient>
+                  <radialGradient id="lily-petal" cx="50%" cy="40%" r="65%">
+                    <stop offset="0%" stopColor="oklch(0.98 0.14 95)" />
+                    <stop offset="55%" stopColor="oklch(0.92 0.19 90)" />
+                    <stop offset="100%" stopColor="oklch(0.78 0.2 75)" />
+                  </radialGradient>
+                  <radialGradient id="lily-throat" cx="50%" cy="80%" r="60%">
+                    <stop offset="0%" stopColor="oklch(0.6 0.22 50)" />
+                    <stop offset="60%" stopColor="oklch(0.82 0.22 70)" />
+                    <stop offset="100%" stopColor="oklch(0.95 0.16 90 / 0)" />
+                  </radialGradient>
+                  <linearGradient id="lily-leaf" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="oklch(0.62 0.16 145)" />
+                    <stop offset="100%" stopColor="oklch(0.4 0.14 150)" />
+                  </linearGradient>
+                </defs>
+
+                {/* haste */}
+                <path
+                  d="M55 178 Q52 130 56 90 Q58 70 55 50"
+                  stroke="url(#lily-stem)"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                {/* folhas */}
+                <path d="M55 130 Q30 122 18 132 Q34 138 55 134 Z" fill="url(#lily-leaf)" opacity="0.95" />
+                <path d="M55 110 Q80 100 94 112 Q76 120 55 114 Z" fill="url(#lily-leaf)" opacity="0.9" />
+
+                {/* flor — pétalas em trombeta */}
+                <g className="animate-lily-bloom" style={{ transformOrigin: "55px 55px" }}>
+                  <g className="animate-lily-glow">
+                    {/* pétalas de trás */}
+                    <path
+                      d="M55 55 Q22 30 30 8 Q50 18 55 50 Z"
+                      fill="url(#lily-petal)"
+                      opacity="0.9"
+                      transform="rotate(-18 55 55)"
+                    />
+                    <path
+                      d="M55 55 Q88 30 80 8 Q60 18 55 50 Z"
+                      fill="url(#lily-petal)"
+                      opacity="0.9"
+                      transform="rotate(18 55 55)"
+                    />
+                    {/* pétala superior */}
+                    <path
+                      d="M55 55 Q40 18 55 0 Q70 18 55 55 Z"
+                      fill="url(#lily-petal)"
+                    />
+                    {/* trombeta central */}
+                    <path
+                      d="M40 58 Q55 42 70 58 Q66 78 55 82 Q44 78 40 58 Z"
+                      fill="url(#lily-throat)"
+                    />
+                    {/* estames */}
+                    {[-6, 0, 6].map((dx, i) => (
+                      <g key={i}>
+                        <path
+                          d={`M${55 + dx} 70 Q${55 + dx * 1.4} 56 ${55 + dx * 1.6} 48`}
+                          stroke="oklch(0.85 0.14 80)"
+                          strokeWidth="1.2"
+                          fill="none"
+                          strokeLinecap="round"
+                        />
+                        <circle cx={55 + dx * 1.6} cy={47} r="2" fill="oklch(0.55 0.18 45)" />
+                      </g>
+                    ))}
+                  </g>
+                </g>
+
+                {/* pólen flutuando */}
+                {[0, 1, 2, 3].map((i) => (
+                  <circle
+                    key={i}
+                    cx={55 + (i - 1.5) * 4}
+                    cy={50}
+                    r={1.4}
+                    fill="oklch(0.95 0.18 85)"
+                    className="animate-pollen"
+                    style={{
+                      ["--px" as string]: `${(i - 1.5) * 8}px`,
+                      animationDelay: `${i * 0.9}s`,
+                    }}
+                  />
+                ))}
+              </svg>
+            </div>
+          </div>
         </>
       );
 

@@ -259,3 +259,27 @@
 .animate-mochi-startle { animation: mochi-startle 0.6s cubic-bezier(.34,1.56,.64,1); }
 .animate-mochi-giggle  { animation: mochi-giggle 0.9s ease-in-out; }
 .animate-mochi-yawn    { animation: mochi-yawn 1.2s ease-in-out; }
+
+/* ===== Lírio trombeta amarelo (jardim) ===== */
+@keyframes lily-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(3deg); }
+}
+@keyframes lily-bloom {
+  0%   { transform: scale(0.2) rotate(-8deg); opacity: 0; }
+  60%  { transform: scale(1.08) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg);    opacity: 1; }
+}
+@keyframes lily-glow {
+  0%, 100% { filter: drop-shadow(0 0 4px oklch(0.92 0.16 90 / 0.45)); }
+  50%      { filter: drop-shadow(0 0 12px oklch(0.95 0.2 85 / 0.85)); }
+}
+@keyframes pollen-drift {
+  0%   { transform: translate(0, 0) scale(1);   opacity: 0; }
+  20%  { opacity: 0.9; }
+  100% { transform: translate(var(--px, 14px), -36px) scale(0.6); opacity: 0; }
+}
+.animate-lily-sway  { animation: lily-sway 4.5s ease-in-out infinite; transform-origin: bottom center; }
+.animate-lily-bloom { animation: lily-bloom 1.4s cubic-bezier(.34,1.56,.64,1) both; transform-origin: bottom center; }
+.animate-lily-glow  { animation: lily-glow 3.2s ease-in-out infinite; }
+.animate-pollen     { animation: pollen-drift 4s ease-out infinite; }
