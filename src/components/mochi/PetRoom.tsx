@@ -22,7 +22,7 @@ import { SpotifyPanel } from "./SpotifyPanel";
 import type { NowPlayingResponse } from "@/lib/spotify-types";
 import { buildMochiReaction, vibeLabel } from "@/lib/spotify-vibe";
 import { partnerKeyFromName, pickGreeting } from "@/lib/mochi-greetings";
-import { useTheme } from "@/hooks/use-theme";
+import { usePartnerTheme } from "@/hooks/use-theme";
 import { BackgroundScene } from "./BackgroundScene";
 import { BackgroundDrawer } from "./BackgroundDrawer";
 import {
@@ -63,11 +63,11 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const [levelUp, setLevelUp] = useState(false);
   const [speech, setSpeech] = useState<string | null>(null);
-  const { theme, toggle } = useTheme();
   const flightRef = useRef<{ id: number; emoji: string } | null>(null);
   const [flight, setFlight] = useState<{ id: number; emoji: string } | null>(null);
 
   const partnerKey = partnerKeyFromName(partnerName);
+  const { theme } = usePartnerTheme(partnerKey);
 
   // Saudação inicial: o Mochi fala um balão pra Tita ou pro Gab quando entra no quartinho
   useEffect(() => {
@@ -538,13 +538,13 @@ export function PetRoom({ partnerName, onLogout }: Props) {
           >
             🏞️
           </button>
-          <button
-            onClick={toggle}
+          <div
             className="glass flex h-10 w-10 items-center justify-center rounded-full text-base"
-            aria-label="trocar tema"
+            aria-label={theme === "dark" ? "modo lua" : "modo sol"}
+            title={theme === "dark" ? "modo lua (tita)" : "modo sol (gab)"}
           >
             {theme === "dark" ? "🌙" : "☀️"}
-          </button>
+          </div>
         </div>
       </header>
 
