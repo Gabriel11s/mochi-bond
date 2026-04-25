@@ -1,6 +1,10 @@
 export type SkinId = string;
 export type AccessoryId = string;
 
+/** Slots — só pode ter 1 acessório por slot ao mesmo tempo
+ *  (pra não ter 2 chapéus ou 2 óculos sobrepostos buggando). */
+export type AccessorySlot = "hat" | "glasses" | "face" | "neck" | "body" | "none";
+
 export interface Skin {
   id: SkinId;
   label: string;
@@ -15,6 +19,7 @@ export interface Accessory {
   id: AccessoryId;
   label: string;
   emoji: string;
+  slot: AccessorySlot;
 }
 
 // helper to build a skin from a single hue (oklch chroma curve)
@@ -105,29 +110,29 @@ export const SKINS: Skin[] = [
 
 export const ACCESSORIES: Accessory[] = [
   // originais
-  { id: "none", label: "Nenhum", emoji: "✨" },
-  { id: "bow", label: "Lacinho", emoji: "🎀" },
-  { id: "tophat", label: "Cartola", emoji: "🎩" },
-  { id: "crown", label: "Coroa", emoji: "👑" },
-  { id: "glasses", label: "Oculinhos", emoji: "🤓" },
-  { id: "flower", label: "Florzinha", emoji: "🌼" },
-  { id: "scarf", label: "Cachecol", emoji: "🧣" },
-  // novas (renderizadas no Mochi.tsx)
-  { id: "beanie", label: "Toca", emoji: "🧢" },
-  { id: "halo", label: "Auréola", emoji: "😇" },
-  { id: "horns", label: "Chifrinhos", emoji: "😈" },
-  { id: "headphones", label: "Headphone", emoji: "🎧" },
-  { id: "headband", label: "Tiara", emoji: "👸" },
-  { id: "leaf", label: "Folhinha", emoji: "🍃" },
-  { id: "star", label: "Estrelinha", emoji: "⭐" },
-  { id: "heart", label: "Coraçãozinho", emoji: "💗" },
-  { id: "cherry", label: "Cerejinha", emoji: "🍒" },
-  { id: "sunglasses", label: "Óculos sol", emoji: "😎" },
-  { id: "victory", label: "Vitória", emoji: "🕶️" },
-  { id: "monocle", label: "Monóculo", emoji: "🧐" },
-  { id: "mustache", label: "Bigode", emoji: "👨" },
-  { id: "tie", label: "Gravatinha", emoji: "👔" },
-  { id: "necklace", label: "Colar", emoji: "💎" },
+  { id: "none", label: "Nenhum", emoji: "✨", slot: "none" },
+  { id: "bow", label: "Lacinho", emoji: "🎀", slot: "hat" },
+  { id: "tophat", label: "Cartola", emoji: "🎩", slot: "hat" },
+  { id: "crown", label: "Coroa", emoji: "👑", slot: "hat" },
+  { id: "glasses", label: "Oculinhos", emoji: "🤓", slot: "glasses" },
+  { id: "flower", label: "Florzinha", emoji: "🌼", slot: "hat" },
+  { id: "scarf", label: "Cachecol", emoji: "🧣", slot: "neck" },
+  // novas
+  { id: "beanie", label: "Toca", emoji: "🧢", slot: "hat" },
+  { id: "halo", label: "Auréola", emoji: "😇", slot: "hat" },
+  { id: "horns", label: "Chifrinhos", emoji: "😈", slot: "hat" },
+  { id: "headphones", label: "Headphone", emoji: "🎧", slot: "hat" },
+  { id: "headband", label: "Tiara", emoji: "👸", slot: "hat" },
+  { id: "leaf", label: "Folhinha", emoji: "🍃", slot: "hat" },
+  { id: "star", label: "Estrelinha", emoji: "⭐", slot: "hat" },
+  { id: "heart", label: "Coraçãozinho", emoji: "💗", slot: "hat" },
+  { id: "cherry", label: "Cerejinha", emoji: "🍒", slot: "hat" },
+  { id: "sunglasses", label: "Óculos sol", emoji: "😎", slot: "glasses" },
+  { id: "victory", label: "Vitória", emoji: "🕶️", slot: "glasses" },
+  { id: "monocle", label: "Monóculo", emoji: "🧐", slot: "glasses" },
+  { id: "mustache", label: "Bigode", emoji: "👨", slot: "face" },
+  { id: "tie", label: "Gravatinha", emoji: "👔", slot: "neck" },
+  { id: "necklace", label: "Colar", emoji: "💎", slot: "neck" },
 ];
 
 export function getSkin(id: string): Skin {
@@ -136,4 +141,32 @@ export function getSkin(id: string): Skin {
 
 export function getAccessory(id: string): Accessory {
   return ACCESSORIES.find((a) => a.id === id) ?? ACCESSORIES[0];
+}
+
+/** Parse string "tophat,sunglasses" -> ["tophat","sunglasses"], filtra "none"/vazios */
+export function parseAccessoryIds(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s && s !== "none");
+}
+
+/** Serializa array -> "a,b" (ou "none" se vazio, pra não gravar string vazia) */
+export function serializeAccessoryIds(ids: string[]): string {
+  const clean = ids.filter((id) => id && id !== "none");
+  return clean.length ? clean.join(",") : "none";
+}
+
+/** Aplica regras de slot: ao adicionar um id, remove qualquer outro do mesmo slot.
+ *  Toggle: se já está equipado, desequipa. */
+export function toggleAccessory(current: string[], id: string): string[] {
+  if (id === "none") return [];
+  const acc = getAccessory(id);
+  if (current.includes(id)) {
+    return current.filter((x) => x !== id);
+  }
+  // remove qualquer um do mesmo slot e adiciona
+  const filtered = current.filter((x) => getAccessory(x).slot !== acc.slot);
+  return [...filtered, id];
 }

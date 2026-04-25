@@ -1,6 +1,15 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { memo, useState } from "react";
-import { SKINS, ACCESSORIES, type Skin, type Accessory } from "@/lib/mochi-cosmetics";
+import {
+  SKINS,
+  ACCESSORIES,
+  parseAccessoryIds,
+  serializeAccessoryIds,
+  toggleAccessory,
+  getAccessory,
+  type Skin,
+  type Accessory,
+} from "@/lib/mochi-cosmetics";
 
 interface Props {
   open: boolean;
@@ -10,8 +19,6 @@ interface Props {
   onSave: (skin: string, accessory: string) => void | Promise<void>;
 }
 
-// Botões puros (sem framer-motion) — escolhas de roupa renderizam 30+ itens,
-// cada motion.button custa caro no mobile. CSS active:scale dá o mesmo feedback.
 const SkinButton = memo(function SkinButton({
   skin,
   selected,
@@ -53,15 +60,28 @@ const AccessoryButton = memo(function AccessoryButton({
     <button
       type="button"
       onClick={() => onPick(acc.id)}
-      className={`glass flex flex-col items-center gap-1 rounded-2xl p-3 ring-2 ring-inset transition-transform active:scale-95 ${
+      className={`glass relative flex flex-col items-center gap-1 rounded-2xl p-3 ring-2 ring-inset transition-transform active:scale-95 ${
         selected ? "ring-pink" : "ring-transparent"
       }`}
     >
+      {selected && (
+        <span className="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-pink text-[10px] font-bold text-white shadow">
+          ✓
+        </span>
+      )}
       <span className="text-3xl">{acc.emoji}</span>
       <span className="text-xs font-display font-semibold">{acc.label}</span>
     </button>
   );
 });
+
+const SLOT_LABELS: Record<string, string> = {
+  hat: "🎩 cabeça",
+  glasses: "🤓 óculos",
+  face: "👨 rosto",
+  neck: "🧣 pescoço",
+  body: "👔 corpo",
+};
 
 function WardrobeContent({
   currentSkin,
@@ -71,16 +91,32 @@ function WardrobeContent({
 }: Omit<Props, "open">) {
   const [tab, setTab] = useState<"skin" | "acc">("skin");
   const [skin, setSkin] = useState(currentSkin);
-  const [acc, setAcc] = useState(currentAccessory);
+  // múltiplos acessórios — salvo como string "tophat,sunglasses"
+  const [accIds, setAccIds] = useState<string[]>(() => parseAccessoryIds(currentAccessory));
 
-  const dirty = skin !== currentSkin || acc !== currentAccessory;
+  const dirty =
+    skin !== currentSkin || serializeAccessoryIds(accIds) !== (currentAccessory || "none");
   const previewSkin = SKINS.find((s) => s.id === skin) ?? SKINS[0];
-  const previewAcc = ACCESSORIES.find((a) => a.id === acc) ?? ACCESSORIES[0];
 
   const handleSave = async () => {
-    await onSave(skin, acc);
+    await onSave(skin, serializeAccessoryIds(accIds));
     onClose();
   };
+
+  const pickAcc = (id: string) => {
+    if (id === "none") {
+      setAccIds([]);
+      return;
+    }
+    setAccIds((prev) => toggleAccessory(prev, id));
+  };
+
+  // Acessórios agrupados por slot pra deixar claro a regra (1 por slot)
+  const grouped = ACCESSORIES.reduce<Record<string, Accessory[]>>((map, a) => {
+    if (a.id === "none") return map;
+    (map[a.slot] ||= []).push(a);
+    return map;
+  }, {});
 
   return (
     <>
@@ -89,8 +125,6 @@ function WardrobeContent({
       </div>
 
       <div className="flex items-center gap-4 px-6 pt-3 pb-1">
-        {/* preview leve: só uma bolinha grande com a cor da skin + emoji do acessório
-            (renderizar o Mochi SVG inteiro travava demais a cada troca) */}
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-white/5">
           <span
             className="absolute inset-2 rounded-full border-2 border-white/15 shadow-inner"
@@ -98,19 +132,25 @@ function WardrobeContent({
               background: `radial-gradient(circle at 35% 30%, ${previewSkin.body}, ${previewSkin.bodyMid} 60%, ${previewSkin.bodyEdge})`,
             }}
           />
-          {previewAcc.id !== "none" && (
-            <span className="absolute right-0.5 top-0.5 text-2xl drop-shadow">
-              {previewAcc.emoji}
-            </span>
-          )}
+          {/* Stack até 3 emojis dos acessórios escolhidos no canto */}
+          <div className="absolute right-0.5 top-0.5 flex flex-col gap-0.5 items-end">
+            {accIds.slice(0, 3).map((id) => (
+              <span key={id} className="text-lg drop-shadow leading-none">
+                {getAccessory(id).emoji}
+              </span>
+            ))}
+          </div>
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-display text-xl font-bold leading-tight">Guarda-roupa</h3>
-          <p className="text-xs text-muted-foreground">Deixa ele do jeitinho de vocês</p>
+          <p className="text-xs text-muted-foreground">
+            {tab === "acc"
+              ? "toca pra equipar; 1 item por categoria"
+              : "Deixa ele do jeitinho de vocês"}
+          </p>
         </div>
       </div>
 
-      {/* tabs */}
       <div className="mx-6 mt-2 flex rounded-full bg-white/5 p-1">
         <button
           onClick={() => setTab("skin")}
@@ -131,16 +171,45 @@ function WardrobeContent({
       </div>
 
       <div
-        className="grid min-h-0 flex-1 grid-cols-3 gap-3 overflow-y-auto px-6 pb-3 pt-3 sm:grid-cols-4"
+        className="min-h-0 flex-1 overflow-y-auto px-6 pb-3 pt-3"
         style={{ contain: "layout paint", WebkitOverflowScrolling: "touch" }}
       >
-        {tab === "skin"
-          ? SKINS.map((s) => (
+        {tab === "skin" ? (
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+            {SKINS.map((s) => (
               <SkinButton key={s.id} skin={s} selected={skin === s.id} onPick={setSkin} />
-            ))
-          : ACCESSORIES.map((a) => (
-              <AccessoryButton key={a.id} acc={a} selected={acc === a.id} onPick={setAcc} />
             ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* botão "tirar tudo" */}
+            <button
+              type="button"
+              onClick={() => setAccIds([])}
+              disabled={accIds.length === 0}
+              className="glass w-full rounded-2xl py-2.5 font-display text-xs font-semibold transition-transform active:scale-95 disabled:opacity-40"
+            >
+              ✨ tirar tudo
+            </button>
+            {Object.entries(grouped).map(([slot, items]) => (
+              <div key={slot}>
+                <h4 className="mb-2 px-1 font-display text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                  {SLOT_LABELS[slot] ?? slot}
+                </h4>
+                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                  {items.map((a) => (
+                    <AccessoryButton
+                      key={a.id}
+                      acc={a}
+                      selected={accIds.includes(a.id)}
+                      onPick={pickAcc}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-3 px-6 pb-6 pt-2">
@@ -182,7 +251,6 @@ export function WardrobeDrawer({ open, onClose, currentSkin, currentAccessory, o
             transition={{ type: "spring", stiffness: 240, damping: 30 }}
             style={{ willChange: "transform" }}
           >
-            {/* só monta o conteúdo quando aberto — evita pesar a tree */}
             <WardrobeContent
               currentSkin={currentSkin}
               currentAccessory={currentAccessory}

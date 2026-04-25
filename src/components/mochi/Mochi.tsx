@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Mood } from "@/lib/mochi-types";
-import { getSkin, getAccessory } from "@/lib/mochi-cosmetics";
+import { getSkin, parseAccessoryIds } from "@/lib/mochi-cosmetics";
 
 export type PokeReaction =
   | "bite"      // com fome → morde o dedo
@@ -64,7 +64,9 @@ function MochiInner({
   onPoke,
 }: Props) {
   const skin = getSkin(skinId);
-  const acc = getAccessory(accessoryId);
+  // accessoryId pode ser "none", "tophat" ou múltiplos: "tophat,sunglasses"
+  const accIds = parseAccessoryIds(accessoryId);
+  const has = (id: string) => accIds.includes(id);
   // IDs estáveis — não precisam regenerar a cada render
   const bodyGradId = "mochi-body";
   const cheekGradId = "mochi-cheek";
@@ -188,7 +190,7 @@ function MochiInner({
         <ellipse cx="100" cy="115" rx="68" ry="62" fill={`url(#${bodyGradId})`} />
 
         {/* scarf (under face) */}
-        {acc.id === "scarf" && (
+        {has("scarf") && (
           <>
             <ellipse cx="100" cy="155" rx="55" ry="11" fill="oklch(0.65 0.18 20)" />
             <rect x="118" y="152" width="10" height="22" rx="3" fill="oklch(0.6 0.2 20)" transform="rotate(15 123 163)" />
@@ -232,7 +234,7 @@ function MochiInner({
         )}
 
         {/* glasses (oculinhos finos) */}
-        {acc.id === "glasses" && (
+        {has("glasses") && (
           <g stroke="oklch(0.25 0.04 320)" strokeWidth="2.5" fill="none">
             <circle cx="82" cy="108" r="11" />
             <circle cx="118" cy="108" r="11" />
@@ -241,11 +243,12 @@ function MochiInner({
         )}
 
         {/* óculos da vitória — armação preta borboleta com lente rosa translúcida */}
-        {acc.id === "victory" && (
+        {has("victory") && (
           <g>
-            {/* lente esquerda — cat-eye angular: borda superior reta, ponta externa levantada */}
+            {/* lente esquerda — cat-eye angular: topo levemente curvado, ponta externa
+                bem levantada e altura maior pra ficar mais marcante (mais próxima da ref) */}
             <path
-              d="M 54 98 L 92 96 L 96 100 L 95 116 Q 94 122 86 122 L 70 122 Q 58 122 56 114 Z"
+              d="M 52 96 Q 70 92 92 94 L 96 100 L 95 118 Q 94 124 84 124 L 70 124 Q 56 124 54 114 Z"
               fill="oklch(0.98 0.005 280 / 0.18)"
               stroke="oklch(0.18 0.01 280)"
               strokeWidth="3"
@@ -253,7 +256,7 @@ function MochiInner({
             />
             {/* lente direita (espelhada) */}
             <path
-              d="M 146 98 L 108 96 L 104 100 L 105 116 Q 106 122 114 122 L 130 122 Q 142 122 144 114 Z"
+              d="M 148 96 Q 130 92 108 94 L 104 100 L 105 118 Q 106 124 116 124 L 130 124 Q 144 124 146 114 Z"
               fill="oklch(0.98 0.005 280 / 0.18)"
               stroke="oklch(0.18 0.01 280)"
               strokeWidth="3"
@@ -268,23 +271,20 @@ function MochiInner({
             />
             {/* hastes nas laterais (braços pretos) */}
             <path
-              d="M 56 104 L 48 100"
+              d="M 54 102 L 46 98"
               stroke="oklch(0.18 0.01 280)"
               strokeWidth="2.5"
               strokeLinecap="round"
             />
             <path
-              d="M 144 104 L 152 100"
+              d="M 146 102 L 154 98"
               stroke="oklch(0.18 0.01 280)"
               strokeWidth="2.5"
               strokeLinecap="round"
             />
-            {/* brilho dourado nos cantinhos altos (toque vitória) */}
-            <circle cx="70" cy="96" r="2" fill="oklch(0.92 0.16 90)" />
-            <circle cx="130" cy="96" r="2" fill="oklch(0.92 0.16 90)" />
-            {/* reflexo branco nas lentes */}
-            <rect x="80" y="98" width="6" height="2.2" rx="1" fill="white" opacity="0.85" />
-            <rect x="114" y="98" width="6" height="2.2" rx="1" fill="white" opacity="0.85" />
+            {/* reflexo branco discreto nas lentes (lente de grau, sem cor) */}
+            <rect x="78" y="100" width="7" height="2.2" rx="1" fill="white" opacity="0.7" />
+            <rect x="115" y="100" width="7" height="2.2" rx="1" fill="white" opacity="0.7" />
           </g>
         )}
 
@@ -303,21 +303,21 @@ function MochiInner({
         )}
 
         {/* accessories on top of head */}
-        {acc.id === "bow" && (
+        {has("bow") && (
           <g>
             <path d="M 90 48 Q 75 38 78 56 Q 85 56 100 52 Z" fill="oklch(0.72 0.18 0)" />
             <path d="M 110 48 Q 125 38 122 56 Q 115 56 100 52 Z" fill="oklch(0.72 0.18 0)" />
             <circle cx="100" cy="52" r="5" fill="oklch(0.65 0.2 5)" />
           </g>
         )}
-        {acc.id === "tophat" && (
+        {has("tophat") && (
           <g>
             <rect x="78" y="32" width="44" height="22" rx="2" fill="oklch(0.2 0.02 300)" />
             <rect x="70" y="50" width="60" height="6" rx="2" fill="oklch(0.2 0.02 300)" />
             <rect x="78" y="44" width="44" height="4" fill="oklch(0.65 0.18 0)" />
           </g>
         )}
-        {acc.id === "crown" && (
+        {has("crown") && (
           <g fill="oklch(0.85 0.16 90)" stroke="oklch(0.65 0.18 80)" strokeWidth="1.5">
             <path d="M 75 56 L 80 36 L 90 50 L 100 30 L 110 50 L 120 36 L 125 56 Z" />
             <circle cx="100" cy="42" r="2.5" fill="oklch(0.7 0.2 0)" stroke="none" />
@@ -325,7 +325,7 @@ function MochiInner({
             <circle cx="115" cy="48" r="1.8" fill="oklch(0.7 0.2 290)" stroke="none" />
           </g>
         )}
-        {acc.id === "flower" && (
+        {has("flower") && (
           <g>
             <circle cx="76" cy="52" r="5" fill="oklch(0.85 0.18 60)" />
             <circle cx="84" cy="48" r="5" fill="oklch(0.85 0.18 60)" />
@@ -334,51 +334,51 @@ function MochiInner({
             <circle cx="76" cy="48" r="3" fill="oklch(0.7 0.2 30)" />
           </g>
         )}
-        {acc.id === "beanie" && (
+        {has("beanie") && (
           <g>
             <path d="M 64 56 Q 100 18 136 56 L 134 60 Q 100 36 66 60 Z" fill="oklch(0.55 0.16 250)" />
             <rect x="62" y="56" width="76" height="8" rx="3" fill="oklch(0.42 0.14 250)" />
             <circle cx="100" cy="26" r="6" fill="oklch(0.95 0.04 80)" />
           </g>
         )}
-        {acc.id === "halo" && (
+        {has("halo") && (
           <g>
             <ellipse cx="100" cy="34" rx="32" ry="6" fill="none" stroke="oklch(0.92 0.18 95)" strokeWidth="3" />
             <ellipse cx="100" cy="34" rx="32" ry="6" fill="none" stroke="oklch(0.98 0.1 95 / 0.6)" strokeWidth="6" />
           </g>
         )}
-        {acc.id === "horns" && (
+        {has("horns") && (
           <g fill="oklch(0.55 0.18 20)">
             <path d="M 78 48 Q 70 30 84 32 Q 86 42 86 50 Z" />
             <path d="M 122 48 Q 130 30 116 32 Q 114 42 114 50 Z" />
           </g>
         )}
-        {acc.id === "headphones" && (
+        {has("headphones") && (
           <g>
             <path d="M 60 80 Q 60 30 100 30 Q 140 30 140 80" fill="none" stroke="oklch(0.3 0.04 280)" strokeWidth="6" strokeLinecap="round" />
             <rect x="50" y="76" width="16" height="22" rx="6" fill="oklch(0.65 0.18 0)" />
             <rect x="134" y="76" width="16" height="22" rx="6" fill="oklch(0.65 0.18 0)" />
           </g>
         )}
-        {acc.id === "headband" && (
+        {has("headband") && (
           <g>
             <path d="M 62 60 Q 100 38 138 60" fill="none" stroke="oklch(0.78 0.16 350)" strokeWidth="7" strokeLinecap="round" />
             <circle cx="100" cy="44" r="5" fill="oklch(0.85 0.18 350)" />
           </g>
         )}
-        {acc.id === "leaf" && (
+        {has("leaf") && (
           <g>
             <path d="M 96 38 Q 84 22 76 32 Q 80 48 96 50 Z" fill="oklch(0.7 0.18 145)" />
             <path d="M 88 32 L 94 46" stroke="oklch(0.5 0.14 145)" strokeWidth="1.5" />
           </g>
         )}
-        {acc.id === "star" && (
+        {has("star") && (
           <path d="M 100 28 L 104 40 L 116 40 L 106 48 L 110 60 L 100 52 L 90 60 L 94 48 L 84 40 L 96 40 Z" fill="oklch(0.9 0.18 95)" stroke="oklch(0.7 0.18 80)" strokeWidth="1.5" />
         )}
-        {acc.id === "heart" && (
+        {has("heart") && (
           <path d="M 100 38 c -8 -12 -24 -2 -24 8 c 0 12 14 18 24 28 c 10 -10 24 -16 24 -28 c 0 -10 -16 -20 -24 -8 z" fill="oklch(0.7 0.22 15)" />
         )}
-        {acc.id === "cherry" && (
+        {has("cherry") && (
           <g>
             <path d="M 90 30 Q 100 24 110 30" fill="none" stroke="oklch(0.5 0.15 145)" strokeWidth="2" />
             <circle cx="88" cy="46" r="7" fill="oklch(0.6 0.22 20)" />
@@ -387,29 +387,29 @@ function MochiInner({
             <circle cx="110" cy="44" r="2" fill="oklch(0.85 0.1 20)" />
           </g>
         )}
-        {acc.id === "sunglasses" && (
+        {has("sunglasses") && (
           <g>
             <rect x="68" y="100" width="28" height="14" rx="4" fill="oklch(0.18 0.02 280)" />
             <rect x="104" y="100" width="28" height="14" rx="4" fill="oklch(0.18 0.02 280)" />
             <line x1="96" y1="107" x2="104" y2="107" stroke="oklch(0.18 0.02 280)" strokeWidth="2" />
           </g>
         )}
-        {acc.id === "monocle" && (
+        {has("monocle") && (
           <g stroke="oklch(0.65 0.18 80)" strokeWidth="2.5" fill="none">
             <circle cx="118" cy="108" r="12" />
             <line x1="118" y1="120" x2="122" y2="138" />
           </g>
         )}
-        {acc.id === "mustache" && (
+        {has("mustache") && (
           <path d="M 80 138 Q 90 132 100 138 Q 110 132 120 138 Q 110 144 100 140 Q 90 144 80 138 Z" fill="oklch(0.25 0.04 40)" />
         )}
-        {acc.id === "tie" && (
+        {has("tie") && (
           <g fill="oklch(0.55 0.2 25)">
             <path d="M 96 150 L 104 150 L 106 156 L 100 162 L 94 156 Z" />
             <path d="M 94 162 L 106 162 L 110 178 L 100 186 L 90 178 Z" />
           </g>
         )}
-        {acc.id === "necklace" && (
+        {has("necklace") && (
           <g>
             <path d="M 70 158 Q 100 172 130 158" fill="none" stroke="oklch(0.85 0.16 90)" strokeWidth="2" />
             <path d="M 100 174 L 96 180 L 100 186 L 104 180 Z" fill="oklch(0.78 0.18 250)" stroke="oklch(0.6 0.16 250)" strokeWidth="1" />
