@@ -245,9 +245,10 @@ function MochiInner({
         {/* óculos da vitória — armação preta borboleta com lente rosa translúcida */}
         {has("victory") && (
           <g>
-            {/* lente esquerda — cat-eye angular: borda superior reta, ponta externa levantada */}
+            {/* lente esquerda — cat-eye angular: topo levemente curvado, ponta externa
+                bem levantada e altura maior pra ficar mais marcante (mais próxima da ref) */}
             <path
-              d="M 54 98 L 92 96 L 96 100 L 95 116 Q 94 122 86 122 L 70 122 Q 58 122 56 114 Z"
+              d="M 52 96 Q 70 92 92 94 L 96 100 L 95 118 Q 94 124 84 124 L 70 124 Q 56 124 54 114 Z"
               fill="oklch(0.98 0.005 280 / 0.18)"
               stroke="oklch(0.18 0.01 280)"
               strokeWidth="3"
@@ -255,7 +256,7 @@ function MochiInner({
             />
             {/* lente direita (espelhada) */}
             <path
-              d="M 146 98 L 108 96 L 104 100 L 105 116 Q 106 122 114 122 L 130 122 Q 142 122 144 114 Z"
+              d="M 148 96 Q 130 92 108 94 L 104 100 L 105 118 Q 106 124 116 124 L 130 124 Q 144 124 146 114 Z"
               fill="oklch(0.98 0.005 280 / 0.18)"
               stroke="oklch(0.18 0.01 280)"
               strokeWidth="3"
@@ -270,23 +271,20 @@ function MochiInner({
             />
             {/* hastes nas laterais (braços pretos) */}
             <path
-              d="M 56 104 L 48 100"
+              d="M 54 102 L 46 98"
               stroke="oklch(0.18 0.01 280)"
               strokeWidth="2.5"
               strokeLinecap="round"
             />
             <path
-              d="M 144 104 L 152 100"
+              d="M 146 102 L 154 98"
               stroke="oklch(0.18 0.01 280)"
               strokeWidth="2.5"
               strokeLinecap="round"
             />
-            {/* brilho dourado nos cantinhos altos (toque vitória) */}
-            <circle cx="70" cy="96" r="2" fill="oklch(0.92 0.16 90)" />
-            <circle cx="130" cy="96" r="2" fill="oklch(0.92 0.16 90)" />
-            {/* reflexo branco nas lentes */}
-            <rect x="80" y="98" width="6" height="2.2" rx="1" fill="white" opacity="0.85" />
-            <rect x="114" y="98" width="6" height="2.2" rx="1" fill="white" opacity="0.85" />
+            {/* reflexo branco discreto nas lentes (lente de grau, sem cor) */}
+            <rect x="78" y="100" width="7" height="2.2" rx="1" fill="white" opacity="0.7" />
+            <rect x="115" y="100" width="7" height="2.2" rx="1" fill="white" opacity="0.7" />
           </g>
         )}
 
