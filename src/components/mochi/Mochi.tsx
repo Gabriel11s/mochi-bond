@@ -64,7 +64,9 @@ function MochiInner({
   onPoke,
 }: Props) {
   const skin = getSkin(skinId);
-  const acc = getAccessory(accessoryId);
+  // accessoryId pode ser "none", "tophat" ou múltiplos: "tophat,sunglasses"
+  const accIds = parseAccessoryIds(accessoryId);
+  const has = (id: string) => accIds.includes(id);
   // IDs estáveis — não precisam regenerar a cada render
   const bodyGradId = "mochi-body";
   const cheekGradId = "mochi-cheek";
