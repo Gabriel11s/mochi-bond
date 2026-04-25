@@ -148,6 +148,31 @@ export function clamp(n: number, min = 0, max = 100): number {
   return Math.max(min, Math.min(max, n));
 }
 
+// Decay por hora — cai naturalmente ao longo do dia
+export const DECAY_PER_HOUR = {
+  hunger: 3,
+  happiness: 2,
+  energy: 2.5,
+};
+
+// Aplica decaimento natural baseado em quanto tempo passou desde updated_at
+export function applyDecay(pet: PetState): PetState {
+  if (!pet.updated_at) return pet;
+  const elapsedMs = Date.now() - new Date(pet.updated_at).getTime();
+  const hours = elapsedMs / 3600000;
+  if (hours <= 0) return pet;
+  const hunger = clamp(pet.hunger - DECAY_PER_HOUR.hunger * hours);
+  const happiness = clamp(pet.happiness - DECAY_PER_HOUR.happiness * hours);
+  const energy = clamp(pet.energy - DECAY_PER_HOUR.energy * hours);
+  return {
+    ...pet,
+    hunger,
+    happiness,
+    energy,
+    current_mood: computeMood(hunger, happiness, energy),
+  };
+}
+
 export function timeAgo(iso: string | null): string {
   if (!iso) return "ainda não cuidaram dele";
   const diff = Date.now() - new Date(iso).getTime();
