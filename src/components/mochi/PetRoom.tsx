@@ -22,7 +22,7 @@ import { SpotifyPanel } from "./SpotifyPanel";
 import type { NowPlayingResponse } from "@/lib/spotify-types";
 import { buildMochiReaction, vibeLabel } from "@/lib/spotify-vibe";
 import { partnerKeyFromName, pickGreeting } from "@/lib/mochi-greetings";
-import { useTheme } from "@/hooks/use-theme";
+import { usePartnerTheme } from "@/hooks/use-theme";
 import { BackgroundScene } from "./BackgroundScene";
 import { BackgroundDrawer } from "./BackgroundDrawer";
 import {
