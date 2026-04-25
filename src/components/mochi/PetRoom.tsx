@@ -63,11 +63,11 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [toast, setToast] = useState<string | null>(null);
   const [levelUp, setLevelUp] = useState(false);
   const [speech, setSpeech] = useState<string | null>(null);
-  const { theme, toggle } = useTheme();
   const flightRef = useRef<{ id: number; emoji: string } | null>(null);
   const [flight, setFlight] = useState<{ id: number; emoji: string } | null>(null);
 
   const partnerKey = partnerKeyFromName(partnerName);
+  const { theme } = usePartnerTheme(partnerKey);
 
   // Saudação inicial: o Mochi fala um balão pra Tita ou pro Gab quando entra no quartinho
   useEffect(() => {
