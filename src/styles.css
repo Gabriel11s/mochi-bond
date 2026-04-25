@@ -213,6 +213,40 @@
   50% { opacity: 1; }
 }
 
+/* Reações de toque/hover — duram ~1.4s pra casar com o reset do estado */
+@keyframes mochi-bite {
+  0%   { transform: scale(1) rotate(0); }
+  20%  { transform: scale(1.08) translateY(-4px) rotate(-3deg); }
+  40%  { transform: scale(0.94) translateY(2px) rotate(2deg); }
+  60%  { transform: scale(1.05) translateY(-2px) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes mochi-nuzzle {
+  0%, 100% { transform: rotate(0) translateX(0); }
+  25%      { transform: rotate(-6deg) translateX(-4px); }
+  50%      { transform: rotate(0) translateX(0); }
+  75%      { transform: rotate(6deg) translateX(4px); }
+}
+@keyframes mochi-startle {
+  0%   { transform: scale(1) translateY(0); }
+  15%  { transform: scale(1.12) translateY(-10px); }
+  30%  { transform: scale(0.96) translateY(-6px); }
+  60%  { transform: scale(1.03) translateY(-2px); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes mochi-giggle {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  20%      { transform: translateY(-3px) rotate(-3deg); }
+  40%      { transform: translateY(0)    rotate(3deg); }
+  60%      { transform: translateY(-3px) rotate(-3deg); }
+  80%      { transform: translateY(0)    rotate(3deg); }
+}
+@keyframes mochi-yawn {
+  0%, 100% { transform: scale(1); }
+  40%      { transform: scale(1.06, 1.1); }
+  70%      { transform: scale(1.02, 1.04); }
+}
+
 .animate-breathe { animation: mochi-breathe 3.6s ease-in-out infinite; }
 .animate-mochi-bounce { animation: mochi-bounce 0.7s cubic-bezier(.34,1.56,.64,1); }
 .animate-mochi-eat { animation: mochi-eat 0.9s ease-in-out; }
@@ -220,3 +254,8 @@
 .animate-mochi-smitten { animation: mochi-smitten 1.8s ease-in-out infinite; }
 .animate-smitten-glow { animation: smitten-glow 1.4s ease-in-out infinite; }
 .animate-shimmer { animation: shimmer 2.4s ease-in-out infinite; }
+.animate-mochi-bite    { animation: mochi-bite 0.7s ease-out; }
+.animate-mochi-nuzzle  { animation: mochi-nuzzle 1s ease-in-out; }
+.animate-mochi-startle { animation: mochi-startle 0.6s cubic-bezier(.34,1.56,.64,1); }
+.animate-mochi-giggle  { animation: mochi-giggle 0.9s ease-in-out; }
+.animate-mochi-yawn    { animation: mochi-yawn 1.2s ease-in-out; }
