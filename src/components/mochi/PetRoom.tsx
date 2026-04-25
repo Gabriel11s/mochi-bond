@@ -854,43 +854,58 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         )}
       </AnimatePresence>
 
-      {/* food drawer */}
-      <FoodDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        partnerName={partnerName}
-        petName={pet.pet_name}
-        onPick={feed}
-        busy={busy}
-        onOpenQuests={() => setQuestsOpen(true)}
-      />
+      {/* drawers — lazy-mount: só monta quando abre. Cada drawer abre seu
+          próprio canal de realtime, então mantê-los desmontados quando
+          fechados libera muito do mobile. */}
+      {drawerOpen && (
+        <FoodDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          partnerName={partnerName}
+          petName={pet.pet_name}
+          onPick={feed}
+          busy={busy}
+          onOpenQuests={() => setQuestsOpen(true)}
+        />
+      )}
 
-      {/* quests drawer */}
-      <QuestsDrawer
-        open={questsOpen}
-        onClose={() => setQuestsOpen(false)}
-        partnerName={partnerName}
-        petName={pet.pet_name}
-        onCompleted={(msg) => showToast(msg)}
-      />
+      {questsOpen && (
+        <QuestsDrawer
+          open={questsOpen}
+          onClose={() => setQuestsOpen(false)}
+          partnerName={partnerName}
+          petName={pet.pet_name}
+          onCompleted={(msg) => showToast(msg)}
+        />
+      )}
 
-      {/* wardrobe drawer */}
-      <WardrobeDrawer
-        open={wardrobeOpen}
-        onClose={() => setWardrobeOpen(false)}
-        currentSkin={pet.equipped_skin}
-        currentAccessory={pet.equipped_accessory}
-        onSave={saveOutfit}
-      />
+      {wardrobeOpen && (
+        <WardrobeDrawer
+          open={wardrobeOpen}
+          onClose={() => setWardrobeOpen(false)}
+          currentSkin={pet.equipped_skin}
+          currentAccessory={pet.equipped_accessory}
+          onSave={saveOutfit}
+        />
+      )}
 
-      {/* background drawer */}
-      <BackgroundDrawer
-        open={backgroundOpen}
-        onClose={() => setBackgroundOpen(false)}
-        current={backgroundId}
-        onSelect={pickBackground}
-      />
+      {backgroundOpen && (
+        <BackgroundDrawer
+          open={backgroundOpen}
+          onClose={() => setBackgroundOpen(false)}
+          current={backgroundId}
+          onSelect={pickBackground}
+        />
+      )}
 
+      {photosOpen && (
+        <PhotosDrawer
+          open={photosOpen}
+          onClose={() => setPhotosOpen(false)}
+          partnerName={partnerName}
+          onShowToMochi={showPhoto}
+        />
+      )}
       {/* photos drawer */}
       <PhotosDrawer
         open={photosOpen}

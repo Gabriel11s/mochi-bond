@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Mood } from "@/lib/mochi-types";
 import { getSkin, getAccessory } from "@/lib/mochi-cosmetics";
@@ -52,7 +52,7 @@ const REACTION_EMOJI: Record<PokeReaction, string> = {
   startle: "😳",
 };
 
-export function Mochi({
+function MochiInner({
   mood,
   eating,
   bouncing,
@@ -65,9 +65,9 @@ export function Mochi({
 }: Props) {
   const skin = getSkin(skinId);
   const acc = getAccessory(accessoryId);
-  const uid = useId().replace(/:/g, "");
-  const bodyGradId = `mochi-body-${uid}`;
-  const cheekGradId = `mochi-cheek-${uid}`;
+  // IDs estáveis — não precisam regenerar a cada render
+  const bodyGradId = "mochi-body";
+  const cheekGradId = "mochi-cheek";
 
   // Reação ativa por toque/hover — sobrepõe o mood normal por ~1.4s
   const [reaction, setReaction] = useState<PokeReaction | null>(null);
@@ -161,12 +161,10 @@ export function Mochi({
         )}
       </AnimatePresence>
 
-      <motion.svg
+      <svg
         viewBox="0 0 200 200"
         className={`relative z-10 h-64 w-64 sm:h-72 sm:w-72 ${animClass}`}
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 180, damping: 14 }}
+        style={{ animation: "mochi-mount 0.4s ease-out both" }}
       >
         <defs>
           <radialGradient id={bodyGradId} cx="50%" cy="40%" r="65%">
@@ -433,7 +431,10 @@ export function Mochi({
             <text x="30" y="100" fontSize="12">💞</text>
           </>
         )}
-      </motion.svg>
+      </svg>
     </div>
   );
 }
+
+// Memoiza pra evitar re-render quando o pai re-renderiza por outros motivos
+export const Mochi = memo(MochiInner);

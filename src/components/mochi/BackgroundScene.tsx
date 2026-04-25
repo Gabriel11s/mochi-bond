@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { getBackground, type BackgroundId } from "@/lib/mochi-backgrounds";
 
 interface Props {
@@ -8,26 +8,23 @@ interface Props {
   reactPulse?: number;
 }
 
+// Pontos fixos calculados uma única vez no módulo — não dependem de nenhum
+// estado, então evitam recálculo a cada render do PetRoom.
+const FIXED_DOTS = Array.from({ length: 40 }).map((_, i) => ({
+  x: (i * 137.508) % 100,
+  y: (i * 53.123) % 100,
+  size: 1 + ((i * 7) % 3),
+  delay: (i * 0.3) % 4,
+}));
+
 /**
  * Cenário de fundo do quartinho. Cada `id` desenha uma cena diferente
  * 100% em SVG/CSS — leve, themável e nunca quebra.
  *
  * Camadas: céu (gradiente) → decorações (SVG) → chão (gradiente) → vinheta.
  */
-export function BackgroundScene({ backgroundId, reactPulse = 0 }: Props) {
+function BackgroundSceneInner({ backgroundId, reactPulse = 0 }: Props) {
   const bg = getBackground(backgroundId);
-
-  // pontos aleatórios determinísticos pra estrelas/bolhas/flores etc.
-  const dots = useMemo(
-    () =>
-      Array.from({ length: 40 }).map((_, i) => ({
-        x: ((i * 137.508) % 100),
-        y: ((i * 53.123) % 100),
-        size: 1 + ((i * 7) % 3),
-        delay: (i * 0.3) % 4,
-      })),
-    [backgroundId]
-  );
 
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
@@ -35,16 +32,13 @@ export function BackgroundScene({ backgroundId, reactPulse = 0 }: Props) {
       <div className="absolute inset-0" style={{ background: bg.sky }} />
 
       {/* Decorações específicas por cena */}
-      <SceneDecorations id={backgroundId} dots={dots} accent={bg.accent} reactPulse={reactPulse} />
+      <SceneDecorations id={backgroundId} dots={FIXED_DOTS} accent={bg.accent} reactPulse={reactPulse} />
 
       {/* Chão */}
       <div
         className="absolute inset-x-0 bottom-0 h-[55%]"
         style={{ background: bg.floor }}
       />
-
-
-
 
       {/* Vinheta sutil */}
       <div
@@ -57,6 +51,9 @@ export function BackgroundScene({ backgroundId, reactPulse = 0 }: Props) {
     </div>
   );
 }
+
+// Memoiza — só re-renderiza quando backgroundId/reactPulse mudam de verdade
+export const BackgroundScene = memo(BackgroundSceneInner);
 
 /**
  * Casal aconchegado numa poltrona, vistos de costas — pura silhueta.
