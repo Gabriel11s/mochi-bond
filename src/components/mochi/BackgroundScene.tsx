@@ -137,7 +137,44 @@ function CoupleOnCouch({ accent, reactPulse = 0 }: { accent: string; reactPulse?
           fill="oklch(0.14 0.03 305 / 0.85)"
         />
 
-        {/* keyframes locais — respiração + balanço bem leve */}
+        {/* shimmer/heat na manta — reage quando alimenta ou faz carinho.
+            Faixa quentinha que cruza a manta uma vez, com leve glow do accent. */}
+        {reacting && (
+          <g style={{ mixBlendMode: "screen" } as React.CSSProperties}>
+            <defs>
+              <linearGradient id="manta-shimmer" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor={accent} stopOpacity="0" />
+                <stop offset="50%" stopColor={accent} stopOpacity="0.85" />
+                <stop offset="100%" stopColor={accent} stopOpacity="0" />
+              </linearGradient>
+              {/* clipa o shimmer dentro do shape da manta */}
+              <clipPath id="manta-clip">
+                <path d="M50 118 Q90 108 120 116 Q160 124 196 116 L200 150 L46 150 Z" />
+              </clipPath>
+            </defs>
+            <g clipPath="url(#manta-clip)">
+              <rect
+                x="-80"
+                y="108"
+                width="80"
+                height="48"
+                fill="url(#manta-shimmer)"
+                style={{
+                  animation: "manta-sweep 2.2s ease-out forwards",
+                }}
+              />
+            </g>
+            {/* glow geral curtinho na manta */}
+            <path
+              d="M50 118 Q90 108 120 116 Q160 124 196 116 L200 150 L46 150 Z"
+              fill={accent}
+              opacity="0"
+              style={{ animation: "manta-glow 2.4s ease-out forwards" }}
+            />
+          </g>
+        )}
+
+        {/* keyframes locais — respiração, balanço e shimmer */}
         <style>{`
           @keyframes couch-breathe-left {
             0%, 100% { transform: translateY(0) scaleY(1); }
@@ -154,6 +191,16 @@ function CoupleOnCouch({ accent, reactPulse = 0 }: { accent: string; reactPulse?
           @keyframes couch-sway-right {
             0%, 100% { transform: rotate(0deg); }
             50%      { transform: rotate(0.6deg); }
+          }
+          @keyframes manta-sweep {
+            0%   { transform: translateX(0); opacity: 0; }
+            15%  { opacity: 1; }
+            100% { transform: translateX(360px); opacity: 0; }
+          }
+          @keyframes manta-glow {
+            0%, 100% { opacity: 0; }
+            30%      { opacity: 0.22; }
+            60%      { opacity: 0.14; }
           }
         `}</style>
 
