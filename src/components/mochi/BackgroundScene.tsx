@@ -40,6 +40,9 @@ export function BackgroundScene({ backgroundId }: Props) {
         style={{ background: bg.floor }}
       />
 
+      {/* Casal na poltrona — silhueta de costas, fixa em todos os cenários */}
+      <CoupleOnCouch />
+
       {/* Vinheta sutil */}
       <div
         className="absolute inset-0"
@@ -48,6 +51,67 @@ export function BackgroundScene({ backgroundId }: Props) {
             "radial-gradient(ellipse 100% 80% at 50% 50%, transparent 50%, oklch(0 0 0 / 0.35) 100%)",
         }}
       />
+    </div>
+  );
+}
+
+/**
+ * Casal aconchegado numa poltrona, vistos de costas — pura silhueta.
+ * Fica posicionado na parte de baixo central da cena, criando sensação
+ * de "estamos juntos vendo o cenário". Renderizado em SVG pra escalar bem.
+ */
+function CoupleOnCouch() {
+  return (
+    <div
+      className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center"
+      aria-hidden
+    >
+      <svg
+        viewBox="0 0 240 160"
+        className="h-[38%] w-auto max-w-[80%] drop-shadow-[0_-6px_18px_rgba(0,0,0,0.35)]"
+        preserveAspectRatio="xMidYEnd meet"
+        style={{ filter: "blur(0.4px)" }}
+      >
+        {/* sombra/halo no chão da poltrona */}
+        <ellipse cx="120" cy="155" rx="105" ry="6" fill="oklch(0 0 0 / 0.45)" />
+
+        {/* poltrona — encosto e base */}
+        <g fill="oklch(0.08 0.02 290 / 0.92)">
+          {/* base da poltrona */}
+          <path d="M20 150 L20 110 Q20 96 36 96 L204 96 Q220 96 220 110 L220 150 Z" />
+          {/* braço esquerdo */}
+          <rect x="14" y="92" width="22" height="58" rx="8" />
+          {/* braço direito */}
+          <rect x="204" y="92" width="22" height="58" rx="8" />
+          {/* almofada do encosto (curva orgânica) */}
+          <path d="M36 100 Q60 70 120 72 Q180 70 204 100 L204 116 L36 116 Z" />
+        </g>
+
+        {/* manta jogada por cima — cor levemente mais clara pra dar textura */}
+        <path
+          d="M50 118 Q90 108 120 116 Q160 124 196 116 L200 150 L46 150 Z"
+          fill="oklch(0.14 0.03 305 / 0.85)"
+        />
+
+        {/* casal — duas cabeças encostadas, ombros curvos */}
+        <g fill="oklch(0.04 0.01 290 / 0.95)">
+          {/* pessoa da esquerda — cabeça inclinada pra direita (apoiada no par) */}
+          <ellipse cx="98" cy="62" rx="20" ry="22" />
+          {/* cabelo solto caindo um pouco no ombro */}
+          <path d="M78 64 Q76 84 86 96 L84 110 L70 108 Q68 88 78 64 Z" />
+          {/* ombro/torso esquerdo */}
+          <path d="M68 110 Q70 92 96 88 L120 88 L120 150 L60 150 Q58 128 68 110 Z" />
+
+          {/* pessoa da direita — cabeça também inclinada pro centro */}
+          <ellipse cx="142" cy="58" rx="22" ry="24" />
+          {/* ombro/torso direito (mais largo) */}
+          <path d="M120 88 L150 86 Q176 90 178 112 Q182 132 180 150 L120 150 Z" />
+        </g>
+
+        {/* highlight bem sutil no topo das cabeças pra não ficar chapado */}
+        <ellipse cx="98" cy="48" rx="10" ry="4" fill="oklch(1 0 0 / 0.06)" />
+        <ellipse cx="142" cy="44" rx="11" ry="5" fill="oklch(1 0 0 / 0.06)" />
+      </svg>
     </div>
   );
 }
