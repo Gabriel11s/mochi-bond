@@ -667,6 +667,27 @@ export function PetRoom({ partnerName, onLogout }: Props) {
           bouncing={bouncing}
           skinId={pet.equipped_skin}
           accessoryId={pet.equipped_accessory}
+          hunger={pet.hunger}
+          happiness={pet.happiness}
+          energy={pet.energy}
+          onPoke={(reaction) => {
+            // micro-feedback: partículas + uma falinha curtinha do humor atual
+            const map: Record<string, { emoji: string; line: string }> = {
+              bite:       { emoji: "💢", line: "ai! tá com fominha 😼" },
+              nuzzle:     { emoji: "💗", line: "que carinho gostoso 🥰" },
+              yawn:       { emoji: "💤", line: "tô cansadinho... 😴" },
+              giggle:     { emoji: "✨", line: "para! faz cócegas 😆" },
+              "sad-look": { emoji: "💧", line: "me dá um colinho? 🥺" },
+              blush:      { emoji: "💗", line: "oi, oi 💗" },
+              startle:    { emoji: "❗", line: "uepa! me assustou 😳" },
+            };
+            const m = map[reaction];
+            if (m) {
+              burstParticles(m.emoji, 3);
+              setSpeech(m.line);
+              window.setTimeout(() => setSpeech(null), 2200);
+            }
+          }}
         />
 
         {/* food flight */}

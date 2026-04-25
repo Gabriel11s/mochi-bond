@@ -1,7 +1,16 @@
-import { useId } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useId, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { Mood } from "@/lib/mochi-types";
 import { getSkin, getAccessory } from "@/lib/mochi-cosmetics";
+
+export type PokeReaction =
+  | "bite"      // com fome → morde o dedo
+  | "nuzzle"    // feliz → encosta a carinha
+  | "yawn"      // sem energia → bocejo
+  | "giggle"    // muito feliz → risadinha
+  | "sad-look"  // triste → olhinho marejado mais forte
+  | "blush"     // padrão → coradinho
+  | "startle";  // se cutucar muito rápido → susto
 
 interface Props {
   mood: Mood;
@@ -9,22 +18,99 @@ interface Props {
   bouncing?: boolean;
   skinId?: string;
   accessoryId?: string;
+  // Stats opcionais — usados pra escolher a reação no toque/hover.
+  hunger?: number;
+  happiness?: number;
+  energy?: number;
+  // Disparado quando o usuário cutuca; recebe a reação escolhida pra
+  // que PetRoom possa complementar com partículas/fala.
+  onPoke?: (reaction: PokeReaction) => void;
 }
 
-export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = "none" }: Props) {
+// Escolhe a reação com base nas barras: prioriza estados extremos.
+function pickReaction(
+  mood: Mood,
+  hunger: number,
+  happiness: number,
+  energy: number,
+): PokeReaction {
+  if (hunger <= 30) return "bite";
+  if (energy <= 25) return "yawn";
+  if (mood === "sad" || happiness <= 30) return "sad-look";
+  if (happiness >= 85 || mood === "smitten") return "giggle";
+  if (mood === "happy" || mood === "excited") return "nuzzle";
+  return "blush";
+}
+
+const REACTION_EMOJI: Record<PokeReaction, string> = {
+  bite: "😼",
+  nuzzle: "🥰",
+  yawn: "😴",
+  giggle: "😆",
+  "sad-look": "🥺",
+  blush: "☺️",
+  startle: "😳",
+};
+
+export function Mochi({
+  mood,
+  eating,
+  bouncing,
+  skinId = "cream",
+  accessoryId = "none",
+  hunger = 100,
+  happiness = 100,
+  energy = 100,
+  onPoke,
+}: Props) {
   const skin = getSkin(skinId);
   const acc = getAccessory(accessoryId);
   const uid = useId().replace(/:/g, "");
   const bodyGradId = `mochi-body-${uid}`;
   const cheekGradId = `mochi-cheek-${uid}`;
 
-  const eyesClosed = mood === "sleepy";
-  const blush = mood === "happy" || mood === "excited" || mood === "smitten";
-  const tear = mood === "sad";
-  const mouthOpen = eating || mood === "excited" || mood === "smitten";
-  const heartEyes = mood === "smitten";
+  // Reação ativa por toque/hover — sobrepõe o mood normal por ~1.4s
+  const [reaction, setReaction] = useState<PokeReaction | null>(null);
+  const lastPokeRef = useRef(0);
+  const reactionTimerRef = useRef<number | null>(null);
 
-  const animClass = eating
+  const triggerPoke = () => {
+    const now = Date.now();
+    const dt = now - lastPokeRef.current;
+    lastPokeRef.current = now;
+    // Cutucou de novo em <600ms → assusta
+    const r: PokeReaction = dt < 600 ? "startle" : pickReaction(mood, hunger, happiness, energy);
+    setReaction(r);
+    onPoke?.(r);
+    if (reactionTimerRef.current) window.clearTimeout(reactionTimerRef.current);
+    reactionTimerRef.current = window.setTimeout(() => setReaction(null), 1400);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (reactionTimerRef.current) window.clearTimeout(reactionTimerRef.current);
+    };
+  }, []);
+
+  const eyesClosed = mood === "sleepy" || reaction === "yawn" || reaction === "giggle";
+  const blush =
+    mood === "happy" || mood === "excited" || mood === "smitten" ||
+    reaction === "blush" || reaction === "nuzzle" || reaction === "giggle";
+  const tear = mood === "sad" || reaction === "sad-look";
+  const mouthOpen =
+    eating || mood === "excited" || mood === "smitten" ||
+    reaction === "bite" || reaction === "yawn" || reaction === "giggle";
+  const heartEyes = mood === "smitten" || reaction === "nuzzle";
+
+  const reactionAnim =
+    reaction === "bite" ? "animate-mochi-bite" :
+    reaction === "nuzzle" ? "animate-mochi-nuzzle" :
+    reaction === "startle" ? "animate-mochi-startle" :
+    reaction === "giggle" ? "animate-mochi-giggle" :
+    reaction === "yawn" ? "animate-mochi-yawn" :
+    "";
+
+  const animClass = reactionAnim || (eating
     ? "animate-mochi-eat"
     : mood === "smitten"
     ? "animate-mochi-smitten"
@@ -32,10 +118,17 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
     ? "animate-mochi-bounce"
     : mood === "sleepy"
     ? "animate-mochi-sleep"
-    : "animate-breathe";
+    : "animate-breathe");
 
   return (
-    <div className="relative flex h-72 w-72 items-end justify-center sm:h-80 sm:w-80">
+    <div
+      className="relative flex h-72 w-72 cursor-pointer items-end justify-center sm:h-80 sm:w-80"
+      onMouseEnter={triggerPoke}
+      onClick={triggerPoke}
+      onTouchStart={triggerPoke}
+      role="button"
+      aria-label="cutucar o pet"
+    >
       <div
         className={`pointer-events-none absolute inset-0 rounded-full blur-3xl ${
           heartEyes ? "animate-smitten-glow" : "opacity-60"
@@ -50,6 +143,23 @@ export function Mochi({ mood, eating, bouncing, skinId = "cream", accessoryId = 
         className="absolute bottom-2 h-4 w-44 rounded-full opacity-40 blur-md"
         style={{ background: "oklch(0.1 0.04 300)" }}
       />
+
+      {/* emoji flutuante de reação */}
+      <AnimatePresence>
+        {reaction && (
+          <motion.div
+            key={`${reaction}-${lastPokeRef.current}`}
+            initial={{ opacity: 0, y: 10, scale: 0.6 }}
+            animate={{ opacity: 1, y: -8, scale: 1 }}
+            exit={{ opacity: 0, y: -28, scale: 0.7 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="pointer-events-none absolute right-6 top-2 z-20 select-none text-4xl drop-shadow-md"
+            aria-hidden
+          >
+            {REACTION_EMOJI[reaction]}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <motion.svg
         viewBox="0 0 200 200"
