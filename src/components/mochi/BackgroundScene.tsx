@@ -64,13 +64,14 @@ export function BackgroundScene({ backgroundId, reactPulse = 0 }: Props) {
  * de "estamos juntos vendo o cenário". Renderizado em SVG pra escalar bem.
  */
 function CoupleOnCouch({ accent, reactPulse = 0 }: { accent: string; reactPulse?: number }) {
-  // Quando o nonce muda, o casal "reage": shimmer quentinho na manta
-  // por ~2.4s. Ignora o valor inicial (0) pra não disparar no mount.
+  // Quando o nonce muda, o casal "reage": shimmer quentinho na manta + um
+  // micro-kick no corpo, sincronizado com o bouncing (~700ms) e a janela
+  // das partículas (~1.7s) do pet em PetRoom.
   const [reacting, setReacting] = useState(false);
   useEffect(() => {
     if (!reactPulse) return;
     setReacting(true);
-    const t = window.setTimeout(() => setReacting(false), 2400);
+    const t = window.setTimeout(() => setReacting(false), 1700);
     return () => window.clearTimeout(t);
   }, [reactPulse]);
 
@@ -160,16 +161,18 @@ function CoupleOnCouch({ accent, reactPulse = 0 }: { accent: string; reactPulse?
                 height="48"
                 fill="url(#manta-shimmer)"
                 style={{
-                  animation: "manta-sweep 2.2s ease-out forwards",
+                  // Sweep coincide com a janela das partículas (1.7s) e
+                  // acelera no meio pra bater no ápice do bouncing (~350ms).
+                  animation: "manta-sweep 1.6s cubic-bezier(.2,.7,.3,1) forwards",
                 }}
               />
             </g>
-            {/* glow geral curtinho na manta */}
+            {/* glow geral curtinho na manta — pico em ~420ms (topo do bouncing) */}
             <path
               d="M50 118 Q90 108 120 116 Q160 124 196 116 L200 150 L46 150 Z"
               fill={accent}
               opacity="0"
-              style={{ animation: "manta-glow 2.4s ease-out forwards" }}
+              style={{ animation: "manta-glow 1.7s ease-out forwards" }}
             />
           </g>
         )}
@@ -194,18 +197,35 @@ function CoupleOnCouch({ accent, reactPulse = 0 }: { accent: string; reactPulse?
           }
           @keyframes manta-sweep {
             0%   { transform: translateX(0); opacity: 0; }
-            15%  { opacity: 1; }
+            10%  { opacity: 1; }
             100% { transform: translateX(360px); opacity: 0; }
           }
           @keyframes manta-glow {
-            0%, 100% { opacity: 0; }
-            30%      { opacity: 0.22; }
-            60%      { opacity: 0.14; }
+            0%        { opacity: 0; }
+            25%       { opacity: 0.28; }
+            55%       { opacity: 0.12; }
+            100%      { opacity: 0; }
+          }
+          @keyframes couch-kick {
+            0%        { transform: translateY(0) scale(1); }
+            22%       { transform: translateY(-1.2px) scale(1.022); }
+            55%       { transform: translateY(-0.4px) scale(1.008); }
+            100%      { transform: translateY(0) scale(1); }
           }
         `}</style>
 
-        {/* casal — cada pessoa num <g> com origem própria pra animar */}
-        <g fill="oklch(0.04 0.01 290 / 0.95)">
+        {/* casal — cada pessoa num <g> com origem própria pra animar.
+            O wrapper externo recebe um "kick" sutil sincronizado com o
+            bouncing do pet (~700ms) sempre que reactPulse muda. */}
+        <g
+          key={`couch-${reactPulse}`}
+          fill="oklch(0.04 0.01 290 / 0.95)"
+          style={{
+            transformOrigin: "120px 130px",
+            transformBox: "fill-box" as React.CSSProperties["transformBox"],
+            animation: reacting ? "couch-kick 700ms ease-out" : undefined,
+          }}
+        >
           {/* pessoa da esquerda */}
           <g
             style={{
