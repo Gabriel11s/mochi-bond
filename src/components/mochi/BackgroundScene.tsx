@@ -63,7 +63,17 @@ export function BackgroundScene({ backgroundId, reactPulse = 0 }: Props) {
  * Fica posicionado na parte de baixo central da cena, criando sensação
  * de "estamos juntos vendo o cenário". Renderizado em SVG pra escalar bem.
  */
-function CoupleOnCouch({ accent }: { accent: string }) {
+function CoupleOnCouch({ accent, reactPulse = 0 }: { accent: string; reactPulse?: number }) {
+  // Quando o nonce muda, o casal "reage": shimmer quentinho na manta
+  // por ~2.4s. Ignora o valor inicial (0) pra não disparar no mount.
+  const [reacting, setReacting] = useState(false);
+  useEffect(() => {
+    if (!reactPulse) return;
+    setReacting(true);
+    const t = window.setTimeout(() => setReacting(false), 2400);
+    return () => window.clearTimeout(t);
+  }, [reactPulse]);
+
   return (
     <div
       className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center"
