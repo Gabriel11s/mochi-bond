@@ -60,20 +60,51 @@ export function BackgroundScene({ backgroundId }: Props) {
  * Fica posicionado na parte de baixo central da cena, criando sensação
  * de "estamos juntos vendo o cenário". Renderizado em SVG pra escalar bem.
  */
-function CoupleOnCouch() {
+function CoupleOnCouch({ accent }: { accent: string }) {
   return (
     <div
       className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center"
       aria-hidden
     >
+      {/* Halo de luz vindo da tela: borrão colorido no chão usando o accent
+          do tema. blend "screen" deixa o brilho se misturar com o gradiente
+          do floor em vez de simplesmente sobrepor uma cor opaca. */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-[42%]"
+        style={{
+          background: `radial-gradient(ellipse 60% 90% at 50% 100%, ${accent}, transparent 70%)`,
+          opacity: 0.35,
+          mixBlendMode: "screen",
+          filter: "blur(14px)",
+        }}
+      />
+
       <svg
         viewBox="0 0 240 160"
-        className="h-[38%] w-auto max-w-[80%] drop-shadow-[0_-6px_18px_rgba(0,0,0,0.35)]"
+        className="relative h-[38%] w-auto max-w-[80%] drop-shadow-[0_-6px_18px_rgba(0,0,0,0.35)]"
         preserveAspectRatio="xMidYEnd meet"
         style={{ filter: "blur(0.4px)" }}
       >
-        {/* sombra/halo no chão da poltrona */}
-        <ellipse cx="120" cy="155" rx="105" ry="6" fill="oklch(0 0 0 / 0.45)" />
+        <defs>
+          {/* sombra elíptica embaixo da poltrona — preta no centro, accent
+              nas bordas pra parecer que a luz da tela contorna o móvel */}
+          <radialGradient id="couch-shadow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="oklch(0 0 0 / 0.6)" />
+            <stop offset="55%" stopColor="oklch(0 0 0 / 0.35)" />
+            <stop offset="100%" stopColor="oklch(0 0 0 / 0)" />
+          </radialGradient>
+          {/* halo colorido que "vaza" pelos lados da poltrona */}
+          <radialGradient id="couch-rim" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor={accent} stopOpacity="0" />
+            <stop offset="65%" stopColor={accent} stopOpacity="0.55" />
+            <stop offset="100%" stopColor={accent} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+
+        {/* halo colorido (atrás) — bem largo, mistura com o chão */}
+        <ellipse cx="120" cy="156" rx="125" ry="9" fill="url(#couch-rim)" style={{ mixBlendMode: "screen" } as React.CSSProperties} />
+        {/* sombra escura principal */}
+        <ellipse cx="120" cy="155" rx="105" ry="6" fill="url(#couch-shadow)" />
 
         {/* poltrona — encosto e base */}
         <g fill="oklch(0.08 0.02 290 / 0.92)">
@@ -108,9 +139,16 @@ function CoupleOnCouch() {
           <path d="M120 88 L150 86 Q176 90 178 112 Q182 132 180 150 L120 150 Z" />
         </g>
 
-        {/* highlight bem sutil no topo das cabeças pra não ficar chapado */}
-        <ellipse cx="98" cy="48" rx="10" ry="4" fill="oklch(1 0 0 / 0.06)" />
-        <ellipse cx="142" cy="44" rx="11" ry="5" fill="oklch(1 0 0 / 0.06)" />
+        {/* rim light no topo das cabeças e ombros, usando o accent —
+            simula a luz da tela batendo de frente neles */}
+        <ellipse cx="98" cy="46" rx="11" ry="3.5" fill={accent} opacity="0.35" style={{ mixBlendMode: "screen" } as React.CSSProperties} />
+        <ellipse cx="142" cy="42" rx="12" ry="4" fill={accent} opacity="0.4" style={{ mixBlendMode: "screen" } as React.CSSProperties} />
+        <path
+          d="M68 110 Q70 92 96 88 L120 88 L120 96 L70 116 Z"
+          fill={accent}
+          opacity="0.18"
+          style={{ mixBlendMode: "screen" } as React.CSSProperties}
+        />
       </svg>
     </div>
   );
@@ -202,7 +240,7 @@ function SceneDecorations({ id, dots, accent }: DecoProps) {
             <div className="absolute inset-2 rounded-sm bg-gradient-to-br from-pink-200/10 via-purple-200/15 to-yellow-200/10" />
           </div>
           {/* casal aconchegado na poltrona — silhueta de costas vendo o filme */}
-          <CoupleOnCouch />
+          <CoupleOnCouch accent={accent} />
           {/* balde de pipoca */}
           <div className="absolute bottom-[12%] right-[10%] h-10 w-8">
             <div className="h-2 w-full rounded-full bg-yellow-100" />
