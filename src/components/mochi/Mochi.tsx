@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Mood } from "@/lib/mochi-types";
-import { getSkin, getAccessory } from "@/lib/mochi-cosmetics";
+import { getSkin, parseAccessoryIds } from "@/lib/mochi-cosmetics";
 
 export type PokeReaction =
   | "bite"      // com fome → morde o dedo
