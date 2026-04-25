@@ -240,7 +240,7 @@ function SceneDecorations({ id, dots, accent }: DecoProps) {
             <div className="absolute inset-2 rounded-sm bg-gradient-to-br from-pink-200/10 via-purple-200/15 to-yellow-200/10" />
           </div>
           {/* casal aconchegado na poltrona — silhueta de costas vendo o filme */}
-          <CoupleOnCouch />
+          <CoupleOnCouch accent={accent} />
           {/* balde de pipoca */}
           <div className="absolute bottom-[12%] right-[10%] h-10 w-8">
             <div className="h-2 w-full rounded-full bg-yellow-100" />
