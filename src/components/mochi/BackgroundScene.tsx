@@ -201,16 +201,8 @@ function SceneDecorations({ id, dots, accent }: DecoProps) {
           <div className="absolute left-1/2 top-[8%] h-[28%] w-[70%] -translate-x-1/2 rounded-md border-4 border-zinc-700/60 bg-gradient-to-br from-zinc-100/15 to-zinc-300/5 shadow-[0_0_60px_rgba(255,255,255,0.15)]">
             <div className="absolute inset-2 rounded-sm bg-gradient-to-br from-pink-200/10 via-purple-200/15 to-yellow-200/10" />
           </div>
-          {/* poltronas (silhueta) */}
-          <div className="absolute inset-x-0 bottom-[18%] flex justify-center gap-2">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-12 w-10 rounded-t-2xl bg-red-900/60"
-                style={{ transform: `scale(${1 + i * 0.05})` }}
-              />
-            ))}
-          </div>
+          {/* casal aconchegado na poltrona — silhueta de costas vendo o filme */}
+          <CoupleOnCouch />
           {/* balde de pipoca */}
           <div className="absolute bottom-[12%] right-[10%] h-10 w-8">
             <div className="h-2 w-full rounded-full bg-yellow-100" />
