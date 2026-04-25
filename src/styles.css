@@ -156,21 +156,44 @@
   }
 }
 
-/* Glass card utility */
+/* Glass card utility — blur reduzido no mobile pra não travar
+   (backdrop-filter é o efeito mais caro do app) */
 @utility glass {
   background: var(--card);
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
 }
 
 @utility glass-strong {
   background: var(--card-strong);
-  backdrop-filter: blur(28px) saturate(150%);
-  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-soft);
+}
+
+/* Em telas maiores, pode usar blur mais bonito */
+@media (min-width: 768px) {
+  @utility glass {
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+  @utility glass-strong {
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+  }
+}
+
+/* Reduz animações pra usuários que preferem (e libera CPU automaticamente
+   em alguns devices low-power) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Pet animations */
