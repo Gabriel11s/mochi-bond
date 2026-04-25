@@ -50,6 +50,8 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [backgroundOpen, setBackgroundOpen] = useState(false);
   const [backgroundId, setBackgroundId] = useState<BackgroundId>("quartinho");
   const [nowPlaying, setNowPlaying] = useState<NowPlayingResponse | null>(null);
+  // nonce que dispara o shimmer no casal do cinema quando alimenta/faz carinho
+  const [couplePulse, setCouplePulse] = useState(0);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -474,7 +476,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
   return (
     <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-5 pb-10 pt-6">
-      <BackgroundScene backgroundId={backgroundId} />
+      <BackgroundScene backgroundId={backgroundId} reactPulse={couplePulse} />
       <PhotoWall />
       <SpotifyPanel
         partnerName={partnerName}
