@@ -240,6 +240,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setEating(false);
     setBouncing(true);
     burstParticles("💗", 5);
+    setCouplePulse((n) => n + 1); // shimmer no casal do cinema
     showToast(`ele amou ${food.name.toLowerCase()} ${food.emoji}`);
     if (leveled) {
       setLevelUp(true);
@@ -283,6 +284,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
     setBusy(true);
     setBouncing(true);
     burstParticles(type === "pet" ? "💗" : "✨", 5);
+    setCouplePulse((n) => n + 1); // shimmer no casal do cinema
     const dHappy = type === "pet" ? 8 : 12;
     const dEnergy = type === "pet" ? 0 : -10;
     const xp = 3;
