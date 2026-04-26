@@ -26,6 +26,7 @@ import {
 } from "@/lib/mochi-wordle";
 import type { PetState } from "@/lib/mochi-types";
 import { clamp } from "@/lib/mochi-types";
+import { getSkin, type Skin } from "@/lib/mochi-cosmetics";
 
 interface Props {
   partnerName: string;
@@ -91,6 +92,25 @@ export function WordleGame({ partnerName }: Props) {
   const [busy, setBusy] = useState(false);
   const [otherPartnerName, setOtherPartnerName] = useState<string>("");
   const [otherStatus, setOtherStatus] = useState<{ status: string; attempts: number } | null>(null);
+  const [skin, setSkin] = useState<Skin>(() => getSkin("pink"));
+
+  // Sync skin do pet → realtime, pra refletir mudança no quartinho
+  useEffect(() => {
+    let cancelled = false;
+    supabase.from("pet_state").select("equipped_skin").eq("id", 1).maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data?.equipped_skin) return;
+        setSkin(getSkin(data.equipped_skin));
+      });
+    const ch = supabase
+      .channel("palavrinha-skin")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pet_state" }, (payload) => {
+        const row = payload.new as { equipped_skin?: string };
+        if (row?.equipped_skin) setSkin(getSkin(row.equipped_skin));
+      })
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, []);
 
   const [bursts, setBursts] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
   const triggerBurst = (emoji: string) => {
@@ -452,8 +472,20 @@ export function WordleGame({ partnerName }: Props) {
   const modeTitle = mode === "single" ? "PALAVRINHA" : mode === "duo" ? "DUPLINHA" : "QUADRINHA";
 
   // Container adaptativo: mobile fullscreen / desktop até ~960px (cabem 4 grids confortáveis)
+  // CSS vars que viram a paleta acentuada — usadas no ENTER, tabs, ring, hint…
+  // Quando o usuário troca skin no quartinho, o realtime atualiza e tudo segue.
+  const skinVars = {
+    "--skin-accent": skin.bodyEdge,
+    "--skin-accent-mid": skin.bodyMid,
+    "--skin-accent-soft": skin.body,
+    "--skin-glow": skin.earInner,
+  } as React.CSSProperties;
+
   return (
-    <div className="game-container relative mx-auto flex h-[100dvh] w-full max-w-[960px] flex-col overflow-hidden bg-gradient-to-b from-[#1C2638] to-[#0E1117] text-foreground">
+    <div
+      className="game-container relative mx-auto flex h-[100dvh] w-full max-w-[960px] flex-col overflow-hidden bg-gradient-to-b from-[#1C2638] to-[#0E1117] text-foreground"
+      style={skinVars}
+    >
       {/* HEADER — minimal: voltar | título grande | toggle treino */}
       <header className="relative flex flex-shrink-0 items-center justify-between px-3 pt-3 pb-1">
         <Link
@@ -504,11 +536,16 @@ export function WordleGame({ partnerName }: Props) {
             <button
               key={m}
               onClick={() => changeMode(m)}
-              className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${
+              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95"
+              style={
                 active
-                  ? "bg-pink/20 text-pink ring-1 ring-pink/40"
-                  : "text-muted-foreground/60 hover:text-muted-foreground"
-              }`}
+                  ? {
+                      background: `color-mix(in oklab, ${skin.bodyEdge} 22%, transparent)`,
+                      color: skin.bodyEdge,
+                      boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${skin.bodyEdge} 45%, transparent)`,
+                    }
+                  : { color: "rgb(148 163 184 / 0.6)" }
+              }
             >
               {c.label}
             </button>
@@ -529,7 +566,8 @@ export function WordleGame({ partnerName }: Props) {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="mt-1 text-center text-[11px] font-semibold text-pink"
+              className="mt-1 text-center text-[11px] font-semibold"
+              style={{ color: skin.bodyEdge }}
             >
               {message}
             </motion.p>
@@ -539,9 +577,15 @@ export function WordleGame({ partnerName }: Props) {
 
       {/* HINT */}
       {hintLetter && status === "playing" && mode === "single" && (
-        <div className="mx-3 mb-1 flex-shrink-0 rounded-lg bg-pink/10 p-1.5 text-center text-[11px] ring-1 ring-pink/30">
+        <div
+          className="mx-3 mb-1 flex-shrink-0 rounded-lg p-1.5 text-center text-[11px]"
+          style={{
+            background: `color-mix(in oklab, ${skin.bodyEdge} 12%, transparent)`,
+            boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${skin.bodyEdge} 32%, transparent)`,
+          }}
+        >
           💡 dica do {(otherPartnerName || "parceiro").toLowerCase()}: letra{" "}
-          <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span>
+          <span className="font-bold" style={{ color: skin.bodyEdge }}>{hintLetter.toUpperCase()}</span>
         </div>
       )}
 
@@ -681,8 +725,12 @@ function Tile({
       ? "bg-white/5 border-white/45 text-foreground"
       : "bg-white/5 border-white/15 text-foreground",
   };
-  const activeRing = active ? "ring-2 ring-pink ring-offset-1 ring-offset-[#0E1117]" : "";
+  // active ring usa CSS var setada no container raiz
+  const activeRing = active ? "ring-2 ring-offset-1 ring-offset-[#0E1117]" : "";
   const cls = `${colorByStatus[status]} ${activeRing} ${clickable ? "cursor-pointer" : ""}`;
+  const activeStyle: React.CSSProperties = active
+    ? { ["--tw-ring-color" as string]: "var(--skin-accent)" }
+    : {};
   return (
     <motion.button
       type="button"
@@ -700,7 +748,7 @@ function Tile({
         : {}
       }
       className={`flex flex-1 min-w-0 aspect-square items-center justify-center rounded-lg border-2 font-display font-extrabold uppercase shadow-sm transition-all ${cls}`}
-      style={{ fontSize }}
+      style={{ fontSize, ...activeStyle }}
       tabIndex={-1}
     >
       {char}
@@ -786,17 +834,18 @@ function SpecialKey({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`select-none rounded-md font-extrabold transition-all active:scale-90 ${
-        isEnter
-          ? "bg-pink text-white shadow-md active:bg-pink/90"
-          : "bg-pink/15 text-pink active:bg-pink/25"
-      }`}
+      className="select-none rounded-md font-extrabold transition-all active:scale-90"
       style={{
         height: 44,
         fontSize: isEnter ? "clamp(0.75rem, 2.6vw, 0.95rem)" : "clamp(0.65rem, 2.4vw, 0.85rem)",
         padding: isEnter ? "0 14px" : "0 8px",
         minWidth: isEnter ? 88 : 52,
         flex: isEnter ? "1.5 1 auto" : "0 0 auto",
+        background: isEnter
+          ? "var(--skin-accent)"
+          : "color-mix(in oklab, var(--skin-accent) 18%, transparent)",
+        color: isEnter ? "#fff" : "var(--skin-accent)",
+        boxShadow: isEnter ? "0 4px 14px color-mix(in oklab, var(--skin-accent) 35%, transparent)" : undefined,
       }}
     >
       {label}
