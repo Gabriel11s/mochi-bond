@@ -444,7 +444,7 @@ export function WordleGame({ partnerName }: Props) {
           ←
         </Link>
 
-        <h1 className="font-display text-2xl font-black tracking-[0.08em] text-foreground sm:text-3xl">
+        <h1 className="font-display text-lg font-black tracking-[0.06em] text-foreground sm:text-2xl">
           {modeTitle}
         </h1>
 
