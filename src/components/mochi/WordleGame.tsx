@@ -21,7 +21,7 @@ import {
   type EvaluatedGuess,
   type CellStatus,
 } from "@/lib/mochi-wordle";
-import { getSkin } from "@/lib/mochi-cosmetics";
+
 import type { Mood, PetState } from "@/lib/mochi-types";
 import { applyDecay, clamp } from "@/lib/mochi-types";
 
@@ -93,7 +93,7 @@ export function WordleGame({ partnerName }: Props) {
   const [otherStatus, setOtherStatus] = useState<{ finished: boolean; won: boolean; attempts: number } | null>(null);
 
   const [mochiMood, setMochiMood] = useState<Mood>("idle");
-  const [mochiAppearance, setMochiAppearance] = useState<{ skin: string; accessory: string; hunger: number; happiness: number; energy: number } | null>(null);
+  
   const [emojiBursts, setEmojiBursts] = useState<Array<{ id: number; char: string; x: number }>>([]);
 
   const triggerBurst = (char: string) => {
@@ -131,20 +131,6 @@ export function WordleGame({ partnerName }: Props) {
     setMochiMood("idle");
   }, [lsK, words.length, kind]);
 
-  // Aparência atual do Mochi
-  useEffect(() => {
-    supabase.from("pet_state").select("*").eq("id", 1).single().then(({ data }) => {
-      if (!data) return;
-      const decayed = applyDecay(data as PetState);
-      setMochiAppearance({
-        skin: decayed.equipped_skin,
-        accessory: decayed.equipped_accessory,
-        hunger: decayed.hunger,
-        happiness: decayed.happiness,
-        energy: decayed.energy,
-      });
-    });
-  }, []);
 
   // Outro partner
   useEffect(() => {
@@ -356,67 +342,28 @@ export function WordleGame({ partnerName }: Props) {
       <header className="flex flex-shrink-0 items-center gap-2 border-b border-white/10 px-3 py-2">
         <Link to="/" className="glass flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs" aria-label="voltar">←</Link>
 
-        {/* Avatar minimalista do Mochi + label do modo */}
-        <div className="relative flex flex-1 items-center justify-center gap-2.5">
-          {(() => {
-            const skin = getSkin(mochiAppearance?.skin ?? "cream");
-            const eyeY = mochiMood === "sleepy" || mochiMood === "sad" ? 0.5 : 0;
-            return (
-              <div
-                className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full shadow-sm ring-1 ring-white/20"
-                style={{
-                  background: `radial-gradient(circle at 35% 30%, ${skin.body}, ${skin.bodyMid} 65%, ${skin.bodyEdge})`,
-                }}
-                aria-hidden="true"
+        {/* Label modo + status (sem pet) */}
+        <div className="relative flex flex-1 flex-col items-center justify-center text-center leading-tight">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/90">
+            {kind === "daily" ? cfg.label : `${cfg.label} · treino`}
+          </p>
+          <p className="text-[10px] text-muted-foreground/80">
+            {otherCopy}
+          </p>
+          {/* Bursts de emoji no centro do header */}
+          <AnimatePresence>
+            {emojiBursts.map((b) => (
+              <motion.div
+                key={b.id}
+                initial={{ opacity: 1, y: 0, scale: 0.6 }}
+                animate={{ opacity: 0, y: -24, scale: 1.1, x: b.x * 0.5 }}
+                transition={{ duration: 0.9, ease: "easeOut" }}
+                className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 text-sm"
               >
-                {/* orelhinhas */}
-                <span
-                  className="absolute -top-1 left-1.5 h-2.5 w-2.5 rounded-full"
-                  style={{ background: skin.bodyMid }}
-                />
-                <span
-                  className="absolute -top-1 right-1.5 h-2.5 w-2.5 rounded-full"
-                  style={{ background: skin.bodyMid }}
-                />
-                {/* olhinhos */}
-                <span
-                  className="absolute h-1 w-1 rounded-full bg-foreground/85"
-                  style={{ top: `${14 + eyeY}px`, left: "10px" }}
-                />
-                <span
-                  className="absolute h-1 w-1 rounded-full bg-foreground/85"
-                  style={{ top: `${14 + eyeY}px`, right: "10px" }}
-                />
-                {/* bochecha */}
-                <span className="absolute bottom-2 left-1.5 h-1 w-1.5 rounded-full bg-pink/40" />
-                <span className="absolute bottom-2 right-1.5 h-1 w-1.5 rounded-full bg-pink/40" />
-
-                {/* Bursts saindo de cima do avatar */}
-                <AnimatePresence>
-                  {emojiBursts.map((b) => (
-                    <motion.div
-                      key={b.id}
-                      initial={{ opacity: 1, y: 0, scale: 0.6 }}
-                      animate={{ opacity: 0, y: -28, scale: 1.1, x: b.x * 0.5 }}
-                      transition={{ duration: 0.9, ease: "easeOut" }}
-                      className="pointer-events-none absolute left-1/2 -top-1 -translate-x-1/2 text-sm"
-                    >
-                      {b.char}
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            );
-          })()}
-          {/* Label modo + status */}
-          <div className="text-left leading-tight">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground/90">
-              {kind === "daily" ? cfg.label : `${cfg.label} · treino`}
-            </p>
-            <p className="text-[10px] text-muted-foreground/80">
-              {otherCopy}
-            </p>
-          </div>
+                {b.char}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
 
         <button
