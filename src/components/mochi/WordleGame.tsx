@@ -131,20 +131,6 @@ export function WordleGame({ partnerName }: Props) {
     setMochiMood("idle");
   }, [lsK, words.length, kind]);
 
-  // Aparência atual do Mochi
-  useEffect(() => {
-    supabase.from("pet_state").select("*").eq("id", 1).single().then(({ data }) => {
-      if (!data) return;
-      const decayed = applyDecay(data as PetState);
-      setMochiAppearance({
-        skin: decayed.equipped_skin,
-        accessory: decayed.equipped_accessory,
-        hunger: decayed.hunger,
-        happiness: decayed.happiness,
-        energy: decayed.energy,
-      });
-    });
-  }, []);
 
   // Outro partner
   useEffect(() => {
