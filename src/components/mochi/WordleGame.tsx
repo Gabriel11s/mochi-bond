@@ -418,13 +418,13 @@ export function WordleGame({ partnerName }: Props) {
           }`;
 
   // ---------- cell sizing por modo ----------
-  const cellSize: number = mode === "single" ? 54 : mode === "duo" ? 32 : 24;
-  const cellGap: number = mode === "single" ? 6 : mode === "duo" ? 4 : 3;
+  const cellSize: number = mode === "single" ? 54 : mode === "duo" ? 32 : 20;
+  const cellGap: number = mode === "single" ? 6 : mode === "duo" ? 4 : 2;
   const fontSize = mode === "single"
     ? "clamp(1.3rem, 6vw, 2rem)"
     : mode === "duo"
       ? "clamp(0.85rem, 3.6vw, 1.15rem)"
-      : "clamp(0.65rem, 2.6vw, 0.9rem)";
+      : "clamp(0.55rem, 2.2vw, 0.75rem)";
 
   // título grande estilo term.ooo
   const modeTitle = mode === "single" ? "TERMO" : mode === "duo" ? "DUETO" : "QUARTETO";
