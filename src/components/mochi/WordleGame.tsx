@@ -472,8 +472,20 @@ export function WordleGame({ partnerName }: Props) {
   const modeTitle = mode === "single" ? "PALAVRINHA" : mode === "duo" ? "DUPLINHA" : "QUADRINHA";
 
   // Container adaptativo: mobile fullscreen / desktop até ~960px (cabem 4 grids confortáveis)
+  // CSS vars que viram a paleta acentuada — usadas no ENTER, tabs, ring, hint…
+  // Quando o usuário troca skin no quartinho, o realtime atualiza e tudo segue.
+  const skinVars = {
+    "--skin-accent": skin.bodyEdge,
+    "--skin-accent-mid": skin.bodyMid,
+    "--skin-accent-soft": skin.body,
+    "--skin-glow": skin.earInner,
+  } as React.CSSProperties;
+
   return (
-    <div className="game-container relative mx-auto flex h-[100dvh] w-full max-w-[960px] flex-col overflow-hidden bg-gradient-to-b from-[#1C2638] to-[#0E1117] text-foreground">
+    <div
+      className="game-container relative mx-auto flex h-[100dvh] w-full max-w-[960px] flex-col overflow-hidden bg-gradient-to-b from-[#1C2638] to-[#0E1117] text-foreground"
+      style={skinVars}
+    >
       {/* HEADER — minimal: voltar | título grande | toggle treino */}
       <header className="relative flex flex-shrink-0 items-center justify-between px-3 pt-3 pb-1">
         <Link
