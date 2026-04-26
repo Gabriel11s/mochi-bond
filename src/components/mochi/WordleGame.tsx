@@ -1,7 +1,7 @@
 // Caça-palavras com 3 modos (Termo / Dueto / Quarteto) — replica do
 // term.ooo. Cada palpite é avaliado contra TODAS as palavras-alvo.
 // Layout adapta cell size por modo pra caber bem em mobile.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,10 +37,6 @@ interface SavedState {
   gaveHint?: boolean;
   words?: string[]; // pra modo treino multi-palavra
 }
-
-const KB_ROW1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
-const KB_ROW2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"];
-const KB_ROW3 = ["z", "x", "c", "v", "b", "n", "m"];
 
 const todayKey = () => getTodayKey();
 
@@ -168,24 +164,36 @@ export function WordleGame({ partnerName }: Props) {
   }, [partnerName]);
 
   // -------- avaliações por palavra --------
-  // evaluations[wordIdx][attemptIdx]
-  const allEvaluations: EvaluatedGuess[][] = useMemo(
-    () => words.map((w) => attempts.map((a) => evaluateGuess(a, w))),
-    [attempts, words],
-  );
+  // evaluations[wordIdx][attemptIdx], mas truncadas no momento que cada
+  // palavra foi resolvida — assim o grid "congela" no acerto e não fica
+  // preenchendo linhas absent/yellow depois (bug do quarteto).
+  const allEvaluations: EvaluatedGuess[][] = useMemo(() => {
+    return words.map((w) => {
+      const evs = attempts.map((a) => evaluateGuess(a, w));
+      const solvedAt = evs.findIndex((e) => e.isCorrect);
+      return solvedAt === -1 ? evs : evs.slice(0, solvedAt + 1);
+    });
+  }, [attempts, words]);
 
-  // Quais palavras foram resolvidas (algum palpite acertou)
   const solvedFlags: boolean[] = useMemo(
-    () => allEvaluations.map((evs) => evs.some((e) => e.isCorrect)),
+    () => allEvaluations.map((evs) => evs.length > 0 && evs[evs.length - 1].isCorrect),
     [allEvaluations],
   );
   const solvedCount = solvedFlags.filter(Boolean).length;
 
-  // Status do teclado: agrega de TODAS as palavras
+  // Status do teclado (informativo) — usado pra dar dica visual no campo
   const keyboardStatus = useMemo(() => {
     const all = allEvaluations.flat();
     return aggregateKeyboardStatus(all);
   }, [allEvaluations]);
+  // letras que com certeza não estão em nenhuma palavra (todas as grids)
+  const absentLetters = useMemo(() => {
+    const set = new Set<string>();
+    for (const [letter, status] of Object.entries(keyboardStatus)) {
+      if (status === "absent") set.add(letter);
+    }
+    return set;
+  }, [keyboardStatus]);
 
   // -------- recompensa do pet (modo diário ganhou) --------
   const rewardPet = async (attemptsCount: number) => {
@@ -259,36 +267,35 @@ export function WordleGame({ partnerName }: Props) {
     }
   };
 
-  const onKeyPress = (key: string) => {
-    if (finished || busy) return;
-    if (key === "ENTER") return submitGuess();
-    if (key === "BACK") {
-      setCurrent((c) => c.slice(0, -1));
-      setMochiMood("idle");
-      return;
+  // -------- input nativo (teclado do celular) --------
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const focusInput = () => {
+    // Foca o input invisível pra fazer o teclado nativo aparecer no mobile
+    inputRef.current?.focus();
+  };
+  // Auto-foco no início e quando troca o jogo
+  useEffect(() => {
+    if (!finished) {
+      // Pequeno delay porque mobile às vezes ignora focus se vier no mount
+      const t = window.setTimeout(() => inputRef.current?.focus(), 200);
+      return () => window.clearTimeout(t);
     }
-    if (current.length >= WORD_LENGTH) return;
-    if (!/^[a-z]$/.test(key)) return;
-    setCurrent((c) => c + key);
-    setMochiMood("happy");
+  }, [finished, lsK]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (finished || busy) return;
+    const raw = e.target.value;
+    const norm = normalize(raw).slice(0, WORD_LENGTH);
+    setCurrent(norm);
+    if (norm.length > 0) setMochiMood("happy");
   };
 
-  // teclado físico
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
-      if (e.key === "Enter") { e.preventDefault(); return onKeyPress("ENTER"); }
-      if (e.key === "Backspace") { e.preventDefault(); return onKeyPress("BACK"); }
-      if (e.key.length === 1 && /^[a-zA-Zà-ú]$/.test(e.key)) {
-        e.preventDefault();
-        const norm = normalize(e.key);
-        if (norm) onKeyPress(norm);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [finished, busy, current, attempts]); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitGuess();
+    }
+  };
 
   // -------- modo treino: gera novas palavras --------
   const switchToPractice = () => {
@@ -338,10 +345,10 @@ export function WordleGame({ partnerName }: Props) {
       : `${otherPartnerName ? otherPartnerName.toLowerCase() : "parceiro"} · ainda jogando`;
 
   // -------- cell sizing por modo --------
-  // Calcula tamanho da célula de forma responsiva
-  const cellSize: number = mode === "single" ? 44 : mode === "duo" ? 30 : 22;
+  // Sem teclado custom (usa nativo) → mais espaço pro grid → cells maiores
+  const cellSize: number = mode === "single" ? 52 : mode === "duo" ? 36 : 28;
   const cellGap: number = mode === "single" ? 4 : mode === "duo" ? 3 : 2;
-  const fontSize = mode === "single" ? "clamp(16px, 5vw, 22px)" : mode === "duo" ? "clamp(11px, 3.5vw, 14px)" : "clamp(9px, 2.8vw, 11px)";
+  const fontSize = mode === "single" ? "clamp(18px, 5.5vw, 26px)" : mode === "duo" ? "clamp(13px, 4vw, 16px)" : "clamp(11px, 3vw, 14px)";
 
   return (
     <div className="relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background">
@@ -425,16 +432,23 @@ export function WordleGame({ partnerName }: Props) {
         </div>
       )}
 
-      {/* GRIDS — 1, 2 (lado-a-lado) ou 4 (2x2) */}
-      <div className="flex flex-1 items-center justify-center overflow-y-auto px-2 py-2 min-h-0">
+      {/* GRIDS — 1, 2 (lado-a-lado) ou 4 (2x2). Quarteto: scroll vertical
+          se necessário em telas pequenas (cells 28px ainda passam de 470px). */}
+      <div className="flex flex-1 items-start justify-center overflow-y-auto px-2 py-2 min-h-0">
         <div
-          className={`flex flex-wrap justify-center gap-3 ${shake ? "animate-shake" : ""}`}
-          style={{ maxWidth: "100%" }}
+          className={`grid w-full justify-center gap-3 ${shake ? "animate-shake" : ""}`}
+          style={{
+            gridTemplateColumns:
+              mode === "single" ? "1fr" : "repeat(2, max-content)",
+            justifyItems: "center",
+          }}
         >
           {words.map((w, wi) => (
             <WordGrid
               key={wi}
               word={w}
+              index={wi}
+              total={words.length}
               attempts={attempts}
               evaluations={allEvaluations[wi]}
               solved={solvedFlags[wi]}
@@ -497,18 +511,58 @@ export function WordleGame({ partnerName }: Props) {
         </div>
       )}
 
-      {/* TECLADO */}
+      {/* INPUT NATIVO + BOTÃO ENTER — usa teclado do celular */}
       {!finished && (
-        <div className="flex-shrink-0 space-y-1 px-1 pb-1.5">
-          <KbRow keys={KB_ROW1} status={keyboardStatus} onPress={onKeyPress} />
-          <KbRow keys={KB_ROW2} status={keyboardStatus} onPress={onKeyPress} />
-          <div className="flex w-full justify-center gap-1">
-            <SpecialKey label="ENTER" onPress={() => onKeyPress("ENTER")} />
-            {KB_ROW3.map((k) => (
-              <Key key={k} k={k} status={keyboardStatus[k]} onPress={() => onKeyPress(k)} />
-            ))}
-            <SpecialKey label="⌫" onPress={() => onKeyPress("BACK")} />
+        <div className="flex-shrink-0 px-2 pb-3 pt-1">
+          {/* Input invisível que captura o teclado nativo */}
+          <input
+            ref={inputRef}
+            type="text"
+            value={current}
+            onChange={handleInputChange}
+            onKeyDown={handleInputKeyDown}
+            inputMode="text"
+            autoCapitalize="characters"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
+            maxLength={WORD_LENGTH}
+            aria-label="digite a palavra"
+            className="absolute h-px w-px opacity-0 -z-10"
+            style={{ left: "-9999px" }}
+          />
+
+          {/* Pill clicável que mostra a letra digitada e abre o teclado */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={focusInput}
+              className="flex flex-1 items-center justify-between gap-2 rounded-2xl bg-white/10 px-4 py-3 text-left ring-1 ring-white/20 transition-all active:scale-[0.98]"
+            >
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                {current.length === 0 ? "tocar pra digitar" : `${current.length}/${WORD_LENGTH}`}
+              </span>
+              <span className="font-display text-lg font-bold uppercase tracking-[0.3em] text-foreground">
+                {current.padEnd(WORD_LENGTH, "·").split("").map((c, i) => (
+                  <span key={i} className={c === "·" ? "text-muted-foreground/30" : ""}>{c}</span>
+                ))}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={submitGuess}
+              disabled={current.length !== WORD_LENGTH}
+              className="rounded-2xl bg-gradient-to-r from-pink to-lilac px-4 py-3 text-sm font-bold text-white shadow-md transition-all active:scale-95 disabled:opacity-40"
+            >
+              ↵
+            </button>
           </div>
+
+          {absentLetters.size > 0 && (
+            <p className="mt-1.5 text-center text-[9px] text-muted-foreground/60">
+              fora: {[...absentLetters].sort().join(" ").toUpperCase()}
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -517,6 +571,8 @@ export function WordleGame({ partnerName }: Props) {
 
 // ------------------ WordGrid (1 grid por palavra) ------------------
 function WordGrid({
+  index,
+  total,
   attempts,
   evaluations,
   solved,
@@ -528,6 +584,8 @@ function WordGrid({
   showCurrentRow,
 }: {
   word: string;
+  index: number;
+  total: number;
   attempts: string[];
   evaluations: EvaluatedGuess[];
   solved: boolean;
@@ -538,14 +596,29 @@ function WordGrid({
   fontSize: string;
   showCurrentRow: boolean;
 }) {
+  // Como evaluations agora é truncado quando resolved, attempts.length pode ser
+  // maior — usamos o length real das evaluations pra detectar a current row.
+  const evCount = evaluations.length;
   return (
     <div
-      className={`relative flex flex-col rounded-md p-1 ${solved ? "ring-1 ring-emerald-500/40 bg-emerald-500/5" : ""}`}
+      className={`relative flex flex-col rounded-lg p-1.5 transition-all ${
+        solved
+          ? "bg-emerald-500/10 ring-1 ring-emerald-500/40"
+          : total > 1
+            ? "bg-white/5 ring-1 ring-white/10"
+            : ""
+      }`}
       style={{ gap: cellGap }}
     >
+      {/* Label do grid (só em modo multi) */}
+      {total > 1 && (
+        <p className="mb-0.5 text-center text-[8px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+          palavra {index + 1}/{total} {solved && "✓"}
+        </p>
+      )}
       {Array.from({ length: maxAttempts }).map((_, row) => {
         const ev = evaluations[row];
-        const isCurrentRow = showCurrentRow && row === attempts.length;
+        const isCurrentRow = showCurrentRow && !solved && row === attempts.length;
         return (
           <div key={row} className="flex" style={{ gap: cellGap }}>
             {Array.from({ length: WORD_LENGTH }).map((_, col) => {
@@ -561,7 +634,7 @@ function WordGrid({
                   key={col}
                   char={cellChar}
                   status={status}
-                  revealing={ev !== undefined && row === attempts.length - 1}
+                  revealing={ev !== undefined && row === evCount - 1}
                   delay={col * 0.06}
                   pop={isLastTyped}
                   size={cellSize}
@@ -572,11 +645,6 @@ function WordGrid({
           </div>
         );
       })}
-      {solved && (
-        <div className="pointer-events-none absolute -top-2 -right-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
-          ✓
-        </div>
-      )}
     </div>
   );
 }
@@ -630,66 +698,3 @@ function Cell({
   );
 }
 
-// ------------------ Keyboard ------------------
-function KbRow({
-  keys,
-  status,
-  onPress,
-}: {
-  keys: string[];
-  status: Record<string, CellStatus>;
-  onPress: (k: string) => void;
-}) {
-  return (
-    <div className="flex justify-center gap-1">
-      {keys.map((k) => (
-        <Key key={k} k={k} status={status[k]} onPress={() => onPress(k)} />
-      ))}
-    </div>
-  );
-}
-
-function Key({
-  k,
-  status,
-  onPress,
-}: {
-  k: string;
-  status?: CellStatus;
-  onPress: () => void;
-}) {
-  const colors: Record<CellStatus, string> = {
-    correct: "bg-emerald-500 text-white",
-    present: "bg-yellow-500 text-white",
-    absent: "bg-zinc-800 text-zinc-500",
-    empty: "bg-white/10 text-foreground active:bg-white/20",
-  };
-  const cls = status ? colors[status] : colors.empty;
-  return (
-    <button
-      onClick={onPress}
-      className={`flex-1 rounded-md font-bold uppercase transition-all active:scale-90 ${cls}`}
-      style={{ height: 44, fontSize: "clamp(13px, 3.8vw, 16px)", minWidth: 0 }}
-    >
-      {k}
-    </button>
-  );
-}
-
-function SpecialKey({
-  label,
-  onPress,
-}: {
-  label: string;
-  onPress: () => void;
-}) {
-  return (
-    <button
-      onClick={onPress}
-      className="rounded-md bg-pink/15 font-bold text-pink transition-all active:bg-pink/25 active:scale-90"
-      style={{ height: 44, fontSize: 11, padding: "0 8px", flexBasis: "14%", flexShrink: 0 }}
-    >
-      {label}
-    </button>
-  );
-}
