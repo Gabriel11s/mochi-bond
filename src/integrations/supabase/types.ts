@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          achievement_key: string
+          id: string
+          partner_name: string | null
+          unlocked_at: string
+        }
+        Insert: {
+          achievement_key: string
+          id?: string
+          partner_name?: string | null
+          unlocked_at?: string
+        }
+        Update: {
+          achievement_key?: string
+          id?: string
+          partner_name?: string | null
+          unlocked_at?: string
+        }
+        Relationships: []
+      }
       couple_settings: {
         Row: {
           created_at: string
@@ -132,6 +153,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      love_notes: {
+        Row: {
+          created_at: string
+          emoji: string
+          id: string
+          message: string
+          read_at: string | null
+          sender_name: string
+        }
+        Insert: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message: string
+          read_at?: string | null
+          sender_name: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          id?: string
+          message?: string
+          read_at?: string | null
+          sender_name?: string
+        }
+        Relationships: []
       }
       music_reactions: {
         Row: {
