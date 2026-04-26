@@ -536,11 +536,16 @@ export function WordleGame({ partnerName }: Props) {
             <button
               key={m}
               onClick={() => changeMode(m)}
-              className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${
+              className="rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95"
+              style={
                 active
-                  ? "bg-pink/20 text-pink ring-1 ring-pink/40"
-                  : "text-muted-foreground/60 hover:text-muted-foreground"
-              }`}
+                  ? {
+                      background: `color-mix(in oklab, ${skin.bodyEdge} 22%, transparent)`,
+                      color: skin.bodyEdge,
+                      boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${skin.bodyEdge} 45%, transparent)`,
+                    }
+                  : { color: "rgb(148 163 184 / 0.6)" }
+              }
             >
               {c.label}
             </button>
