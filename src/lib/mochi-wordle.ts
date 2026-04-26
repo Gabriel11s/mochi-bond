@@ -225,6 +225,20 @@ export function rewardForAttempts(attempts: number): { xp: number; happiness: nu
   return rewardForGame("single", attempts);
 }
 
+/**
+ * Spec "Palavrinha do Bichinho":
+ * 1-2 tentativas → +30 / 3-4 → +20 / 5-6 → +10 / perdeu → +3.
+ */
+export function calculateReward(
+  attempts: number,
+  status: "won" | "lost"
+): { xp: number; happiness: number } {
+  if (status === "lost") return { xp: 3, happiness: 3 };
+  if (attempts <= 2) return { xp: 30, happiness: 30 };
+  if (attempts <= 4) return { xp: 20, happiness: 20 };
+  return { xp: 10, happiness: 10 };
+}
+
 /** Pega uma letra random da palavra-alvo que o jogador AINDA NÃO descobriu. */
 export function pickHintLetter(target: string, knownLetters: Set<string>): string {
   const letters = [...new Set(normalize(target).split(""))].filter((l) => !knownLetters.has(l));
