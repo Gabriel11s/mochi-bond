@@ -345,23 +345,60 @@ export function WordleGame({ partnerName }: Props) {
 
   return (
     <div className="relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background">
-      {/* HEADER */}
-      <header className="flex flex-shrink-0 items-center justify-between border-b border-white/10 px-2 py-1.5">
-        <Link to="/" className="glass flex h-8 w-8 items-center justify-center rounded-full text-xs" aria-label="voltar">←</Link>
-        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          {kind === "daily" ? cfg.label.toLowerCase() : `${cfg.label.toLowerCase()} · treino`}
-        </p>
+      {/* HEADER + MOCHI compacto centralizado */}
+      <header className="flex flex-shrink-0 items-center gap-2 border-b border-white/10 px-2 py-1.5">
+        <Link to="/" className="glass flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs" aria-label="voltar">←</Link>
+
+        {/* Mochi pill — circulinho compacto entre os dois botões */}
+        <div className="relative flex flex-1 items-center justify-center">
+          <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-pink/20 to-lilac/10 ring-1 ring-pink/30">
+            <div style={{ transform: "scale(0.26)", transformOrigin: "center" }}>
+              <Mochi
+                mood={mochiMood}
+                skinId={mochiAppearance?.skin}
+                accessoryId={mochiAppearance?.accessory}
+                hunger={mochiAppearance?.hunger}
+                happiness={mochiAppearance?.happiness}
+                energy={mochiAppearance?.energy}
+              />
+            </div>
+            {/* Bursts saindo de cima do Mochi */}
+            <AnimatePresence>
+              {emojiBursts.map((b) => (
+                <motion.div
+                  key={b.id}
+                  initial={{ opacity: 1, y: 0, scale: 0.6 }}
+                  animate={{ opacity: 0, y: -30, scale: 1.1, x: b.x * 0.5 }}
+                  transition={{ duration: 0.9, ease: "easeOut" }}
+                  className="pointer-events-none absolute left-1/2 -top-1 -translate-x-1/2 text-base"
+                >
+                  {b.char}
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+          {/* Label modo + status à direita do Mochi */}
+          <div className="ml-2 text-left">
+            <p className="text-[10px] font-semibold uppercase leading-tight tracking-wider text-foreground/90">
+              {kind === "daily" ? cfg.label : `${cfg.label} · treino`}
+            </p>
+            <p className="text-[9px] leading-tight text-muted-foreground/80">
+              {otherCopy}
+            </p>
+          </div>
+        </div>
+
         <button
           onClick={kind === "daily" ? switchToPractice : switchToDaily}
-          className="glass rounded-full px-2.5 py-1 text-[10px] font-semibold"
+          className="glass flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"
           title={kind === "daily" ? "outra (treino)" : "voltar pra do dia"}
         >
           {kind === "daily" ? "🎲" : "📅"}
         </button>
       </header>
 
-      {/* MODE PICKER — 3 abas */}
-      <div className="flex flex-shrink-0 gap-1 px-2 pt-1.5">
+      {/* MODE PICKER — 3 abas compactas */}
+      <div className="flex flex-shrink-0 gap-1 px-2 pt-1">
         {(Object.keys(MODE_CONFIG) as GameMode[]).map((m) => {
           const c = MODE_CONFIG[m];
           const active = m === mode;
@@ -369,7 +406,7 @@ export function WordleGame({ partnerName }: Props) {
             <button
               key={m}
               onClick={() => changeMode(m)}
-              className={`flex-1 rounded-lg py-1 text-[11px] font-semibold transition-all active:scale-95 ${
+              className={`flex-1 rounded-md py-0.5 text-[10px] font-semibold transition-all active:scale-95 ${
                 active
                   ? "bg-pink/20 text-pink ring-1 ring-pink/40"
                   : "bg-white/5 text-muted-foreground"
@@ -381,47 +418,10 @@ export function WordleGame({ partnerName }: Props) {
         })}
       </div>
 
-      {/* CAIXINHA DO MOCHI — centralizada, com background fofo */}
-      <div className="relative flex flex-shrink-0 justify-center pt-2 pb-1">
-        <div className="relative flex h-20 w-32 items-center justify-center rounded-2xl bg-gradient-to-br from-pink/15 via-lilac/10 to-pink/5 ring-1 ring-pink/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
-          {/* "telhado" da caixinha */}
-          <div className="pointer-events-none absolute -top-1 left-1/2 h-2 w-16 -translate-x-1/2 rounded-t-md bg-pink/30" />
-          {/* Mochi escalado pra caber */}
-          <div style={{ transform: "scale(0.42)", transformOrigin: "center" }}>
-            <Mochi
-              mood={mochiMood}
-              skinId={mochiAppearance?.skin}
-              accessoryId={mochiAppearance?.accessory}
-              hunger={mochiAppearance?.hunger}
-              happiness={mochiAppearance?.happiness}
-              energy={mochiAppearance?.energy}
-            />
-          </div>
-          {/* Status do parceiro abaixo */}
-          <p className="pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] text-muted-foreground/80">
-            {otherCopy}
-          </p>
-          {/* Bursts de emoji subindo da caixinha */}
-          <AnimatePresence>
-            {emojiBursts.map((b) => (
-              <motion.div
-                key={b.id}
-                initial={{ opacity: 1, y: 0, scale: 0.6 }}
-                animate={{ opacity: 0, y: -50, scale: 1.2, x: b.x }}
-                transition={{ duration: 1.1, ease: "easeOut" }}
-                className="absolute left-1/2 top-1 -translate-x-1/2 text-xl"
-              >
-                {b.char}
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      </div>
-
       {/* HINT BANNER (só no Termo single) */}
       {hintLetter && mode === "single" && (
-        <div className="mx-2 mt-3 flex-shrink-0 rounded-lg bg-pink/10 p-1.5 text-center text-[11px] ring-1 ring-pink/30">
-          💡 dica: letra <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span> tá na palavra
+        <div className="mx-2 mt-1 flex-shrink-0 rounded-lg bg-pink/10 p-1 text-center text-[10px] ring-1 ring-pink/30">
+          💡 letra <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span> tá na palavra
         </div>
       )}
 
