@@ -589,16 +589,17 @@ export function WordleGame({ partnerName }: Props) {
 
 // ============================================================
 // WordGrid — uma palavra (5 cols × maxAttempts rows)
+// Largura fixa via gridWidth → tiles dividem o espaço uniformemente.
 // ============================================================
 function WordGrid({
   wordIndex, total, attempts, evaluations, solved, maxAttempts,
-  cells, activeColumn, isPlaying, cellSize, cellGap, fontSize, onTileTap,
+  cells, activeColumn, isPlaying, gridWidth, cellGap, fontSize, onTileTap,
 }: {
   wordIndex: number; total: number;
   attempts: string[]; evaluations: EvaluatedGuess[]; solved: boolean;
   maxAttempts: number;
   cells: string[]; activeColumn: number; isPlaying: boolean;
-  cellSize: number; cellGap: number; fontSize: string;
+  gridWidth: string; cellGap: number; fontSize: string;
   onTileTap: (col: number) => void;
 }) {
   const evCount = evaluations.length;
@@ -607,13 +608,13 @@ function WordGrid({
       className={`relative flex flex-col rounded-md p-1 transition-all ${
         solved ? "bg-emerald-500/10 ring-1 ring-emerald-500/30" : ""
       }`}
-      style={{ gap: cellGap }}
+      style={{ gap: cellGap, width: gridWidth }}
     >
       {Array.from({ length: maxAttempts }).map((_, row) => {
         const ev = evaluations[row];
         const isCurrentRow = isPlaying && !solved && row === attempts.length;
         return (
-          <div key={row} className="flex" style={{ gap: cellGap }}>
+          <div key={row} className="flex w-full" style={{ gap: cellGap }}>
             {Array.from({ length: WORD_LENGTH }).map((_, col) => {
               const ch = ev
                 ? ev.letters[col].char
@@ -631,7 +632,6 @@ function WordGrid({
                   active={isActive}
                   revealing={ev !== undefined && row === evCount - 1}
                   delay={col * 0.1}
-                  size={cellSize}
                   fontSize={fontSize}
                   clickable={isCurrentRow}
                   onClick={isCurrentRow ? () => onTileTap(col) : undefined}
@@ -647,10 +647,10 @@ function WordGrid({
 
 // ============================================================
 function Tile({
-  char, status, filled, active, revealing, delay, size, fontSize, clickable, onClick,
+  char, status, filled, active, revealing, delay, fontSize, clickable, onClick,
 }: {
   char: string; status: CellStatus; filled: boolean; active: boolean;
-  revealing: boolean; delay: number; size: number; fontSize: string;
+  revealing: boolean; delay: number; fontSize: string;
   clickable: boolean; onClick?: () => void;
 }) {
   const colorByStatus: Record<CellStatus, string> = {
@@ -661,7 +661,6 @@ function Tile({
       ? "bg-white/5 border-white/45 text-foreground"
       : "bg-white/5 border-white/15 text-foreground",
   };
-  // Active highlight: borda e ring rosa quando é a coluna focada
   const activeRing = active ? "ring-2 ring-pink ring-offset-1 ring-offset-[#0E1117]" : "";
   const cls = `${colorByStatus[status]} ${activeRing} ${clickable ? "cursor-pointer" : ""}`;
   return (
@@ -680,8 +679,8 @@ function Tile({
         : filled ? { duration: 0.16, ease: "easeOut" }
         : {}
       }
-      className={`flex items-center justify-center rounded-lg border-2 font-display font-extrabold uppercase shadow-sm transition-all ${cls}`}
-      style={{ width: size, height: size, fontSize }}
+      className={`flex flex-1 min-w-0 aspect-square items-center justify-center rounded-lg border-2 font-display font-extrabold uppercase shadow-sm transition-all ${cls}`}
+      style={{ fontSize }}
       tabIndex={-1}
     >
       {char}
