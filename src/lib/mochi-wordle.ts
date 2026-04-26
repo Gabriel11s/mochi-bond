@@ -5,7 +5,7 @@
 export const WORD_LENGTH = 5;
 export const MAX_ATTEMPTS = 6;
 
-// Modos do jogo (replica do term.ooo)
+// Modos do jogo — nomenclatura própria (não copiar termo/wordle)
 export type GameMode = "single" | "duo" | "quartet";
 
 export const MODE_CONFIG: Record<GameMode, {
@@ -15,9 +15,9 @@ export const MODE_CONFIG: Record<GameMode, {
   wordCount: number;
   maxAttempts: number;
 }> = {
-  single:  { label: "Termo",    shortLabel: "1", icon: "🔤", wordCount: 1, maxAttempts: 6 },
-  duo:     { label: "Dueto",    shortLabel: "2", icon: "🔡", wordCount: 2, maxAttempts: 7 },
-  quartet: { label: "Quarteto", shortLabel: "4", icon: "🔠", wordCount: 4, maxAttempts: 9 },
+  single:  { label: "Palavrinha", shortLabel: "1", icon: "🌸", wordCount: 1, maxAttempts: 6 },
+  duo:     { label: "Duplinha",   shortLabel: "2", icon: "💞", wordCount: 2, maxAttempts: 7 },
+  quartet: { label: "Quadrinha",  shortLabel: "4", icon: "✨", wordCount: 4, maxAttempts: 9 },
 };
 
 // Pool de ~200 palavras de 5 letras em pt-BR, sem acentos. Mistura termos
