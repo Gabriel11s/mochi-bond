@@ -410,7 +410,7 @@ export function WordleGame({ partnerName }: Props) {
     kind === "practice"
       ? "modo treino"
       : mode !== "single"
-        ? "modo competitivo só no termo"
+        ? "modo competitivo só na palavrinha"
         : `${otherPartnerName ? otherPartnerName.toLowerCase() : "parceiro"}: ${
             otherStatus?.status === "won" ? `acertou em ${otherStatus.attempts}!`
             : otherStatus?.status === "lost" ? "não conseguiu"
