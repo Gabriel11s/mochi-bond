@@ -605,18 +605,11 @@ function WordGrid({
   const evCount = evaluations.length;
   return (
     <div
-      className={`relative flex flex-col rounded-lg p-1.5 transition-all ${
-        solved
-          ? "bg-emerald-500/10 ring-1 ring-emerald-500/40"
-          : total > 1 ? "bg-white/5 ring-1 ring-white/10" : ""
+      className={`relative flex flex-col rounded-md p-1 transition-all ${
+        solved ? "bg-emerald-500/10 ring-1 ring-emerald-500/30" : ""
       }`}
       style={{ gap: cellGap }}
     >
-      {total > 1 && (
-        <p className="mb-0.5 text-center text-[8px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-          palavra {wordIndex + 1}/{total} {solved && "✓"}
-        </p>
-      )}
       {Array.from({ length: maxAttempts }).map((_, row) => {
         const ev = evaluations[row];
         const isCurrentRow = isPlaying && !solved && row === attempts.length;
