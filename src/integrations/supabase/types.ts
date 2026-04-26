@@ -508,6 +508,54 @@ export type Database = {
         }
         Relationships: []
       }
+      word_game_daily: {
+        Row: {
+          attempts: string[]
+          attempts_count: number
+          completed_at: string | null
+          created_at: string
+          finished: boolean
+          game_date: string
+          gave_hint: boolean
+          id: string
+          partner_name: string
+          received_hint_letter: string | null
+          updated_at: string
+          won: boolean
+          word: string
+        }
+        Insert: {
+          attempts?: string[]
+          attempts_count?: number
+          completed_at?: string | null
+          created_at?: string
+          finished?: boolean
+          game_date: string
+          gave_hint?: boolean
+          id?: string
+          partner_name: string
+          received_hint_letter?: string | null
+          updated_at?: string
+          won?: boolean
+          word: string
+        }
+        Update: {
+          attempts?: string[]
+          attempts_count?: number
+          completed_at?: string | null
+          created_at?: string
+          finished?: boolean
+          game_date?: string
+          gave_hint?: boolean
+          id?: string
+          partner_name?: string
+          received_hint_letter?: string | null
+          updated_at?: string
+          won?: boolean
+          word?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
