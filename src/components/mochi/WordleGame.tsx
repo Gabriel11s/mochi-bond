@@ -417,14 +417,15 @@ export function WordleGame({ partnerName }: Props) {
             : "ainda jogando"
           }`;
 
-  // ---------- cell sizing fluido (estilo term.ooo) ----------
-  // Cada modo define a largura MÁX do grid e o gap. A célula é derivada via
-  // calc((width - 4*gap) / 5) e usa aspect-ratio: 1 → escala em qualquer viewport.
+  // ---------- cell sizing fluido — adaptativo mobile ↔ desktop ----------
+  // No mobile usamos vw pra escalar com o viewport;
+  // no desktop usamos px maiores (a query @media não existe em JS, então
+  // dependemos do clamp + do max-w do container pra controlar o teto).
   const gridConfig = mode === "single"
-    ? { gridWidth: "min(86vw, 320px)", gap: 6, fontSize: "clamp(1.3rem, 7vw, 2rem)" }
+    ? { gridWidth: "min(86vw, 380px)", gap: 8, fontSize: "clamp(1.5rem, 5vw, 2.4rem)" }
     : mode === "duo"
-      ? { gridWidth: "min(44vw, 180px)", gap: 4, fontSize: "clamp(0.85rem, 4vw, 1.15rem)" }
-      : { gridWidth: "min(44vw, 160px)", gap: 3, fontSize: "clamp(0.7rem, 3.2vw, 1rem)" };
+      ? { gridWidth: "min(44vw, 260px)", gap: 6, fontSize: "clamp(1rem, 3vw, 1.6rem)" }
+      : { gridWidth: "min(44vw, 220px)", gap: 5, fontSize: "clamp(0.85rem, 2.4vw, 1.4rem)" };
   const cellGap = gridConfig.gap;
   const fontSize = gridConfig.fontSize;
   const gridWidth = gridConfig.gridWidth;
@@ -432,8 +433,9 @@ export function WordleGame({ partnerName }: Props) {
   // título grande — nomenclatura própria do casal
   const modeTitle = mode === "single" ? "PALAVRINHA" : mode === "duo" ? "DUPLINHA" : "QUADRINHA";
 
+  // Container adaptativo: mobile fullscreen / desktop até ~960px (cabem 4 grids confortáveis)
   return (
-    <div className="game-container relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-gradient-to-b from-[#1C2638] to-[#0E1117] text-foreground">
+    <div className="game-container relative mx-auto flex h-[100dvh] w-full max-w-[960px] flex-col overflow-hidden bg-gradient-to-b from-[#1C2638] to-[#0E1117] text-foreground">
       {/* HEADER — minimal: voltar | título grande | toggle treino */}
       <header className="relative flex flex-shrink-0 items-center justify-between px-3 pt-3 pb-1">
         <Link
@@ -532,7 +534,7 @@ export function WordleGame({ partnerName }: Props) {
           style={{
             gridTemplateColumns:
               mode === "single" ? "1fr" : "repeat(2, max-content)",
-            gap: mode === "quartet" ? 10 : 8,
+            gap: mode === "quartet" ? 16 : 12,
             justifyItems: "center",
           }}
         >
@@ -701,7 +703,7 @@ function Keyboard({
   return (
     <div
       className="keyboard flex-shrink-0 px-1.5 pb-2 pt-1"
-      style={{ marginInline: "auto", width: "min(96vw, 520px)" }}
+      style={{ marginInline: "auto", width: "min(96vw, 720px)" }}
     >
       <KbRow keys={KB_ROW1} status={status} onPress={onLetter} disabled={disabled} />
       <KbRow keys={KB_ROW2} status={status} onPress={onLetter} disabled={disabled} />
