@@ -418,14 +418,32 @@ export function WordleGame({ partnerName }: Props) {
           }`;
 
   // ---------- cell sizing fluido — adaptativo mobile ↔ desktop ----------
-  // No mobile usamos vw pra escalar com o viewport;
-  // no desktop usamos px maiores (a query @media não existe em JS, então
-  // dependemos do clamp + do max-w do container pra controlar o teto).
+  // Estratégia: width do grid via min(vw,px) E altura do main controla via clamp.
+  // Quarteto precisa caber 9 rows × 2 grids verticalmente — limito o grid pelo MENOR
+  // entre largura disponível e altura disponível.
   const gridConfig = mode === "single"
-    ? { gridWidth: "min(86vw, 380px)", gap: 8, fontSize: "clamp(1.5rem, 5vw, 2.4rem)" }
+    ? {
+        // single: 1 grid, 6 rows. Altura é folgada → escala pela largura.
+        gridWidth: "min(86vw, 360px)",
+        gap: 6,
+        fontSize: "clamp(1.4rem, 5vw, 2.2rem)",
+      }
     : mode === "duo"
-      ? { gridWidth: "min(44vw, 260px)", gap: 6, fontSize: "clamp(1rem, 3vw, 1.6rem)" }
-      : { gridWidth: "min(44vw, 220px)", gap: 5, fontSize: "clamp(0.85rem, 2.4vw, 1.4rem)" };
+      ? {
+          // duo: 2 grids lado a lado, 7 rows. Largura é o gargalo.
+          gridWidth: "min(44vw, 240px)",
+          gap: 5,
+          fontSize: "clamp(0.95rem, 3vw, 1.5rem)",
+        }
+      : {
+          // quarteto: 2x2 grids, 9 rows. ALTURA é o gargalo no mobile.
+          // Limito por min() entre largura (44vw) e altura disponível por linha.
+          // ~9 rows + 8 gaps + padding precisa caber em ~50% da altura disponível.
+          // 5vh por row * 9 = 45vh; cell width = 5vh; total grid width = 25vh + 4 gaps.
+          gridWidth: "min(44vw, 22vh, 200px)",
+          gap: 3,
+          fontSize: "clamp(0.7rem, min(2.4vw, 2.2vh), 1.2rem)",
+        };
   const cellGap = gridConfig.gap;
   const fontSize = gridConfig.fontSize;
   const gridWidth = gridConfig.gridWidth;
@@ -528,7 +546,7 @@ export function WordleGame({ partnerName }: Props) {
       )}
 
       {/* GRIDS — single: 1 col centralizado | duo: 2 lado a lado | quarteto: 2x2 */}
-      <main className="game-main flex flex-1 items-start justify-center overflow-y-auto px-2 py-2 min-h-0">
+      <main className="game-main flex flex-1 items-center justify-center overflow-hidden px-2 py-1 min-h-0">
         <div
           className={`grid w-full justify-center ${shake ? "animate-shake" : ""}`}
           style={{
@@ -708,11 +726,11 @@ function Keyboard({
       <KbRow keys={KB_ROW1} status={status} onPress={onLetter} disabled={disabled} />
       <KbRow keys={KB_ROW2} status={status} onPress={onLetter} disabled={disabled} />
       <div className="flex justify-center gap-1.5 pt-1.5">
-        <SpecialKey label="ENTER" onClick={onEnter} disabled={disabled} />
+        <SpecialKey label="⌫" onClick={onBackspace} disabled={disabled} variant="backspace" />
         {KB_ROW3.map((k) => (
           <Key key={k} k={k} status={status[k]} onClick={() => onLetter(k)} disabled={disabled} />
         ))}
-        <SpecialKey label="⌫" onClick={onBackspace} disabled={disabled} />
+        <SpecialKey label="ENTER" onClick={onEnter} disabled={disabled} variant="enter" />
       </div>
     </div>
   );
@@ -758,16 +776,28 @@ function Key({
 }
 
 function SpecialKey({
-  label, onClick, disabled,
+  label, onClick, disabled, variant = "backspace",
 }: {
   label: string; onClick: () => void; disabled: boolean;
+  variant?: "enter" | "backspace";
 }) {
+  const isEnter = variant === "enter";
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className="select-none rounded-md bg-pink/15 font-extrabold text-pink transition-all active:bg-pink/25 active:scale-90"
-      style={{ height: 44, fontSize: "clamp(0.65rem, 2.4vw, 0.8rem)", padding: "0 8px", minWidth: 52 }}
+      className={`select-none rounded-md font-extrabold transition-all active:scale-90 ${
+        isEnter
+          ? "bg-pink text-white shadow-md active:bg-pink/90"
+          : "bg-pink/15 text-pink active:bg-pink/25"
+      }`}
+      style={{
+        height: 44,
+        fontSize: isEnter ? "clamp(0.75rem, 2.6vw, 0.95rem)" : "clamp(0.65rem, 2.4vw, 0.85rem)",
+        padding: isEnter ? "0 14px" : "0 8px",
+        minWidth: isEnter ? 88 : 52,
+        flex: isEnter ? "1.5 1 auto" : "0 0 auto",
+      }}
     >
       {label}
     </button>
