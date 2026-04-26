@@ -748,7 +748,7 @@ function Tile({
         : {}
       }
       className={`flex flex-1 min-w-0 aspect-square items-center justify-center rounded-lg border-2 font-display font-extrabold uppercase shadow-sm transition-all ${cls}`}
-      style={{ fontSize }}
+      style={{ fontSize, ...activeStyle }}
       tabIndex={-1}
     >
       {char}
