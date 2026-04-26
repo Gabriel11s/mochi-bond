@@ -92,6 +92,25 @@ export function WordleGame({ partnerName }: Props) {
   const [busy, setBusy] = useState(false);
   const [otherPartnerName, setOtherPartnerName] = useState<string>("");
   const [otherStatus, setOtherStatus] = useState<{ status: string; attempts: number } | null>(null);
+  const [skin, setSkin] = useState<Skin>(() => getSkin("pink"));
+
+  // Sync skin do pet → realtime, pra refletir mudança no quartinho
+  useEffect(() => {
+    let cancelled = false;
+    supabase.from("pet_state").select("equipped_skin").eq("id", 1).maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data?.equipped_skin) return;
+        setSkin(getSkin(data.equipped_skin));
+      });
+    const ch = supabase
+      .channel("palavrinha-skin")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pet_state" }, (payload) => {
+        const row = payload.new as { equipped_skin?: string };
+        if (row?.equipped_skin) setSkin(getSkin(row.equipped_skin));
+      })
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, []);
 
   const [bursts, setBursts] = useState<Array<{ id: number; emoji: string; x: number }>>([]);
   const triggerBurst = (emoji: string) => {
