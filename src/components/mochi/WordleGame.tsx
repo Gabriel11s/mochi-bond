@@ -725,8 +725,12 @@ function Tile({
       ? "bg-white/5 border-white/45 text-foreground"
       : "bg-white/5 border-white/15 text-foreground",
   };
-  const activeRing = active ? "ring-2 ring-pink ring-offset-1 ring-offset-[#0E1117]" : "";
+  // active ring usa CSS var setada no container raiz
+  const activeRing = active ? "ring-2 ring-offset-1 ring-offset-[#0E1117]" : "";
   const cls = `${colorByStatus[status]} ${activeRing} ${clickable ? "cursor-pointer" : ""}`;
+  const activeStyle: React.CSSProperties = active
+    ? { ["--tw-ring-color" as string]: "var(--skin-accent)" }
+    : {};
   return (
     <motion.button
       type="button"
