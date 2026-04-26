@@ -22,7 +22,6 @@ import {
   type CellStatus,
 } from "@/lib/mochi-wordle";
 import { getSkin } from "@/lib/mochi-cosmetics";
-import { getSkin } from "@/lib/mochi-cosmetics";
 import type { Mood, PetState } from "@/lib/mochi-types";
 import { applyDecay, clamp } from "@/lib/mochi-types";
 
