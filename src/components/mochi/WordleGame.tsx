@@ -418,12 +418,12 @@ export function WordleGame({ partnerName }: Props) {
           }`;
 
   // ---------- cell sizing por modo ----------
-  const cellSize: number = mode === "single" ? 50 : mode === "duo" ? 34 : 24;
-  const cellGap: number = mode === "single" ? 6 : mode === "duo" ? 4 : 2;
+  const cellSize: number = mode === "single" ? 54 : mode === "duo" ? 32 : 24;
+  const cellGap: number = mode === "single" ? 6 : mode === "duo" ? 4 : 3;
   const fontSize = mode === "single"
-    ? "clamp(1.2rem, 5.5vw, 1.9rem)"
+    ? "clamp(1.3rem, 6vw, 2rem)"
     : mode === "duo"
-      ? "clamp(0.9rem, 3.8vw, 1.2rem)"
+      ? "clamp(0.85rem, 3.6vw, 1.15rem)"
       : "clamp(0.65rem, 2.6vw, 0.9rem)";
 
   // título grande estilo term.ooo
