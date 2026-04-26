@@ -534,7 +534,7 @@ export function WordleGame({ partnerName }: Props) {
           style={{
             gridTemplateColumns:
               mode === "single" ? "1fr" : "repeat(2, max-content)",
-            gap: mode === "quartet" ? 10 : 8,
+            gap: mode === "quartet" ? 16 : 12,
             justifyItems: "center",
           }}
         >
