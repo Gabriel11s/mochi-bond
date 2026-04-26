@@ -546,7 +546,7 @@ export function WordleGame({ partnerName }: Props) {
       )}
 
       {/* GRIDS — single: 1 col centralizado | duo: 2 lado a lado | quarteto: 2x2 */}
-      <main className="game-main flex flex-1 items-start justify-center overflow-y-auto px-2 py-2 min-h-0">
+      <main className="game-main flex flex-1 items-center justify-center overflow-hidden px-2 py-1 min-h-0">
         <div
           className={`grid w-full justify-center ${shake ? "animate-shake" : ""}`}
           style={{
