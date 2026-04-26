@@ -19,6 +19,7 @@ import {
   calculateReward,
   rewardForGame,
   pickHintLetter,
+  isValidGuess,
   type GameMode,
   type EvaluatedGuess,
   type CellStatus,
@@ -259,6 +260,11 @@ export function WordleGame({ partnerName }: Props) {
     const guess = normalize(currentString);
     if (guess.length < WORD_LENGTH) {
       showMessage(`digite uma palavra com ${WORD_LENGTH} letras`);
+      triggerShake();
+      return;
+    }
+    if (!isValidGuess(guess)) {
+      showMessage("palavra não reconhecida");
       triggerShake();
       return;
     }

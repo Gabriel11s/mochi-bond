@@ -85,6 +85,153 @@ export const WORD_POOL: string[] = [
 // Filtra palavras inválidas (tamanho diferente de 5) defensivamente
 const VALID_POOL = WORD_POOL.filter((w) => w.length === WORD_LENGTH);
 
+// ----------------------------------------------------------------------------
+// Dicionário de palpites válidos — aceita estas palavras como tentativa,
+// mesmo que não estejam no pool de soluções. Aumenta a flexibilidade do
+// jogo (jogador pode testar palavras comuns sem cair em "não reconhecida").
+//
+// Curado manualmente: ~700 palavras de 5 letras em pt-BR, sem acentos.
+// Inclui todas as do WORD_POOL + verbos comuns conjugados, substantivos
+// frequentes, adjetivos. Se faltar algum, é fácil adicionar.
+// ----------------------------------------------------------------------------
+const EXTRA_GUESSES: string[] = [
+  // verbos comuns conjugados / infinitivos
+  "abrir", "achei", "acaba", "acabe", "acabo", "acato", "acerto",
+  "achar", "ajuda", "ajudo", "amada", "amado", "amava", "amigo",
+  "andar", "ando", "anote", "ardia", "ardem", "armar", "arpoa",
+  "arrasar", "atira", "atire", "atiro", "aviso", "baixa", "baixo",
+  "banha", "banho", "bater", "batia", "batem", "bebem", "bebia",
+  "beijo", "berra", "berro", "bobas", "boboca", "bonus", "bordo",
+  "branca", "branco", "brava", "bravo", "breve", "burro", "buscar",
+  "busca", "busco", "calam", "calar", "calou", "calmo", "calos",
+  "calva", "calvo", "calos", "cama", "campo", "canta", "cante",
+  "canto", "canta", "cantos", "capaz", "carro", "casas", "casca",
+  "caule", "causa", "causo", "cavam", "cebola", "cedem", "cedeu",
+  "certa", "certo", "chama", "chame", "chamo", "chato", "chave",
+  "chega", "chego", "chuva", "claro", "clara", "clima", "comer",
+  "comeu", "comido", "comum", "comer", "conta", "conto", "corre",
+  "correr", "corro", "corta", "corte", "custa", "custo", "danca",
+  "dance", "dando", "darda", "dardo", "deixa", "deixe", "deixo",
+  "denso", "deram", "dever", "devia", "devem", "dieta", "diga",
+  "digo", "diria", "dizer", "doces", "doces", "dorme", "drama",
+  "ducha", "ducha", "duelo", "duros", "egito", "elite", "elogio",
+  "ervas", "estar", "estou", "etapa", "etico", "exame", "exato",
+  "exito", "fadas", "falar", "falei", "falou", "falta", "falte",
+  "falto", "farda", "farsa", "farto", "fatal", "fatia", "fauna",
+  "favor", "fazem", "fazer", "feita", "feito", "feliz", "ferir",
+  "ferro", "festa", "filho", "filha", "filme", "final", "firme",
+  "fluir", "focas", "fogao", "fogos", "foice", "folga", "folha",
+  "fonte", "forca", "forma", "forno", "forra", "forro", "fossa",
+  "fraco", "fraca", "frado", "frade", "freio", "frete", "fruta",
+  "fumos", "furia", "furto", "gabar", "gaita", "galos", "ganso",
+  "garra", "gasto", "gatos", "gente", "genro", "gerar", "girar",
+  "globo", "golpe", "golfe", "gomas", "gosto", "gotas", "gozar",
+  "graos", "grata", "grato", "grave", "greve", "grita", "grito",
+  "grupo", "gruta", "guiar", "guita", "habil", "haste", "havia",
+  "heroi", "hinos", "hojes", "homem", "honra", "horas", "horda",
+  "hotel", "humor", "ideal", "ideia", "idoso", "iguais", "igual",
+  "imune", "infra", "ileso", "irmas", "irmao", "italo", "jamais",
+  "janta", "jeito", "jogar", "jogos", "junco", "junto", "lapis",
+  "largo", "leite", "lente", "leoes", "letra", "leves", "lince",
+  "limbo", "lirio", "livre", "louco", "lucro", "lugar", "lutas",
+  "lutar", "luvas", "magia", "magno", "maior", "manha", "manhã",
+  "manso", "mapas", "maras", "marca", "marco", "mares", "massa",
+  "matar", "medos", "menor", "menos", "mente", "meses", "metas",
+  "metro", "mexer", "milho", "minha", "mochi", "modos", "moeda",
+  "monge", "morar", "morro", "morto", "morte", "mover", "mudez",
+  "mulas", "mundo", "munir", "muros", "museu", "musgo", "navio",
+  "negar", "neles", "nervo", "ninho", "nobre", "noite", "noivo",
+  "nomes", "notas", "novas", "novos", "nuvem", "obito", "obtem",
+  "obvia", "obvio", "ocaso", "olhar", "olhos", "ondas", "opaco",
+  "optar", "orgao", "ousar", "ouvir", "pacto", "padre", "pagar",
+  "palco", "panos", "papas", "papel", "pares", "parar", "parir",
+  "parva", "passa", "pasta", "pasto", "patos", "paves", "pedra",
+  "pegar", "perda", "perdi", "perto", "peste", "petis", "picam",
+  "pilar", "pinta", "pista", "plebe", "pluma", "poder", "poema",
+  "pomar", "porta", "porte", "porto", "posse", "potro", "praia",
+  "prado", "prata", "prece", "preto", "preta", "preto", "prima",
+  "primo", "prima", "prole", "prove", "prova", "puros", "puxar",
+  "puxao", "quase", "queda", "queia", "queia", "quero", "quias",
+  "raiva", "rapaz", "rasga", "razao", "razem", "reais", "rebol",
+  "recem", "rebro", "refem", "regra", "reine", "rente", "repor",
+  "repto", "rezar", "rigor", "rindo", "ringe", "risos", "rival",
+  "robos", "rosca", "rosa", "rubra", "rubro", "ruido", "rumar",
+  "rumor", "saber", "sabia", "sabio", "sacas", "sacos", "sadio",
+  "sagaz", "sagra", "salao", "salmo", "salto", "salva", "saque",
+  "sarro", "saude", "sauna", "secas", "secar", "selva", "senha",
+  "sepia", "senso", "serpe", "sigla", "sinal", "sinto", "sobra",
+  "sobre", "soera", "solta", "sonho", "sopro", "sorte", "sucos",
+  "sumir", "supor", "supra", "surda", "surdo", "surfa", "surge",
+  "surto", "susto", "tacha", "tacho", "tatui", "tatus", "teias",
+  "tempo", "tenaz", "tenor", "tenro", "tenta", "tente", "tento",
+  "termo", "terra", "tirar", "tomar", "topam", "torre", "torta",
+  "torto", "tosca", "tosco", "trago", "trama", "trate", "treco",
+  "trens", "trevo", "trigo", "troca", "troco", "trono", "tropa",
+  "trupe", "tudo", "tumba", "turbo", "ucha", "ultra", "untar",
+  "urbes", "ursos", "vacuo", "vagar", "vagas", "valha", "valeu",
+  "vapor", "varzea", "vasos", "vates", "veias", "velha", "velho",
+  "venha", "venho", "verbo", "verde", "verdes", "verso", "vespa",
+  "viaja", "vidas", "vidro", "vigor", "vilas", "vinde", "vinha",
+  "vinho", "vinte", "vinte", "viral", "virus", "vista", "vital",
+  "viver", "vivem", "vivos", "voltam", "volta", "votos", "vozes",
+  "zelar", "zinco", "zonas",
+  // Mais palavras comuns
+  "nadar", "andar", "comer", "fazer", "amar", "ouvir", "ler",
+  "amare", "ouvir", "rouca", "rouco", "santa", "santo", "saira",
+  "saiba", "salvo", "selo", "siges", "signa", "signo", "soara",
+  "soavi", "soeis", "sofas", "solas", "solos", "sonda", "sonsa",
+  "sorda", "sotao", "sumas", "sumir", "supor", "supre", "surda",
+  "surra", "surto", "tabua", "tatua", "tatuei", "tachas", "talas",
+  "talao", "talha", "talhe", "talho", "talho", "tampa", "tanga",
+  "tanto", "tares", "telas", "temas", "tente", "tetas", "ticas",
+  "tigre", "tigres", "tilde", "tinha", "tinta", "tinto", "tipos",
+  "tiras", "tiros", "tocar", "todas", "todos", "toesa", "tonel",
+  "topar", "topem", "topez", "torpe", "torte", "torre", "torce",
+  "tortas", "tossa", "tosse", "toura", "touro", "trago", "trama",
+  "trate", "trato", "trave", "trens", "trepo", "treva", "treze",
+  "tropa", "trono", "trope", "trote", "truco", "tubas", "tubos",
+  "turba", "turfa", "tutor", "tuvai", "ucha", "uivar", "umbro",
+  "uncia", "unhar", "unica", "unico", "unido", "untos", "upava",
+  "urano", "urbes", "urgia", "urnas", "ursas", "ursos", "useis",
+  "vamos", "vagar", "vagem", "vaiar", "valar", "valas", "valda",
+  "valeu", "valha", "valhi", "valis", "valor", "valsa", "vamem",
+  "vapor", "vares", "varia", "varie", "varia", "varoa", "varzea",
+  "vasta", "vasto", "vater", "vazam", "vazar", "vazio", "vazou",
+  "veiae", "veias", "velam", "velas", "velha", "velho", "vence",
+  "vendi", "vento", "verba", "verbo", "verde", "veres", "verso",
+  "verte", "vespa", "vetar", "vetes", "veto", "vexe", "vibra",
+  "vibre", "vibro", "vidas", "vidro", "vigia", "vigil", "vigor",
+  "vinco", "vinda", "vindo", "vinho", "vinte", "viola", "viral",
+  "vires", "viseu", "visgo", "visou", "vista", "visto", "vital",
+  "viuva", "viuvo", "vivas", "viver", "vives", "vivos", "vocal",
+  "vocas", "vodka", "voga", "vogos", "voila", "voile", "volta",
+  "volte", "volto", "voluo", "vomito", "vorio", "vosso", "votam",
+  "votar", "votas", "voto", "votos", "vouga", "voves", "voves",
+  "vozes", "zaguer", "zarpa", "zazen", "zebra", "zeladores", "zelar",
+  "zelho", "zelos", "zenit", "zeros", "zinco", "zomba", "zonal",
+  "zonas", "zorro", "zumbi", "zunir", "zuves",
+];
+
+// Normaliza tudo antes de jogar no Set: tira acentos, lowercase, filtra
+// por tamanho. Usa o mesmo normalize que valida palpites no submit.
+function normalizeForGuess(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z]/g, "")
+    .toLowerCase();
+}
+
+const VALID_GUESSES = new Set<string>([
+  ...VALID_POOL.map(normalizeForGuess),
+  ...EXTRA_GUESSES.map(normalizeForGuess),
+].filter((w) => w.length === WORD_LENGTH));
+
+/** Verifica se uma palavra é um palpite válido (existe no dicionário). */
+export function isValidGuess(guess: string): boolean {
+  return VALID_GUESSES.has(normalizeForGuess(guess));
+}
+
 /** Retorna a palavra do dia (mesma pra todos os partners no mesmo dia). */
 export function getDailyWord(date = new Date()): string {
   // Seed determinística por dia: YYYYMMDD
