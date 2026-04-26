@@ -211,14 +211,19 @@ export function PetRoom({ partnerName, onLogout }: Props) {
 
   // Bilhetes não lidos: count inicial + realtime + recount quando o
   // drawer fecha (porque marcar como lido é dentro do drawer).
+  // Schema do Lovable: sender_name + read_at (null = não lido).
+  // "Não lidos pra mim" = sender_name diferente do meu E read_at IS NULL.
   useEffect(() => {
     const recount = async () => {
-      const { count } = await (supabase as any)
+      // Pega não lidos (qualquer um) e filtra os que NÃO foram eu que mandei
+      const { data } = await supabase
         .from("love_notes")
-        .select("id", { count: "exact", head: true })
-        .ilike("to_partner", partnerName)
-        .eq("read", false);
-      setUnreadNotes(count ?? 0);
+        .select("id, sender_name")
+        .is("read_at", null);
+      const mine = (data ?? []).filter(
+        (n) => n.sender_name?.toLowerCase() !== partnerName.toLowerCase(),
+      );
+      setUnreadNotes(mine.length);
     };
     recount();
 
@@ -228,12 +233,14 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "love_notes" },
         (payload) => {
-          const note = payload.new as { to_partner: string; from_partner: string; message: string };
-          if (note.to_partner.toLowerCase() === partnerName.toLowerCase()) {
+          const note = payload.new as { sender_name: string; message: string; emoji?: string };
+          // Só notifica se NÃO foi eu que mandei
+          if (note.sender_name?.toLowerCase() !== partnerName.toLowerCase()) {
             setUnreadNotes((n) => n + 1);
-            const fromName = note.from_partner.toLowerCase();
-            showToast(`💌 ${fromName} mandou um bilhetinho!`);
-            burstParticles("💌", 4);
+            const fromName = note.sender_name.toLowerCase();
+            const ico = note.emoji || "💌";
+            showToast(`${ico} ${fromName} mandou um bilhetinho!`);
+            burstParticles(ico, 4);
           }
         },
       )
@@ -251,12 +258,14 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   useEffect(() => {
     if (notesOpen) return;
     (async () => {
-      const { count } = await (supabase as any)
+      const { data } = await supabase
         .from("love_notes")
-        .select("id", { count: "exact", head: true })
-        .ilike("to_partner", partnerName)
-        .eq("read", false);
-      setUnreadNotes(count ?? 0);
+        .select("id, sender_name")
+        .is("read_at", null);
+      const mine = (data ?? []).filter(
+        (n) => n.sender_name?.toLowerCase() !== partnerName.toLowerCase(),
+      );
+      setUnreadNotes(mine.length);
     })();
   }, [notesOpen, partnerName]);
 
