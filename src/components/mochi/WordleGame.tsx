@@ -531,11 +531,7 @@ export function WordleGame({ partnerName }: Props) {
           className={`grid w-full justify-center ${shake ? "animate-shake" : ""}`}
           style={{
             gridTemplateColumns:
-              mode === "single"
-                ? "1fr"
-                : mode === "duo"
-                  ? "repeat(2, max-content)"
-                  : "repeat(2, max-content)",
+              mode === "single" ? "1fr" : "repeat(2, max-content)",
             gap: mode === "quartet" ? 10 : 8,
             justifyItems: "center",
           }}
@@ -552,7 +548,7 @@ export function WordleGame({ partnerName }: Props) {
               cells={cells}
               activeColumn={activeColumn}
               isPlaying={status === "playing"}
-              cellSize={cellSize}
+              gridWidth={gridWidth}
               cellGap={cellGap}
               fontSize={fontSize}
               onTileTap={handleTileTap}
