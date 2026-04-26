@@ -2,8 +2,23 @@
 // dificuldade média/alta. Sem acentos no storage; o eval normaliza
 // qualquer input do usuário antes de comparar.
 
-export const MAX_ATTEMPTS = 6;
 export const WORD_LENGTH = 5;
+export const MAX_ATTEMPTS = 6;
+
+// Modos do jogo (replica do term.ooo)
+export type GameMode = "single" | "duo" | "quartet";
+
+export const MODE_CONFIG: Record<GameMode, {
+  label: string;
+  shortLabel: string;
+  icon: string;
+  wordCount: number;
+  maxAttempts: number;
+}> = {
+  single:  { label: "Termo",    shortLabel: "1", icon: "🔤", wordCount: 1, maxAttempts: 6 },
+  duo:     { label: "Dueto",    shortLabel: "2", icon: "🔡", wordCount: 2, maxAttempts: 7 },
+  quartet: { label: "Quarteto", shortLabel: "4", icon: "🔠", wordCount: 4, maxAttempts: 9 },
+};
 
 // Pool de ~200 palavras de 5 letras em pt-BR, sem acentos. Mistura termos
 // menos óbvios (ALGOZ, BANZO, GLEBA) com palavras conhecidas mas que
@@ -78,6 +93,40 @@ export function getDailyWord(date = new Date()): string {
   const d = date.getDate();
   const seed = y * 10000 + m * 100 + d;
   return VALID_POOL[seed % VALID_POOL.length];
+}
+
+/** Retorna N palavras do dia (pra Dueto e Quarteto), todas distintas. */
+export function getDailyWords(n: number, date = new Date()): string[] {
+  const y = date.getFullYear();
+  const m = date.getMonth() + 1;
+  const d = date.getDate();
+  const baseSeed = y * 10000 + m * 100 + d;
+  const used = new Set<string>();
+  const out: string[] = [];
+  // Usa primos diferentes pra espaçar a seed e evitar duplicatas
+  const PRIMES = [7919, 1009, 4001, 6151, 8761, 3019];
+  for (let i = 0; i < n * 3 && out.length < n; i++) {
+    const idx = (baseSeed + i * (PRIMES[i % PRIMES.length])) % VALID_POOL.length;
+    const w = VALID_POOL[idx];
+    if (!used.has(w)) {
+      used.add(w);
+      out.push(w);
+    }
+  }
+  return out;
+}
+
+/** Pool de palavras únicas para modo treino multi-palavra. */
+export function getRandomWords(n: number, exclude: string[] = []): string[] {
+  const ex = new Set(exclude);
+  const out: string[] = [];
+  let attempts = 0;
+  while (out.length < n && attempts < n * 30) {
+    const w = VALID_POOL[Math.floor(Math.random() * VALID_POOL.length)];
+    if (!ex.has(w) && !out.includes(w)) out.push(w);
+    attempts++;
+  }
+  return out;
 }
 
 /** Chave de "qual dia é hoje" — usada como game_date no DB e key local. */
@@ -159,15 +208,21 @@ export function aggregateKeyboardStatus(
   return map;
 }
 
-/** Pontuação de XP/happiness baseada em quantas tentativas a pessoa usou. */
+/** Pontuação de XP/happiness baseada em modo e tentativas usadas. */
+export function rewardForGame(mode: GameMode, attempts: number): { xp: number; happiness: number } {
+  const cfg = MODE_CONFIG[mode];
+  // Multiplicador: Termo 1x, Dueto 1.6x, Quarteto 2.5x (mais difícil → reward maior)
+  const multiplier = mode === "single" ? 1 : mode === "duo" ? 1.6 : 2.5;
+  const max = cfg.maxAttempts;
+  // Curva: usar < 1/3 das tentativas = top reward; usar todas = mínimo
+  const ratio = Math.max(0, Math.min(1, (max - attempts) / max));
+  const baseXp = Math.round((4 + ratio * 26) * multiplier);
+  return { xp: baseXp, happiness: baseXp };
+}
+
+/** @deprecated use rewardForGame com mode. Mantido pra retro-compat. */
 export function rewardForAttempts(attempts: number): { xp: number; happiness: number } {
-  if (attempts === 1) return { xp: 30, happiness: 30 };
-  if (attempts === 2) return { xp: 22, happiness: 22 };
-  if (attempts === 3) return { xp: 16, happiness: 16 };
-  if (attempts === 4) return { xp: 12, happiness: 12 };
-  if (attempts === 5) return { xp: 8, happiness: 8 };
-  if (attempts === 6) return { xp: 4, happiness: 4 };
-  return { xp: 0, happiness: 0 };
+  return rewardForGame("single", attempts);
 }
 
 /** Pega uma letra random da palavra-alvo que o jogador AINDA NÃO descobriu. */

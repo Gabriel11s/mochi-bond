@@ -1,21 +1,23 @@
-// Página dedicada do caça-palavras — Termo-style.
-// Layout: header → mochi mascote pequeno no canto + área de status →
-// grid centralizada → teclado fixo no rodapé. Mochi NÃO sobrepõe a grid.
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+// Caça-palavras com 3 modos (Termo / Dueto / Quarteto) — replica do
+// term.ooo. Cada palpite é avaliado contra TODAS as palavras-alvo.
+// Layout adapta cell size por modo pra caber bem em mobile.
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  MAX_ATTEMPTS,
   WORD_LENGTH,
   WORD_POOL,
-  getDailyWord,
+  MODE_CONFIG,
+  getDailyWords,
+  getRandomWords,
   getTodayKey,
   normalize,
   evaluateGuess,
   aggregateKeyboardStatus,
-  rewardForAttempts,
+  rewardForGame,
   pickHintLetter,
+  type GameMode,
   type EvaluatedGuess,
   type CellStatus,
 } from "@/lib/mochi-wordle";
@@ -33,6 +35,7 @@ interface SavedState {
   won: boolean;
   hintLetter?: string;
   gaveHint?: boolean;
+  words?: string[]; // pra modo treino multi-palavra
 }
 
 const KB_ROW1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
@@ -40,18 +43,10 @@ const KB_ROW2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"];
 const KB_ROW3 = ["z", "x", "c", "v", "b", "n", "m"];
 
 const todayKey = () => getTodayKey();
-const lsKeyDaily = (date: string) => `mochi-wordle:daily-${date}`;
-const lsKeyPractice = (word: string) => `mochi-wordle:practice-${word}`;
 
-function pickRandomPracticeWord(exclude: string): string {
-  let attempts = 0;
-  while (attempts < 20) {
-    const w = WORD_POOL[Math.floor(Math.random() * WORD_POOL.length)];
-    if (w !== exclude && w.length === WORD_LENGTH) return w;
-    attempts++;
-  }
-  return WORD_POOL[0];
-}
+// localStorage keys distintas por (mode, daily/practice, key)
+const lsKey = (mode: GameMode, kind: "daily" | "practice", key: string) =>
+  `mochi-wordle:${mode}:${kind}-${key}`;
 
 function loadLocal(key: string): SavedState | null {
   if (typeof window === "undefined") return null;
@@ -72,18 +67,28 @@ let burstId = 0;
 
 export function WordleGame({ partnerName }: Props) {
   const today = useMemo(() => todayKey(), []);
-  const dailyWord = useMemo(() => getDailyWord(), []);
 
-  const [mode, setMode] = useState<"daily" | "practice">("daily");
-  const [practiceWord, setPracticeWord] = useState<string>("");
-  const word = mode === "daily" ? dailyWord : practiceWord;
-  const lsKey = mode === "daily" ? lsKeyDaily(today) : lsKeyPractice(practiceWord);
+  // -------- modo + palavras --------
+  const [mode, setMode] = useState<GameMode>("single");
+  const [kind, setKind] = useState<"daily" | "practice">("daily");
+  const [practiceKey, setPracticeKey] = useState<string>("0");
+  const [practiceWords, setPracticeWords] = useState<string[]>([]);
 
+  const dailyWords = useMemo(
+    () => getDailyWords(MODE_CONFIG[mode].wordCount, new Date()),
+    [mode],
+  );
+  const words = kind === "daily" ? dailyWords : practiceWords;
+  const cfg = MODE_CONFIG[mode];
+  const maxAttempts = cfg.maxAttempts;
+  const lsK = lsKey(mode, kind, kind === "daily" ? today : practiceKey);
+
+  // -------- estado do jogo --------
   const [attempts, setAttempts] = useState<string[]>([]);
   const [current, setCurrent] = useState("");
   const [finished, setFinished] = useState(false);
   const [won, setWon] = useState(false);
-  const [hintLetter, setHintLetter] = useState<string | undefined>(undefined);
+  const [hintLetter, setHintLetter] = useState<string | undefined>();
   const [gaveHint, setGaveHint] = useState(false);
   const [shake, setShake] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,27 +98,31 @@ export function WordleGame({ partnerName }: Props) {
 
   const [mochiMood, setMochiMood] = useState<Mood>("idle");
   const [mochiAppearance, setMochiAppearance] = useState<{ skin: string; accessory: string; hunger: number; happiness: number; energy: number } | null>(null);
-  // Bursts de emoji que sobem da Mochi sem cobrir o grid
-  const [emojiBursts, setEmojiBursts] = useState<Array<{ id: number; char: string }>>([]);
+  const [emojiBursts, setEmojiBursts] = useState<Array<{ id: number; char: string; x: number }>>([]);
 
   const triggerBurst = (char: string) => {
     const id = ++burstId;
-    setEmojiBursts((prev) => [...prev, { id, char }]);
+    const x = -20 + Math.random() * 40; // dispersa horizontalmente
+    setEmojiBursts((prev) => [...prev, { id, char, x }]);
     window.setTimeout(() => {
       setEmojiBursts((prev) => prev.filter((b) => b.id !== id));
-    }, 900);
+    }, 1100);
   };
 
-  // Carrega estado local ao trocar palavra/modo
+  // -------- carrega estado local --------
   useEffect(() => {
-    if (!word) return;
-    const saved = loadLocal(lsKey);
+    if (words.length === 0) return;
+    const saved = loadLocal(lsK);
     if (saved) {
       setAttempts(saved.attempts ?? []);
       setFinished(saved.finished ?? false);
       setWon(saved.won ?? false);
       setHintLetter(saved.hintLetter);
       setGaveHint(saved.gaveHint ?? false);
+      // No modo treino, recupera as palavras do save
+      if (kind === "practice" && saved.words?.length) {
+        setPracticeWords(saved.words);
+      }
     } else {
       setAttempts([]);
       setFinished(false);
@@ -124,7 +133,7 @@ export function WordleGame({ partnerName }: Props) {
     setCurrent("");
     setError(null);
     setMochiMood("idle");
-  }, [lsKey, word]);
+  }, [lsK, words.length, kind]);
 
   // Aparência atual do Mochi
   useEffect(() => {
@@ -158,67 +167,30 @@ export function WordleGame({ partnerName }: Props) {
       });
   }, [partnerName]);
 
-  // Sync DB no modo diário (estado próprio + competidor)
-  useEffect(() => {
-    if (mode !== "daily" || !otherPartnerName) return;
-    let cancelled = false;
-    (async () => {
-      const { data, error: e } = await (supabase as any)
-        .from("word_game_daily")
-        .select("*")
-        .eq("game_date", today)
-        .in("partner_name", [partnerName.toLowerCase(), otherPartnerName.toLowerCase(), partnerName, otherPartnerName]);
-      if (cancelled || e || !data) return;
-      const mine = (data as any[]).find((r) => r.partner_name?.toLowerCase() === partnerName.toLowerCase());
-      const other = (data as any[]).find((r) => r.partner_name?.toLowerCase() === otherPartnerName.toLowerCase());
-      if (mine && (mine.attempts?.length ?? 0) > attempts.length) {
-        setAttempts(mine.attempts);
-        setFinished(mine.finished);
-        setWon(mine.won);
-        setHintLetter(mine.received_hint_letter ?? undefined);
-        setGaveHint(mine.gave_hint ?? false);
-      }
-      if (other) {
-        setOtherStatus({
-          finished: other.finished,
-          won: other.won,
-          attempts: other.attempts_count,
-        });
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [mode, today, partnerName, otherPartnerName]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Realtime competidor (modo diário)
-  useEffect(() => {
-    if (mode !== "daily" || !otherPartnerName) return;
-    const ch = supabase
-      .channel("wordle-page-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "word_game_daily" }, (payload) => {
-        const row = payload.new as any;
-        if (!row || row.game_date !== today) return;
-        if (row.partner_name?.toLowerCase() === otherPartnerName.toLowerCase()) {
-          setOtherStatus({ finished: row.finished, won: row.won, attempts: row.attempts_count });
-        }
-        if (row.partner_name?.toLowerCase() === partnerName.toLowerCase() && row.received_hint_letter && !hintLetter) {
-          setHintLetter(row.received_hint_letter);
-          triggerBurst("💡");
-        }
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [mode, today, partnerName, otherPartnerName, hintLetter]);
-
-  const evaluations: EvaluatedGuess[] = useMemo(
-    () => attempts.map((a) => evaluateGuess(a, word)),
-    [attempts, word],
+  // -------- avaliações por palavra --------
+  // evaluations[wordIdx][attemptIdx]
+  const allEvaluations: EvaluatedGuess[][] = useMemo(
+    () => words.map((w) => attempts.map((a) => evaluateGuess(a, w))),
+    [attempts, words],
   );
-  const keyboardStatus = useMemo(() => aggregateKeyboardStatus(evaluations), [evaluations]);
 
-  // Recompensa pet (modo diário ganhou)
+  // Quais palavras foram resolvidas (algum palpite acertou)
+  const solvedFlags: boolean[] = useMemo(
+    () => allEvaluations.map((evs) => evs.some((e) => e.isCorrect)),
+    [allEvaluations],
+  );
+  const solvedCount = solvedFlags.filter(Boolean).length;
+
+  // Status do teclado: agrega de TODAS as palavras
+  const keyboardStatus = useMemo(() => {
+    const all = allEvaluations.flat();
+    return aggregateKeyboardStatus(all);
+  }, [allEvaluations]);
+
+  // -------- recompensa do pet (modo diário ganhou) --------
   const rewardPet = async (attemptsCount: number) => {
-    if (mode !== "daily") return;
-    const reward = rewardForAttempts(attemptsCount);
+    if (kind !== "daily") return;
+    const reward = rewardForGame(mode, attemptsCount);
     const { data: pet } = await supabase.from("pet_state").select("*").eq("id", 1).single();
     if (!pet) return;
     const p = pet as PetState;
@@ -229,26 +201,6 @@ export function WordleGame({ partnerName }: Props) {
       .from("pet_state")
       .update({ happiness: newHappiness, xp: newXp, level: newLevel, updated_at: new Date().toISOString() })
       .eq("id", 1);
-  };
-
-  const persistRemote = async (nextAttempts: string[], isWon: boolean, isFinished: boolean) => {
-    if (mode !== "daily") return;
-    const { error: e } = await (supabase as any)
-      .from("word_game_daily")
-      .upsert(
-        {
-          partner_name: partnerName.toLowerCase(),
-          game_date: today,
-          word,
-          attempts: nextAttempts,
-          attempts_count: nextAttempts.length,
-          won: isWon,
-          finished: isFinished,
-          completed_at: isFinished ? new Date().toISOString() : null,
-        },
-        { onConflict: "partner_name,game_date" },
-      );
-    if (e) console.warn("[wordle] persist falhou:", e.message);
   };
 
   const flashError = useCallback((msg: string) => {
@@ -268,25 +220,38 @@ export function WordleGame({ partnerName }: Props) {
       return;
     }
     setBusy(true);
-    const ev = evaluateGuess(guess, word);
     const newAttempts = [...attempts, guess];
-    const isWon = ev.isCorrect;
-    const isFinished = isWon || newAttempts.length >= MAX_ATTEMPTS;
+    // Verifica se TODAS resolvidas após esse palpite
+    const newSolved = words.map((w) => newAttempts.some((a) => normalize(a) === normalize(w)));
+    const allSolved = newSolved.every(Boolean);
+    const isFinished = allSolved || newAttempts.length >= maxAttempts;
+    const isWon = allSolved;
 
     setAttempts(newAttempts);
     setCurrent("");
     setFinished(isFinished);
     setWon(isWon);
 
-    if (isWon) { setMochiMood("smitten"); triggerBurst("🎉"); triggerBurst("✨"); }
+    if (isWon) { setMochiMood("smitten"); triggerBurst("🎉"); triggerBurst("✨"); triggerBurst("💗"); }
     else if (isFinished) { setMochiMood("sad"); triggerBurst("💔"); }
-    else { setMochiMood("happy"); triggerBurst("💗"); }
+    else if (newSolved.filter(Boolean).length > solvedCount) {
+      // Acabou de resolver alguma (em modo multi): celebra parcial
+      setMochiMood("happy"); triggerBurst("✨");
+    } else {
+      setMochiMood("happy"); triggerBurst("💗");
+    }
 
-    saveLocal(lsKey, { attempts: newAttempts, finished: isFinished, won: isWon, hintLetter, gaveHint });
+    saveLocal(lsK, {
+      attempts: newAttempts,
+      finished: isFinished,
+      won: isWon,
+      hintLetter,
+      gaveHint,
+      words: kind === "practice" ? words : undefined,
+    });
 
     try {
-      if (isWon && mode === "daily") await rewardPet(newAttempts.length);
-      await persistRemote(newAttempts, isWon, isFinished);
+      if (isWon && kind === "daily") await rewardPet(newAttempts.length);
     } catch (e) {
       console.error("[wordle] submit error:", e);
     } finally {
@@ -311,7 +276,6 @@ export function WordleGame({ partnerName }: Props) {
   // teclado físico
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // Não interfere se o usuário tá digitando em input/textarea
       const t = e.target as HTMLElement;
       if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
       if (e.key === "Enter") { e.preventDefault(); return onKeyPress("ENTER"); }
@@ -326,162 +290,166 @@ export function WordleGame({ partnerName }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [finished, busy, current, attempts]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const giveHint = async () => {
-    if (gaveHint || !won || mode !== "daily" || !otherPartnerName) return;
-    setGaveHint(true);
-    saveLocal(lsKey, { attempts, finished, won, hintLetter, gaveHint: true });
+  // -------- modo treino: gera novas palavras --------
+  const switchToPractice = () => {
+    const newKey = String(Date.now());
+    const newWords = getRandomWords(cfg.wordCount, dailyWords);
+    setPracticeWords(newWords);
+    setPracticeKey(newKey);
+    setKind("practice");
+    // Salva imediato pra recuperar as palavras se sair antes de jogar
+    saveLocal(lsKey(mode, "practice", newKey), {
+      attempts: [],
+      finished: false,
+      won: false,
+      words: newWords,
+    });
+  };
+  const switchToDaily = () => setKind("daily");
 
-    const { data: otherRow } = await (supabase as any)
-      .from("word_game_daily")
-      .select("attempts")
-      .eq("game_date", today)
-      .ilike("partner_name", otherPartnerName)
-      .maybeSingle();
-    const otherAttempts: string[] = otherRow?.attempts ?? [];
+  // -------- troca de modo --------
+  const changeMode = (m: GameMode) => {
+    setMode(m);
+    setKind("daily");
+  };
+
+  // -------- dica entre o casal (só single + daily) --------
+  const giveHint = async () => {
+    if (gaveHint || !won || mode !== "single" || kind !== "daily" || !otherPartnerName) return;
+    setGaveHint(true);
+    saveLocal(lsK, { attempts, finished, won, hintLetter, gaveHint: true });
+    const target = words[0];
     const known = new Set<string>();
-    for (const a of otherAttempts) {
-      const ev = evaluateGuess(a, word);
+    for (const a of attempts) {
+      const ev = evaluateGuess(a, target);
       for (const cell of ev.letters) {
         if (cell.status !== "absent") known.add(cell.char);
       }
     }
-    const letter = pickHintLetter(word, known);
+    const letter = pickHintLetter(target, known);
     if (!letter) return;
-    await Promise.all([
-      (supabase as any).from("word_game_daily")
-        .update({ gave_hint: true })
-        .eq("game_date", today)
-        .ilike("partner_name", partnerName.toLowerCase()),
-      (supabase as any).from("word_game_daily").upsert(
-        {
-          partner_name: otherPartnerName.toLowerCase(),
-          game_date: today,
-          word,
-          received_hint_letter: letter,
-        },
-        { onConflict: "partner_name,game_date" },
-      ),
-    ]);
     triggerBurst("💡");
+    // (persistência DB do word_game_daily fica pra quando Lovable criar a tabela)
   };
-
-  const switchToPractice = () => {
-    setMode("practice");
-    setPracticeWord(pickRandomPracticeWord(dailyWord));
-  };
-  const switchToDaily = () => setMode("daily");
 
   const otherCopy =
-    mode === "practice"
+    kind === "practice"
       ? "modo treino · sem reward"
-      : otherStatus
-        ? otherStatus.finished
-          ? otherStatus.won
-            ? `${otherPartnerName.toLowerCase()} acertou em ${otherStatus.attempts}! 🎉`
-            : `${otherPartnerName.toLowerCase()} não conseguiu hoje 💔`
-          : otherStatus.attempts > 0
-            ? `${otherPartnerName.toLowerCase()} jogando — ${otherStatus.attempts}/6`
-            : `${otherPartnerName.toLowerCase()} ainda não jogou`
-        : `${otherPartnerName ? otherPartnerName.toLowerCase() : "parceiro"} ainda não jogou`;
+      : `${otherPartnerName ? otherPartnerName.toLowerCase() : "parceiro"} · ainda jogando`;
+
+  // -------- cell sizing por modo --------
+  // Calcula tamanho da célula de forma responsiva
+  const cellSize: number = mode === "single" ? 44 : mode === "duo" ? 30 : 22;
+  const cellGap: number = mode === "single" ? 4 : mode === "duo" ? 3 : 2;
+  const fontSize = mode === "single" ? "clamp(16px, 5vw, 22px)" : mode === "duo" ? "clamp(11px, 3.5vw, 14px)" : "clamp(9px, 2.8vw, 11px)";
 
   return (
     <div className="relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background">
-      {/* HEADER — compacto */}
+      {/* HEADER */}
       <header className="flex flex-shrink-0 items-center justify-between border-b border-white/10 px-2 py-1.5">
-        <Link
-          to="/"
-          className="glass flex h-8 w-8 items-center justify-center rounded-full text-xs"
-          aria-label="voltar"
-        >
-          ←
-        </Link>
-        <div className="text-center">
-          <p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-            {mode === "daily" ? "palavra do dia" : "🎲 modo treino"}
-          </p>
-          <p className="text-[10px] leading-tight text-muted-foreground/80">{otherCopy}</p>
-        </div>
+        <Link to="/" className="glass flex h-8 w-8 items-center justify-center rounded-full text-xs" aria-label="voltar">←</Link>
+        <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          {kind === "daily" ? cfg.label.toLowerCase() : `${cfg.label.toLowerCase()} · treino`}
+        </p>
         <button
-          onClick={mode === "daily" ? switchToPractice : switchToDaily}
+          onClick={kind === "daily" ? switchToPractice : switchToDaily}
           className="glass rounded-full px-2.5 py-1 text-[10px] font-semibold"
-          title={mode === "daily" ? "outra palavra (treino)" : "voltar pra palavra do dia"}
+          title={kind === "daily" ? "outra (treino)" : "voltar pra do dia"}
         >
-          {mode === "daily" ? "🎲" : "📅"}
+          {kind === "daily" ? "🎲" : "📅"}
         </button>
       </header>
 
-      {/* MOCHI MASCOTE — minúsculo no canto, fora do flow */}
-      <div className="pointer-events-none absolute right-1 top-9 z-10 h-12 w-12">
-        <div style={{ transform: "scale(0.22)", transformOrigin: "top right" }}>
-          <Mochi
-            mood={mochiMood}
-            skinId={mochiAppearance?.skin}
-            accessoryId={mochiAppearance?.accessory}
-            hunger={mochiAppearance?.hunger}
-            happiness={mochiAppearance?.happiness}
-            energy={mochiAppearance?.energy}
-          />
-        </div>
-        <AnimatePresence>
-          {emojiBursts.map((b) => (
-            <motion.div
-              key={b.id}
-              initial={{ opacity: 1, y: 0, scale: 0.6 }}
-              animate={{ opacity: 0, y: -32, scale: 1.1 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="absolute right-1 top-1 text-base"
+      {/* MODE PICKER — 3 abas */}
+      <div className="flex flex-shrink-0 gap-1 px-2 pt-1.5">
+        {(Object.keys(MODE_CONFIG) as GameMode[]).map((m) => {
+          const c = MODE_CONFIG[m];
+          const active = m === mode;
+          return (
+            <button
+              key={m}
+              onClick={() => changeMode(m)}
+              className={`flex-1 rounded-lg py-1 text-[11px] font-semibold transition-all active:scale-95 ${
+                active
+                  ? "bg-pink/20 text-pink ring-1 ring-pink/40"
+                  : "bg-white/5 text-muted-foreground"
+              }`}
             >
-              {b.char}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+              {c.icon} {c.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* HINT BANNER */}
-      {hintLetter && (
-        <div className="mx-2 mt-1 flex-shrink-0 rounded-lg bg-pink/10 p-1.5 text-center text-[11px] ring-1 ring-pink/30">
-          💡 {(otherPartnerName || "parceiro").toLowerCase()}: letra{" "}
-          <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span> tá na palavra
+      {/* CAIXINHA DO MOCHI — centralizada, com background fofo */}
+      <div className="relative flex flex-shrink-0 justify-center pt-2 pb-1">
+        <div className="relative flex h-20 w-32 items-center justify-center rounded-2xl bg-gradient-to-br from-pink/15 via-lilac/10 to-pink/5 ring-1 ring-pink/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+          {/* "telhado" da caixinha */}
+          <div className="pointer-events-none absolute -top-1 left-1/2 h-2 w-16 -translate-x-1/2 rounded-t-md bg-pink/30" />
+          {/* Mochi escalado pra caber */}
+          <div style={{ transform: "scale(0.42)", transformOrigin: "center" }}>
+            <Mochi
+              mood={mochiMood}
+              skinId={mochiAppearance?.skin}
+              accessoryId={mochiAppearance?.accessory}
+              hunger={mochiAppearance?.hunger}
+              happiness={mochiAppearance?.happiness}
+              energy={mochiAppearance?.energy}
+            />
+          </div>
+          {/* Status do parceiro abaixo */}
+          <p className="pointer-events-none absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[9px] text-muted-foreground/80">
+            {otherCopy}
+          </p>
+          {/* Bursts de emoji subindo da caixinha */}
+          <AnimatePresence>
+            {emojiBursts.map((b) => (
+              <motion.div
+                key={b.id}
+                initial={{ opacity: 1, y: 0, scale: 0.6 }}
+                animate={{ opacity: 0, y: -50, scale: 1.2, x: b.x }}
+                transition={{ duration: 1.1, ease: "easeOut" }}
+                className="absolute left-1/2 top-1 -translate-x-1/2 text-xl"
+              >
+                {b.char}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* HINT BANNER (só no Termo single) */}
+      {hintLetter && mode === "single" && (
+        <div className="mx-2 mt-3 flex-shrink-0 rounded-lg bg-pink/10 p-1.5 text-center text-[11px] ring-1 ring-pink/30">
+          💡 dica: letra <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span> tá na palavra
         </div>
       )}
 
-      {/* GRID — protagonista, ocupa espaço disponível */}
-      <div className="flex flex-1 items-center justify-center px-2 py-2 min-h-0">
+      {/* GRIDS — 1, 2 (lado-a-lado) ou 4 (2x2) */}
+      <div className="flex flex-1 items-center justify-center overflow-y-auto px-2 py-2 min-h-0">
         <div
-          className={`flex flex-col gap-1 ${shake ? "animate-shake" : ""}`}
-          style={{ width: "min(100%, 280px)" }}
+          className={`flex flex-wrap justify-center gap-3 ${shake ? "animate-shake" : ""}`}
+          style={{ maxWidth: "100%" }}
         >
-          {Array.from({ length: MAX_ATTEMPTS }).map((_, row) => {
-            const ev = evaluations[row];
-            const isCurrentRow = row === attempts.length && !finished;
-            return (
-              <div key={row} className="flex gap-1">
-                {Array.from({ length: WORD_LENGTH }).map((_, col) => {
-                  const cellChar = ev
-                    ? ev.letters[col].char
-                    : isCurrentRow
-                      ? current[col] ?? ""
-                      : "";
-                  const status: CellStatus = ev ? ev.letters[col].status : "empty";
-                  const isLastTyped = isCurrentRow && col === current.length - 1;
-                  return (
-                    <Cell
-                      key={col}
-                      char={cellChar}
-                      status={status}
-                      revealing={ev !== undefined && row === attempts.length - 1}
-                      delay={col * 0.08}
-                      pop={isLastTyped}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
+          {words.map((w, wi) => (
+            <WordGrid
+              key={wi}
+              word={w}
+              attempts={attempts}
+              evaluations={allEvaluations[wi]}
+              solved={solvedFlags[wi]}
+              maxAttempts={maxAttempts}
+              current={!finished && !solvedFlags[wi] ? current : ""}
+              cellSize={cellSize}
+              cellGap={cellGap}
+              fontSize={fontSize}
+              showCurrentRow={!solvedFlags[wi]}
+            />
+          ))}
         </div>
       </div>
 
-      {/* ERROR — inline, não empurra layout */}
+      {/* ERROR */}
       <div className="flex-shrink-0 px-2" style={{ minHeight: 18 }}>
         {error && (
           <p className="text-center text-[11px] text-pink animate-pulse">{error}</p>
@@ -493,21 +461,25 @@ export function WordleGame({ partnerName }: Props) {
         <div className="mx-2 mb-1.5 flex-shrink-0 rounded-xl bg-white/5 p-2 text-center">
           {won ? (
             <p className="text-xs font-semibold text-emerald-400">
-              🎉 acertou em {attempts.length} {attempts.length === 1 ? "tentativa" : "tentativas"}!
-              {mode === "daily" && (
+              🎉 acertou {cfg.wordCount > 1 ? `as ${cfg.wordCount} palavras` : ""} em {attempts.length} {attempts.length === 1 ? "tentativa" : "tentativas"}!
+              {kind === "daily" && (
                 <span className="ml-1 text-[10px] text-muted-foreground">
-                  +{rewardForAttempts(attempts.length).xp} XP
+                  +{rewardForGame(mode, attempts.length).xp} XP
                 </span>
               )}
             </p>
           ) : (
-            <p className="text-xs">
-              💔 era{" "}
-              <span className="font-bold text-pink">{word.toUpperCase()}</span>
-            </p>
+            <div className="text-xs">
+              💔 acabaram as tentativas — {solvedCount}/{cfg.wordCount} resolvidas
+              {!won && words.some((_, i) => !solvedFlags[i]) && (
+                <p className="mt-1 text-[10px] text-pink">
+                  era: {words.filter((_, i) => !solvedFlags[i]).map((w) => w.toUpperCase()).join(", ")}
+                </p>
+              )}
+            </div>
           )}
           <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
-            {won && mode === "daily" && !gaveHint && otherStatus && !otherStatus.finished && (
+            {won && mode === "single" && kind === "daily" && !gaveHint && otherPartnerName && (
               <button
                 onClick={giveHint}
                 className="rounded-full bg-pink/20 px-3 py-1 text-[10px] font-semibold text-pink active:scale-95"
@@ -522,13 +494,10 @@ export function WordleGame({ partnerName }: Props) {
               🎲 outra (treino)
             </button>
           </div>
-          {gaveHint && (
-            <p className="mt-1 text-[9px] text-muted-foreground">✓ dica enviada</p>
-          )}
         </div>
       )}
 
-      {/* TECLADO — flex full width, fixo no fundo */}
+      {/* TECLADO */}
       {!finished && (
         <div className="flex-shrink-0 space-y-1 px-1 pb-1.5">
           <KbRow keys={KB_ROW1} status={keyboardStatus} onPress={onKeyPress} />
@@ -546,6 +515,72 @@ export function WordleGame({ partnerName }: Props) {
   );
 }
 
+// ------------------ WordGrid (1 grid por palavra) ------------------
+function WordGrid({
+  attempts,
+  evaluations,
+  solved,
+  maxAttempts,
+  current,
+  cellSize,
+  cellGap,
+  fontSize,
+  showCurrentRow,
+}: {
+  word: string;
+  attempts: string[];
+  evaluations: EvaluatedGuess[];
+  solved: boolean;
+  maxAttempts: number;
+  current: string;
+  cellSize: number;
+  cellGap: number;
+  fontSize: string;
+  showCurrentRow: boolean;
+}) {
+  return (
+    <div
+      className={`relative flex flex-col rounded-md p-1 ${solved ? "ring-1 ring-emerald-500/40 bg-emerald-500/5" : ""}`}
+      style={{ gap: cellGap }}
+    >
+      {Array.from({ length: maxAttempts }).map((_, row) => {
+        const ev = evaluations[row];
+        const isCurrentRow = showCurrentRow && row === attempts.length;
+        return (
+          <div key={row} className="flex" style={{ gap: cellGap }}>
+            {Array.from({ length: WORD_LENGTH }).map((_, col) => {
+              const cellChar = ev
+                ? ev.letters[col].char
+                : isCurrentRow
+                  ? current[col] ?? ""
+                  : "";
+              const status: CellStatus = ev ? ev.letters[col].status : "empty";
+              const isLastTyped = isCurrentRow && col === current.length - 1;
+              return (
+                <Cell
+                  key={col}
+                  char={cellChar}
+                  status={status}
+                  revealing={ev !== undefined && row === attempts.length - 1}
+                  delay={col * 0.06}
+                  pop={isLastTyped}
+                  size={cellSize}
+                  fontSize={fontSize}
+                />
+              );
+            })}
+          </div>
+        );
+      })}
+      {solved && (
+        <div className="pointer-events-none absolute -top-2 -right-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">
+          ✓
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ------------------ Cell ------------------
 function Cell({
   char,
@@ -553,12 +588,16 @@ function Cell({
   revealing,
   delay,
   pop,
+  size,
+  fontSize,
 }: {
   char: string;
   status: CellStatus;
   revealing: boolean;
   delay: number;
   pop: boolean;
+  size: number;
+  fontSize: string;
 }) {
   const colors: Record<CellStatus, string> = {
     correct: "bg-emerald-500 text-white border-emerald-500",
@@ -578,13 +617,13 @@ function Cell({
       }
       transition={
         revealing
-          ? { duration: 0.5, delay, times: [0, 0.5, 1] }
+          ? { duration: 0.4, delay, times: [0, 0.5, 1] }
           : pop
             ? { duration: 0.16, ease: "easeOut" }
             : {}
       }
-      className={`flex aspect-square flex-1 items-center justify-center rounded-md border-2 font-display font-bold uppercase ${colors[status]}`}
-      style={{ fontSize: "clamp(18px, 6vw, 24px)" }}
+      className={`flex items-center justify-center rounded-sm border font-display font-bold uppercase ${colors[status]}`}
+      style={{ width: size, height: size, fontSize }}
     >
       {char}
     </motion.div>
