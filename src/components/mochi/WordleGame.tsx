@@ -429,8 +429,8 @@ export function WordleGame({ partnerName }: Props) {
   const fontSize = gridConfig.fontSize;
   const gridWidth = gridConfig.gridWidth;
 
-  // título grande estilo term.ooo
-  const modeTitle = mode === "single" ? "TERMO" : mode === "duo" ? "DUETO" : "QUARTETO";
+  // título grande — nomenclatura própria do casal
+  const modeTitle = mode === "single" ? "PALAVRINHA" : mode === "duo" ? "DUPLINHA" : "QUADRINHA";
 
   return (
     <div className="game-container relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-gradient-to-b from-[#1C2638] to-[#0E1117] text-foreground">
