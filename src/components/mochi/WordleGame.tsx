@@ -703,7 +703,7 @@ function Keyboard({
   return (
     <div
       className="keyboard flex-shrink-0 px-1.5 pb-2 pt-1"
-      style={{ marginInline: "auto", width: "min(96vw, 520px)" }}
+      style={{ marginInline: "auto", width: "min(96vw, 720px)" }}
     >
       <KbRow keys={KB_ROW1} status={status} onPress={onLetter} disabled={disabled} />
       <KbRow keys={KB_ROW2} status={status} onPress={onLetter} disabled={disabled} />
