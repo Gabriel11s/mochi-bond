@@ -1,9 +1,6 @@
-// Página dedicada do caça-palavras — replica fluida do Termo com Mochi
-// animado em cima. Suporta:
-// - modo diário (palavra do dia, com recompensa pro pet)
-// - modo treino (qualquer palavra do pool, sem recompensa)
-// - persistência local (sai e volta no meio do jogo sem perder progresso)
-// - persistência remota só pro modo diário (pra ver progresso do parceiro)
+// Página dedicada do caça-palavras — Termo-style.
+// Layout: header → mochi mascote pequeno no canto + área de status →
+// grid centralizada → teclado fixo no rodapé. Mochi NÃO sobrepõe a grid.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
@@ -46,7 +43,6 @@ const todayKey = () => getTodayKey();
 const lsKeyDaily = (date: string) => `mochi-wordle:daily-${date}`;
 const lsKeyPractice = (word: string) => `mochi-wordle:practice-${word}`;
 
-// Pool sem o word do dia, pra modo treino
 function pickRandomPracticeWord(exclude: string): string {
   let attempts = 0;
   while (attempts < 20) {
@@ -68,10 +64,11 @@ function loadLocal(key: string): SavedState | null {
 
 function saveLocal(key: string, state: SavedState) {
   if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(state));
-  } catch { /* quota */ }
+  try { window.localStorage.setItem(key, JSON.stringify(state)); }
+  catch { /* quota */ }
 }
+
+let burstId = 0;
 
 export function WordleGame({ partnerName }: Props) {
   const today = useMemo(() => todayKey(), []);
@@ -94,17 +91,20 @@ export function WordleGame({ partnerName }: Props) {
   const [otherPartnerName, setOtherPartnerName] = useState<string>("");
   const [otherStatus, setOtherStatus] = useState<{ finished: boolean; won: boolean; attempts: number } | null>(null);
 
-  // Pra animação do Mochi reagir a cada tecla — keyTick incrementa a cada
-  // input, dispara key prop trocada que reinicia o motion.
-  const [keyTick, setKeyTick] = useState(0);
-  const [lastInputKey, setLastInputKey] = useState<string>("");
-  const [mochiReaction, setMochiReaction] = useState<Mood>("idle");
+  const [mochiMood, setMochiMood] = useState<Mood>("idle");
   const [mochiAppearance, setMochiAppearance] = useState<{ skin: string; accessory: string; hunger: number; happiness: number; energy: number } | null>(null);
-  // Letras flutuando de Mochi pra grid
-  const [flyingLetters, setFlyingLetters] = useState<Array<{ id: number; ch: string; targetCol: number }>>([]);
-  const flyingIdRef = useRef(0);
+  // Bursts de emoji que sobem da Mochi sem cobrir o grid
+  const [emojiBursts, setEmojiBursts] = useState<Array<{ id: number; char: string }>>([]);
 
-  // Carrega estado local na entrada e troca de modo
+  const triggerBurst = (char: string) => {
+    const id = ++burstId;
+    setEmojiBursts((prev) => [...prev, { id, char }]);
+    window.setTimeout(() => {
+      setEmojiBursts((prev) => prev.filter((b) => b.id !== id));
+    }, 900);
+  };
+
+  // Carrega estado local ao trocar palavra/modo
   useEffect(() => {
     if (!word) return;
     const saved = loadLocal(lsKey);
@@ -123,9 +123,10 @@ export function WordleGame({ partnerName }: Props) {
     }
     setCurrent("");
     setError(null);
+    setMochiMood("idle");
   }, [lsKey, word]);
 
-  // Carrega aparência atual do Mochi pra renderizar igual ao quartinho
+  // Aparência atual do Mochi
   useEffect(() => {
     supabase.from("pet_state").select("*").eq("id", 1).single().then(({ data }) => {
       if (!data) return;
@@ -140,7 +141,7 @@ export function WordleGame({ partnerName }: Props) {
     });
   }, []);
 
-  // Carrega nome do parceiro pro modo competitivo (e pra dica)
+  // Outro partner
   useEffect(() => {
     supabase
       .from("couple_settings")
@@ -157,20 +158,19 @@ export function WordleGame({ partnerName }: Props) {
       });
   }, [partnerName]);
 
-  // Sync com DB só no modo diário (pra competir + dica + reward)
+  // Sync DB no modo diário (estado próprio + competidor)
   useEffect(() => {
     if (mode !== "daily" || !otherPartnerName) return;
     let cancelled = false;
     (async () => {
-      const { data } = await (supabase as any)
+      const { data, error: e } = await (supabase as any)
         .from("word_game_daily")
         .select("*")
         .eq("game_date", today)
-        .in("partner_name", [partnerName, otherPartnerName]);
-      if (cancelled || !data) return;
+        .in("partner_name", [partnerName.toLowerCase(), otherPartnerName.toLowerCase(), partnerName, otherPartnerName]);
+      if (cancelled || e || !data) return;
       const mine = (data as any[]).find((r) => r.partner_name?.toLowerCase() === partnerName.toLowerCase());
       const other = (data as any[]).find((r) => r.partner_name?.toLowerCase() === otherPartnerName.toLowerCase());
-      // Se DB tem progresso mais avançado que local, usa DB (caso jogou em outro device)
       if (mine && (mine.attempts?.length ?? 0) > attempts.length) {
         setAttempts(mine.attempts);
         setFinished(mine.finished);
@@ -189,7 +189,7 @@ export function WordleGame({ partnerName }: Props) {
     return () => { cancelled = true; };
   }, [mode, today, partnerName, otherPartnerName]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Realtime do parceiro (modo diário)
+  // Realtime competidor (modo diário)
   useEffect(() => {
     if (mode !== "daily" || !otherPartnerName) return;
     const ch = supabase
@@ -202,6 +202,7 @@ export function WordleGame({ partnerName }: Props) {
         }
         if (row.partner_name?.toLowerCase() === partnerName.toLowerCase() && row.received_hint_letter && !hintLetter) {
           setHintLetter(row.received_hint_letter);
+          triggerBurst("💡");
         }
       })
       .subscribe();
@@ -214,10 +215,10 @@ export function WordleGame({ partnerName }: Props) {
   );
   const keyboardStatus = useMemo(() => aggregateKeyboardStatus(evaluations), [evaluations]);
 
-  // ---------- recompensa do pet (modo diário ganhou) ----------
-  const rewardPet = async () => {
+  // Recompensa pet (modo diário ganhou)
+  const rewardPet = async (attemptsCount: number) => {
     if (mode !== "daily") return;
-    const reward = rewardForAttempts(attempts.length + 1); // +1 pq vamos contar com a tentativa atual
+    const reward = rewardForAttempts(attemptsCount);
     const { data: pet } = await supabase.from("pet_state").select("*").eq("id", 1).single();
     if (!pet) return;
     const p = pet as PetState;
@@ -230,14 +231,13 @@ export function WordleGame({ partnerName }: Props) {
       .eq("id", 1);
   };
 
-  // ---------- persiste no DB (modo diário) ----------
   const persistRemote = async (nextAttempts: string[], isWon: boolean, isFinished: boolean) => {
     if (mode !== "daily") return;
     const { error: e } = await (supabase as any)
       .from("word_game_daily")
       .upsert(
         {
-          partner_name: partnerName,
+          partner_name: partnerName.toLowerCase(),
           game_date: today,
           word,
           attempts: nextAttempts,
@@ -248,26 +248,26 @@ export function WordleGame({ partnerName }: Props) {
         },
         { onConflict: "partner_name,game_date" },
       );
-    if (e) console.warn("[wordle] persist falhou — migration provavelmente pendente:", e.message);
+    if (e) console.warn("[wordle] persist falhou:", e.message);
   };
 
-  // ---------- handlers ----------
   const flashError = useCallback((msg: string) => {
     setError(msg);
     setShake(true);
-    setMochiReaction("sad");
+    setMochiMood("sad");
+    triggerBurst("❌");
     window.setTimeout(() => setShake(false), 350);
-    window.setTimeout(() => { setError(null); setMochiReaction("idle"); }, 1800);
+    window.setTimeout(() => { setError(null); setMochiMood("idle"); }, 1600);
   }, []);
 
   const submitGuess = async () => {
     if (busy || finished) return;
-    if (current.length !== WORD_LENGTH) {
-      flashError(`a palavra tem ${WORD_LENGTH} letras`);
+    const guess = normalize(current);
+    if (guess.length !== WORD_LENGTH) {
+      flashError(`palavra precisa ter ${WORD_LENGTH} letras`);
       return;
     }
     setBusy(true);
-    const guess = normalize(current);
     const ev = evaluateGuess(guess, word);
     const newAttempts = [...attempts, guess];
     const isWon = ev.isCorrect;
@@ -277,19 +277,15 @@ export function WordleGame({ partnerName }: Props) {
     setCurrent("");
     setFinished(isFinished);
     setWon(isWon);
-    setMochiReaction(isWon ? "smitten" : isFinished ? "sad" : "happy");
 
-    // Salva local sempre
-    saveLocal(lsKey, {
-      attempts: newAttempts,
-      finished: isFinished,
-      won: isWon,
-      hintLetter,
-      gaveHint,
-    });
+    if (isWon) { setMochiMood("smitten"); triggerBurst("🎉"); triggerBurst("✨"); }
+    else if (isFinished) { setMochiMood("sad"); triggerBurst("💔"); }
+    else { setMochiMood("happy"); triggerBurst("💗"); }
+
+    saveLocal(lsKey, { attempts: newAttempts, finished: isFinished, won: isWon, hintLetter, gaveHint });
 
     try {
-      if (isWon && mode === "daily") await rewardPet();
+      if (isWon && mode === "daily") await rewardPet(newAttempts.length);
       await persistRemote(newAttempts, isWon, isFinished);
     } catch (e) {
       console.error("[wordle] submit error:", e);
@@ -303,34 +299,28 @@ export function WordleGame({ partnerName }: Props) {
     if (key === "ENTER") return submitGuess();
     if (key === "BACK") {
       setCurrent((c) => c.slice(0, -1));
-      setLastInputKey("⌫");
-      setKeyTick((t) => t + 1);
-      setMochiReaction("idle");
+      setMochiMood("idle");
       return;
     }
     if (current.length >= WORD_LENGTH) return;
     if (!/^[a-z]$/.test(key)) return;
-
-    const targetCol = current.length;
     setCurrent((c) => c + key);
-    setLastInputKey(key);
-    setKeyTick((t) => t + 1);
-    setMochiReaction("happy");
-
-    // Spawna uma letra flutuante que vai do Mochi até a célula alvo
-    const id = ++flyingIdRef.current;
-    setFlyingLetters((prev) => [...prev, { id, ch: key, targetCol }]);
-    window.setTimeout(() => {
-      setFlyingLetters((prev) => prev.filter((l) => l.id !== id));
-    }, 380);
+    setMochiMood("happy");
   };
 
   // teclado físico
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter") return onKeyPress("ENTER");
-      if (e.key === "Backspace") return onKeyPress("BACK");
-      if (e.key.length === 1) return onKeyPress(e.key.toLowerCase());
+      // Não interfere se o usuário tá digitando em input/textarea
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (e.key === "Enter") { e.preventDefault(); return onKeyPress("ENTER"); }
+      if (e.key === "Backspace") { e.preventDefault(); return onKeyPress("BACK"); }
+      if (e.key.length === 1 && /^[a-zA-Zà-ú]$/.test(e.key)) {
+        e.preventDefault();
+        const norm = normalize(e.key);
+        if (norm) onKeyPress(norm);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -341,7 +331,6 @@ export function WordleGame({ partnerName }: Props) {
     setGaveHint(true);
     saveLocal(lsKey, { attempts, finished, won, hintLetter, gaveHint: true });
 
-    // Letras já descobertas pelo parceiro
     const { data: otherRow } = await (supabase as any)
       .from("word_game_daily")
       .select("attempts")
@@ -362,10 +351,10 @@ export function WordleGame({ partnerName }: Props) {
       (supabase as any).from("word_game_daily")
         .update({ gave_hint: true })
         .eq("game_date", today)
-        .ilike("partner_name", partnerName),
+        .ilike("partner_name", partnerName.toLowerCase()),
       (supabase as any).from("word_game_daily").upsert(
         {
-          partner_name: otherPartnerName,
+          partner_name: otherPartnerName.toLowerCase(),
           game_date: today,
           word,
           received_hint_letter: letter,
@@ -373,6 +362,7 @@ export function WordleGame({ partnerName }: Props) {
         { onConflict: "partner_name,game_date" },
       ),
     ]);
+    triggerBurst("💡");
   };
 
   const switchToPractice = () => {
@@ -383,109 +373,127 @@ export function WordleGame({ partnerName }: Props) {
 
   const otherCopy =
     mode === "practice"
-      ? "modo treino · sem recompensa"
+      ? "modo treino · sem reward"
       : otherStatus
         ? otherStatus.finished
           ? otherStatus.won
             ? `${otherPartnerName.toLowerCase()} acertou em ${otherStatus.attempts}! 🎉`
             : `${otherPartnerName.toLowerCase()} não conseguiu hoje 💔`
           : otherStatus.attempts > 0
-            ? `${otherPartnerName.toLowerCase()} tá tentando — ${otherStatus.attempts}/6`
+            ? `${otherPartnerName.toLowerCase()} jogando — ${otherStatus.attempts}/6`
             : `${otherPartnerName.toLowerCase()} ainda não jogou`
         : `${otherPartnerName ? otherPartnerName.toLowerCase() : "parceiro"} ainda não jogou`;
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col px-4 pb-6 pt-3">
-      {/* Top bar */}
-      <header className="flex items-center justify-between">
+    <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col bg-background pb-3">
+      {/* HEADER */}
+      <header className="flex items-center justify-between px-3 py-2 border-b border-white/10">
         <Link
           to="/"
-          className="glass flex h-10 w-10 items-center justify-center rounded-full text-sm"
+          className="glass flex h-9 w-9 items-center justify-center rounded-full text-sm"
           aria-label="voltar"
         >
           ←
         </Link>
         <div className="text-center">
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-            {mode === "daily" ? "palavra do dia" : "modo treino"}
+            {mode === "daily" ? "palavra do dia" : "🎲 modo treino"}
           </p>
-          <p className="text-xs text-muted-foreground">{otherCopy}</p>
+          <p className="text-[11px] text-muted-foreground/80">{otherCopy}</p>
         </div>
         <button
           onClick={mode === "daily" ? switchToPractice : switchToDaily}
           className="glass rounded-full px-3 py-1.5 text-[11px] font-semibold"
           title={mode === "daily" ? "outra palavra (treino)" : "voltar pra palavra do dia"}
         >
-          {mode === "daily" ? "🎲 outra" : "📅 do dia"}
+          {mode === "daily" ? "🎲" : "📅"}
         </button>
       </header>
 
-      {/* Mochi animado em cima — reage a cada input */}
-      <div className="relative mt-3 flex justify-center" style={{ height: 180 }}>
-        <MochiTyping
-          appearance={mochiAppearance}
-          reaction={mochiReaction}
-          tick={keyTick}
-          lastKey={lastInputKey}
-        />
+      {/* MOCHI MASCOTE no canto superior direito — bem pequeno, NÃO tampa nada */}
+      <div className="pointer-events-none absolute right-3 top-12 z-10" style={{ width: 64, height: 64 }}>
+        <div style={{ transform: "scale(0.32)", transformOrigin: "top right" }}>
+          <Mochi
+            mood={mochiMood}
+            skinId={mochiAppearance?.skin}
+            accessoryId={mochiAppearance?.accessory}
+            hunger={mochiAppearance?.hunger}
+            happiness={mochiAppearance?.happiness}
+            energy={mochiAppearance?.energy}
+          />
+        </div>
+        {/* Bursts de emoji subindo do mascote */}
+        <AnimatePresence>
+          {emojiBursts.map((b) => (
+            <motion.div
+              key={b.id}
+              initial={{ opacity: 1, y: 0, scale: 0.6 }}
+              animate={{ opacity: 0, y: -36, scale: 1.2 }}
+              transition={{ duration: 0.85, ease: "easeOut" }}
+              className="absolute right-2 top-2 text-lg"
+            >
+              {b.char}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
-      {/* Hint banner */}
+      {/* HINT BANNER */}
       {hintLetter && (
-        <div className="mt-1 rounded-xl bg-pink/10 p-2 text-center text-xs ring-1 ring-pink/30">
+        <div className="mx-3 mt-2 rounded-xl bg-pink/10 p-2 text-center text-xs ring-1 ring-pink/30">
           💡 {(otherPartnerName || "parceiro").toLowerCase()} te deu uma dica: a letra{" "}
           <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span>{" "}
           tá na palavra
         </div>
       )}
 
-      {/* Grid */}
-      <div
-        className={`relative mx-auto mt-4 flex flex-col gap-1.5 ${shake ? "animate-shake" : ""}`}
-        style={{ width: "fit-content" }}
-      >
-        {Array.from({ length: MAX_ATTEMPTS }).map((_, row) => {
-          const ev = evaluations[row];
-          const isCurrentRow = row === attempts.length && !finished;
-          return (
-            <div key={row} className="flex gap-1.5">
-              {Array.from({ length: WORD_LENGTH }).map((_, col) => {
-                const cellChar = ev
-                  ? ev.letters[col].char
-                  : isCurrentRow
-                    ? current[col] ?? ""
-                    : "";
-                const status: CellStatus = ev ? ev.letters[col].status : "empty";
-                const isLastTyped = isCurrentRow && col === current.length - 1;
-                return (
-                  <Cell
-                    key={col}
-                    char={cellChar}
-                    status={status}
-                    revealing={ev !== undefined && row === attempts.length - 1}
-                    delay={col * 0.08}
-                    pop={isLastTyped}
-                  />
-                );
-              })}
-            </div>
-          );
-        })}
-
-        {/* Letras flutuantes saindo do Mochi até a célula */}
-        <FlyingLayer letters={flyingLetters} />
+      {/* GRID — protagonista, centralizada, espaçada */}
+      <div className="flex flex-1 items-center justify-center py-4">
+        <div
+          className={`flex flex-col gap-1.5 ${shake ? "animate-shake" : ""}`}
+          style={{ width: "fit-content" }}
+        >
+          {Array.from({ length: MAX_ATTEMPTS }).map((_, row) => {
+            const ev = evaluations[row];
+            const isCurrentRow = row === attempts.length && !finished;
+            return (
+              <div key={row} className="flex gap-1.5">
+                {Array.from({ length: WORD_LENGTH }).map((_, col) => {
+                  const cellChar = ev
+                    ? ev.letters[col].char
+                    : isCurrentRow
+                      ? current[col] ?? ""
+                      : "";
+                  const status: CellStatus = ev ? ev.letters[col].status : "empty";
+                  const isLastTyped = isCurrentRow && col === current.length - 1;
+                  return (
+                    <Cell
+                      key={col}
+                      char={cellChar}
+                      status={status}
+                      revealing={ev !== undefined && row === attempts.length - 1}
+                      delay={col * 0.08}
+                      pop={isLastTyped}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
+      {/* ERROR */}
       {error && (
-        <p className="mt-2 text-center text-xs text-pink">{error}</p>
+        <p className="mx-3 -mt-2 mb-2 text-center text-xs text-pink animate-pulse">{error}</p>
       )}
 
-      {/* Estado final */}
+      {/* ESTADO FINAL */}
       {finished && (
-        <div className="mt-3 rounded-2xl bg-white/5 p-3 text-center">
+        <div className="mx-3 mb-3 rounded-2xl bg-white/5 p-3 text-center">
           {won ? (
             <p className="text-sm font-semibold text-emerald-400">
-              🎉 acertou em {attempts.length} tentativa{attempts.length > 1 ? "s" : ""}!
+              🎉 acertou em {attempts.length} {attempts.length === 1 ? "tentativa" : "tentativas"}!
               {mode === "daily" && (
                 <span className="ml-1 text-[11px] text-muted-foreground">
                   · +{rewardForAttempts(attempts.length).xp} XP
@@ -498,7 +506,6 @@ export function WordleGame({ partnerName }: Props) {
               <span className="font-bold text-pink">{word.toUpperCase()}</span>
             </p>
           )}
-          {/* Dica só faz sentido no modo diário */}
           {won && mode === "daily" && !gaveHint && otherStatus && !otherStatus.finished && (
             <button
               onClick={giveHint}
@@ -510,19 +517,18 @@ export function WordleGame({ partnerName }: Props) {
           {gaveHint && (
             <p className="mt-1 text-[10px] text-muted-foreground">✓ dica enviada</p>
           )}
-          {/* Já completou: oferece treinar em outra palavra */}
           <button
             onClick={switchToPractice}
             className="mt-3 inline-block rounded-full bg-gradient-to-r from-pink to-lilac px-5 py-2 text-xs font-bold text-white shadow-md transition-all active:scale-95"
           >
-            🎲 jogar outra (modo treino)
+            🎲 jogar outra (treino)
           </button>
         </div>
       )}
 
-      {/* Teclado virtual sempre visível, exceto quando terminou */}
+      {/* TECLADO — fixo no fundo */}
       {!finished && (
-        <div className="mt-auto pt-3 space-y-1.5">
+        <div className="space-y-1.5 px-2 pb-2">
           <KbRow keys={KB_ROW1} status={keyboardStatus} onPress={onKeyPress} />
           <KbRow keys={KB_ROW2} status={keyboardStatus} onPress={onKeyPress} />
           <div className="flex justify-center gap-1">
@@ -538,81 +544,7 @@ export function WordleGame({ partnerName }: Props) {
   );
 }
 
-// ------------------ Mochi com animação de digitação ------------------
-function MochiTyping({
-  appearance,
-  reaction,
-  tick,
-  lastKey,
-}: {
-  appearance: { skin: string; accessory: string; hunger: number; happiness: number; energy: number } | null;
-  reaction: Mood;
-  tick: number;
-  lastKey: string;
-}) {
-  // bounce key — força reanimação no Mochi a cada tecla
-  return (
-    <div className="relative flex flex-col items-center">
-      <motion.div
-        key={`bounce-${tick}`}
-        initial={{ scale: 1, y: 0 }}
-        animate={{ scale: [1, 1.06, 1], y: [0, -4, 0] }}
-        transition={{ duration: 0.28, ease: "easeOut" }}
-        style={{ transform: "scale(0.7)", transformOrigin: "center bottom" }}
-      >
-        <Mochi
-          mood={reaction}
-          bouncing={false}
-          skinId={appearance?.skin}
-          accessoryId={appearance?.accessory}
-          hunger={appearance?.hunger}
-          happiness={appearance?.happiness}
-          energy={appearance?.energy}
-        />
-      </motion.div>
-
-      {/* "balão" com a última tecla flutuando */}
-      <AnimatePresence mode="popLayout">
-        {lastKey && tick > 0 && (
-          <motion.div
-            key={`bubble-${tick}`}
-            initial={{ opacity: 0, y: 0, scale: 0.6 }}
-            animate={{ opacity: 1, y: -10, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.5 }}
-            transition={{ duration: 0.4 }}
-            className="absolute -top-2 right-2 rounded-full bg-pink/80 px-2 py-0.5 text-xs font-bold uppercase text-white shadow-lg"
-          >
-            {lastKey}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// Letras voando do Mochi até a célula da grid (efeito visual)
-function FlyingLayer({ letters }: { letters: Array<{ id: number; ch: string; targetCol: number }> }) {
-  return (
-    <AnimatePresence>
-      {letters.map((l) => (
-        <motion.div
-          key={l.id}
-          initial={{ opacity: 1, y: -120, x: 0, scale: 1 }}
-          animate={{ opacity: 0, y: 0, x: 0, scale: 1.1 }}
-          transition={{ duration: 0.36, ease: "easeIn" }}
-          className="pointer-events-none absolute top-0 z-20 flex h-12 w-12 items-center justify-center rounded-md bg-pink/80 font-display text-xl font-bold uppercase text-white shadow-lg"
-          style={{
-            left: l.targetCol * 54, // gap 6 + cell 48 ≈ 54
-          }}
-        >
-          {l.ch}
-        </motion.div>
-      ))}
-    </AnimatePresence>
-  );
-}
-
-// ------------------ Cell + Keyboard ------------------
+// ------------------ Cell ------------------
 function Cell({
   char,
   status,
@@ -627,10 +559,10 @@ function Cell({
   pop: boolean;
 }) {
   const colors: Record<CellStatus, string> = {
-    correct: "bg-emerald-500/90 text-white border-emerald-500",
-    present: "bg-yellow-500/90 text-white border-yellow-500",
+    correct: "bg-emerald-500 text-white border-emerald-500",
+    present: "bg-yellow-500 text-white border-yellow-500",
     absent: "bg-zinc-700/80 text-zinc-300 border-zinc-700",
-    empty: char ? "bg-white/10 border-pink/40" : "bg-white/5 border-white/15",
+    empty: char ? "bg-white/10 border-pink/50 text-foreground" : "bg-white/5 border-white/15 text-foreground",
   };
   return (
     <motion.div
@@ -639,23 +571,25 @@ function Cell({
         revealing
           ? { rotateX: [0, 90, 0] }
           : pop
-            ? { scale: [1, 1.15, 1] }
+            ? { scale: [1, 1.18, 1] }
             : {}
       }
       transition={
         revealing
           ? { duration: 0.5, delay, times: [0, 0.5, 1] }
           : pop
-            ? { duration: 0.18, ease: "easeOut" }
+            ? { duration: 0.16, ease: "easeOut" }
             : {}
       }
-      className={`flex h-12 w-12 items-center justify-center rounded-md border-2 font-display text-xl font-bold uppercase ${colors[status]}`}
+      className={`flex h-13 w-13 items-center justify-center rounded-md border-2 font-display text-2xl font-bold uppercase ${colors[status]}`}
+      style={{ width: 52, height: 52 }}
     >
       {char}
     </motion.div>
   );
 }
 
+// ------------------ Keyboard ------------------
 function KbRow({
   keys,
   status,
@@ -684,8 +618,8 @@ function Key({
   onPress: () => void;
 }) {
   const colors: Record<CellStatus, string> = {
-    correct: "bg-emerald-500/90 text-white",
-    present: "bg-yellow-500/90 text-white",
+    correct: "bg-emerald-500 text-white",
+    present: "bg-yellow-500 text-white",
     absent: "bg-zinc-800 text-zinc-500",
     empty: "bg-white/10 text-foreground hover:bg-white/15",
   };
@@ -693,8 +627,8 @@ function Key({
   return (
     <button
       onClick={onPress}
-      className={`h-11 min-w-7 flex-1 rounded-md font-semibold uppercase text-sm transition-colors active:scale-95 ${cls}`}
-      style={{ maxWidth: 38 }}
+      className={`h-12 flex-1 rounded-md font-bold uppercase text-base transition-all active:scale-90 ${cls}`}
+      style={{ minWidth: 28, maxWidth: 38 }}
     >
       {k}
     </button>
@@ -713,7 +647,7 @@ function SpecialKey({
   return (
     <button
       onClick={onPress}
-      className={`h-11 rounded-md bg-white/10 px-2 text-[11px] font-bold transition-colors hover:bg-white/15 active:scale-95 ${wide ? "min-w-12" : ""}`}
+      className={`h-12 rounded-md bg-pink/15 px-3 text-[11px] font-bold text-pink transition-all hover:bg-pink/25 active:scale-90 ${wide ? "min-w-14" : ""}`}
     >
       {label}
     </button>
