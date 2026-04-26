@@ -93,7 +93,7 @@ export function WordleGame({ partnerName }: Props) {
   const [otherStatus, setOtherStatus] = useState<{ finished: boolean; won: boolean; attempts: number } | null>(null);
 
   const [mochiMood, setMochiMood] = useState<Mood>("idle");
-  const [mochiAppearance, setMochiAppearance] = useState<{ skin: string; accessory: string; hunger: number; happiness: number; energy: number } | null>(null);
+  
   const [emojiBursts, setEmojiBursts] = useState<Array<{ id: number; char: string; x: number }>>([]);
 
   const triggerBurst = (char: string) => {
