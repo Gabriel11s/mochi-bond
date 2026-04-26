@@ -834,17 +834,18 @@ function SpecialKey({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`select-none rounded-md font-extrabold transition-all active:scale-90 ${
-        isEnter
-          ? "bg-pink text-white shadow-md active:bg-pink/90"
-          : "bg-pink/15 text-pink active:bg-pink/25"
-      }`}
+      className="select-none rounded-md font-extrabold transition-all active:scale-90"
       style={{
         height: 44,
         fontSize: isEnter ? "clamp(0.75rem, 2.6vw, 0.95rem)" : "clamp(0.65rem, 2.4vw, 0.85rem)",
         padding: isEnter ? "0 14px" : "0 8px",
         minWidth: isEnter ? 88 : 52,
         flex: isEnter ? "1.5 1 auto" : "0 0 auto",
+        background: isEnter
+          ? "var(--skin-accent)"
+          : "color-mix(in oklab, var(--skin-accent) 18%, transparent)",
+        color: isEnter ? "#fff" : "var(--skin-accent)",
+        boxShadow: isEnter ? "0 4px 14px color-mix(in oklab, var(--skin-accent) 35%, transparent)" : undefined,
       }}
     >
       {label}
