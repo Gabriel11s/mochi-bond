@@ -776,16 +776,28 @@ function Key({
 }
 
 function SpecialKey({
-  label, onClick, disabled,
+  label, onClick, disabled, variant = "backspace",
 }: {
   label: string; onClick: () => void; disabled: boolean;
+  variant?: "enter" | "backspace";
 }) {
+  const isEnter = variant === "enter";
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className="select-none rounded-md bg-pink/15 font-extrabold text-pink transition-all active:bg-pink/25 active:scale-90"
-      style={{ height: 44, fontSize: "clamp(0.65rem, 2.4vw, 0.8rem)", padding: "0 8px", minWidth: 52 }}
+      className={`select-none rounded-md font-extrabold transition-all active:scale-90 ${
+        isEnter
+          ? "bg-pink text-white shadow-md active:bg-pink/90"
+          : "bg-pink/15 text-pink active:bg-pink/25"
+      }`}
+      style={{
+        height: 44,
+        fontSize: isEnter ? "clamp(0.75rem, 2.6vw, 0.95rem)" : "clamp(0.65rem, 2.4vw, 0.85rem)",
+        padding: isEnter ? "0 14px" : "0 8px",
+        minWidth: isEnter ? 88 : 52,
+        flex: isEnter ? "1.5 1 auto" : "0 0 auto",
+      }}
     >
       {label}
     </button>
