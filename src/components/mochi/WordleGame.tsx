@@ -26,6 +26,7 @@ import {
 } from "@/lib/mochi-wordle";
 import type { PetState } from "@/lib/mochi-types";
 import { clamp } from "@/lib/mochi-types";
+import { getSkin, type Skin } from "@/lib/mochi-cosmetics";
 
 interface Props {
   partnerName: string;
