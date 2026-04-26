@@ -132,7 +132,7 @@ export function GalleryDrawer({
               nenhuma foto ainda 📷
               <br />
               <span className="text-xs">
-                mostra uma fotinho pro Mochi pra começar a galeria!
+                mostra uma fotinho pro pet pra começar a galeria!
               </span>
             </p>
           ) : (

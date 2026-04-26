@@ -1,21 +1,25 @@
-// Palavrinha do Bichinho — Wordle/Termo do casal seguindo spec.
-// Single mode: 5 letras × 6 tentativas, teclado virtual QWERTY,
-// modal de resultado, animações pop/flip/shake, recompensa pro pet.
+// Palavrinha — Wordle/Termo do casal seguindo spec.
+// 3 modos (single / duo / quartet). Cells string[5] com activeColumn —
+// tap em tile da row atual seta a coluna pra digitar ali.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
   WORD_LENGTH,
-  MAX_ATTEMPTS,
   WORD_POOL,
+  MODE_CONFIG,
   getDailyWord,
+  getDailyWords,
+  getRandomWords,
   getTodayKey,
   normalize,
   evaluateGuess,
   aggregateKeyboardStatus,
   calculateReward,
+  rewardForGame,
   pickHintLetter,
+  type GameMode,
   type EvaluatedGuess,
   type CellStatus,
 } from "@/lib/mochi-wordle";
@@ -27,7 +31,7 @@ interface Props {
 }
 
 interface SavedState {
-  word?: string;
+  words?: string[]; // pra modo treino
   attempts: string[];
   status: "playing" | "won" | "lost";
   hintLetter?: string;
@@ -38,8 +42,8 @@ const KB_ROW1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"];
 const KB_ROW2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"];
 const KB_ROW3 = ["z", "x", "c", "v", "b", "n", "m"];
 
-const lsKey = (kind: "daily" | "practice", k: string) =>
-  `mochi-palavrinha:${kind}-${k}`;
+const lsKey = (mode: GameMode, kind: "daily" | "practice", k: string) =>
+  `mochi-palavrinha:${mode}:${kind}-${k}`;
 
 function loadLocal(key: string): SavedState | null {
   if (typeof window === "undefined") return null;
@@ -53,21 +57,31 @@ function saveLocal(key: string, state: SavedState) {
   try { window.localStorage.setItem(key, JSON.stringify(state)); } catch {}
 }
 
+const emptyCells = (): string[] => Array(WORD_LENGTH).fill("");
 let burstId = 0;
 
 export function WordleGame({ partnerName }: Props) {
   const today = useMemo(() => getTodayKey(), []);
 
+  // ---------- modo + palavras ----------
+  const [mode, setMode] = useState<GameMode>("single");
   const [kind, setKind] = useState<"daily" | "practice">("daily");
-  const [practiceWord, setPracticeWord] = useState<string>("");
+  const [practiceWords, setPracticeWords] = useState<string[]>([]);
   const [practiceKey, setPracticeKey] = useState<string>("0");
 
-  const dailyWord = useMemo(() => getDailyWord(), []);
-  const word = kind === "daily" ? dailyWord : practiceWord;
-  const lsK = kind === "daily" ? lsKey("daily", today) : lsKey("practice", practiceKey);
+  const cfg = MODE_CONFIG[mode];
+  const dailyWords = useMemo(
+    () => (mode === "single" ? [getDailyWord()] : getDailyWords(cfg.wordCount)),
+    [mode], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  const words = kind === "daily" ? dailyWords : practiceWords;
+  const lsK = lsKey(mode, kind, kind === "daily" ? today : practiceKey);
+  const maxAttempts = cfg.maxAttempts;
 
+  // ---------- estado do jogo ----------
   const [attempts, setAttempts] = useState<string[]>([]);
-  const [current, setCurrent] = useState("");
+  const [cells, setCells] = useState<string[]>(emptyCells);
+  const [activeColumn, setActiveColumn] = useState(0);
   const [status, setStatus] = useState<"playing" | "won" | "lost">("playing");
   const [hintLetter, setHintLetter] = useState<string | undefined>();
   const [gaveHint, setGaveHint] = useState(false);
@@ -87,15 +101,15 @@ export function WordleGame({ partnerName }: Props) {
 
   // ---------- carrega estado salvo ----------
   useEffect(() => {
-    if (!word) return;
+    if (words.length === 0) return;
     const saved = loadLocal(lsK);
     if (saved) {
       setAttempts(saved.attempts ?? []);
       setStatus(saved.status ?? "playing");
       setHintLetter(saved.hintLetter);
       setGaveHint(saved.gaveHint ?? false);
-      if (kind === "practice" && saved.word && !practiceWord) {
-        setPracticeWord(saved.word);
+      if (kind === "practice" && saved.words?.length && practiceWords.length === 0) {
+        setPracticeWords(saved.words);
       }
     } else {
       setAttempts([]);
@@ -103,11 +117,12 @@ export function WordleGame({ partnerName }: Props) {
       setHintLetter(undefined);
       setGaveHint(false);
     }
-    setCurrent("");
+    setCells(emptyCells());
+    setActiveColumn(0);
     setMessage(null);
-  }, [lsK, word]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [lsK]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Outro partner
+  // ---------- outro partner ----------
   useEffect(() => {
     supabase.from("couple_settings")
       .select("partner_one_name, partner_two_name")
@@ -121,9 +136,9 @@ export function WordleGame({ partnerName }: Props) {
       });
   }, [partnerName]);
 
-  // Status do parceiro + dica recebida (modo diário) + realtime
+  // ---------- sync DB (single + daily só, pra não complicar) ----------
   useEffect(() => {
-    if (kind !== "daily" || !otherPartnerName) return;
+    if (mode !== "single" || kind !== "daily" || !otherPartnerName) return;
     let cancelled = false;
     (async () => {
       const { data: other } = await supabase
@@ -145,9 +160,7 @@ export function WordleGame({ partnerName }: Props) {
         .ilike("partner_name", partnerName)
         .maybeSingle();
       if (cancelled || !mine) return;
-      if (mine.received_hint_letter && !hintLetter) {
-        setHintLetter(mine.received_hint_letter);
-      }
+      if (mine.received_hint_letter && !hintLetter) setHintLetter(mine.received_hint_letter);
       if (mine.gave_hint) setGaveHint(true);
     })();
 
@@ -172,14 +185,27 @@ export function WordleGame({ partnerName }: Props) {
       })
       .subscribe();
     return () => { cancelled = true; supabase.removeChannel(ch); };
-  }, [kind, today, partnerName, otherPartnerName]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mode, kind, today, partnerName, otherPartnerName]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const evaluations: EvaluatedGuess[] = useMemo(
-    () => attempts.map((a) => evaluateGuess(a, word)),
-    [attempts, word],
+  // ---------- evaluations por palavra (truncadas no acerto) ----------
+  const allEvaluations: EvaluatedGuess[][] = useMemo(() => {
+    return words.map((w) => {
+      const evs = attempts.map((a) => evaluateGuess(a, w));
+      const solvedAt = evs.findIndex((e) => e.isCorrect);
+      return solvedAt === -1 ? evs : evs.slice(0, solvedAt + 1);
+    });
+  }, [attempts, words]);
+  const solvedFlags = useMemo(
+    () => allEvaluations.map((evs) => evs.length > 0 && evs[evs.length - 1].isCorrect),
+    [allEvaluations],
   );
-  const keyboardStatus = useMemo(() => aggregateKeyboardStatus(evaluations), [evaluations]);
+  const solvedCount = solvedFlags.filter(Boolean).length;
+  const keyboardStatus = useMemo(
+    () => aggregateKeyboardStatus(allEvaluations.flat()),
+    [allEvaluations],
+  );
 
+  // ---------- mensagens / shake ----------
   const showMessage = useCallback((msg: string, duration = 1800) => {
     setMessage(msg);
     window.setTimeout(() => setMessage(null), duration);
@@ -189,9 +215,14 @@ export function WordleGame({ partnerName }: Props) {
     window.setTimeout(() => setShake(false), 350);
   }, []);
 
+  // ---------- recompensa ----------
   const rewardPet = async (attemptsCount: number, finalStatus: "won" | "lost") => {
     if (kind !== "daily") return;
-    const reward = calculateReward(attemptsCount, finalStatus);
+    const reward = mode === "single"
+      ? calculateReward(attemptsCount, finalStatus)
+      : finalStatus === "won"
+        ? rewardForGame(mode, attemptsCount)
+        : { xp: 3, happiness: 3 };
     const { data: pet } = await supabase.from("pet_state").select("*").eq("id", 1).single();
     if (!pet) return;
     const p = pet as PetState;
@@ -204,12 +235,13 @@ export function WordleGame({ partnerName }: Props) {
     }).eq("id", 1);
   };
 
+  // ---------- persist remote (single+daily) ----------
   const persistRemote = async (newAttempts: string[], finalStatus: "playing" | "won" | "lost") => {
-    if (kind !== "daily") return;
+    if (mode !== "single" || kind !== "daily") return;
     const { error: e } = await supabase.from("word_game_daily").upsert({
       partner_name: partnerName.toLowerCase(),
       game_date: today,
-      word,
+      word: words[0],
       attempts: newAttempts,
       attempts_count: newAttempts.length,
       won: finalStatus === "won",
@@ -219,9 +251,12 @@ export function WordleGame({ partnerName }: Props) {
     if (e) console.warn("[wordle] persist falhou:", e.message);
   };
 
+  // ---------- input ----------
+  const currentString = cells.join("");
+
   const handleSubmit = async () => {
     if (status !== "playing" || busy) return;
-    const guess = normalize(current);
+    const guess = normalize(currentString);
     if (guess.length < WORD_LENGTH) {
       showMessage(`digite uma palavra com ${WORD_LENGTH} letras`);
       triggerShake();
@@ -229,20 +264,23 @@ export function WordleGame({ partnerName }: Props) {
     }
     setBusy(true);
     const newAttempts = [...attempts, guess];
-    const isWon = guess === normalize(word);
-    const isLost = !isWon && newAttempts.length >= MAX_ATTEMPTS;
-    const newStatus: "playing" | "won" | "lost" = isWon ? "won" : isLost ? "lost" : "playing";
+    const newSolved = words.map((w) => newAttempts.some((a) => normalize(a) === normalize(w)));
+    const allSolved = newSolved.every(Boolean);
+    const isLost = !allSolved && newAttempts.length >= maxAttempts;
+    const newStatus: "playing" | "won" | "lost" = allSolved ? "won" : isLost ? "lost" : "playing";
 
     setAttempts(newAttempts);
-    setCurrent("");
+    setCells(emptyCells());
+    setActiveColumn(0);
     setStatus(newStatus);
 
-    if (isWon) { triggerBurst("🎉"); triggerBurst("✨"); triggerBurst("💗"); }
+    if (allSolved) { triggerBurst("🎉"); triggerBurst("✨"); triggerBurst("💗"); }
     else if (isLost) triggerBurst("💔");
+    else if (newSolved.filter(Boolean).length > solvedCount) triggerBurst("✨");
     else triggerBurst("💗");
 
     saveLocal(lsK, {
-      word: kind === "practice" ? word : undefined,
+      words: kind === "practice" ? words : undefined,
       attempts: newAttempts,
       status: newStatus,
       hintLetter, gaveHint,
@@ -257,19 +295,49 @@ export function WordleGame({ partnerName }: Props) {
     setBusy(false);
   };
 
+  // Coloca letra na activeColumn; pula slots já cheios pra avançar
   const handleLetter = (raw: string) => {
     if (status !== "playing") return;
     const ch = normalize(raw);
     if (!/^[a-z]$/.test(ch)) return;
-    if (current.length >= WORD_LENGTH) return;
-    setCurrent((c) => c + ch);
-  };
-  const handleBackspace = () => {
-    if (status !== "playing") return;
-    setCurrent((c) => c.slice(0, -1));
+    setCells((prev) => {
+      const next = [...prev];
+      next[activeColumn] = ch;
+      return next;
+    });
+    // Avança pro próximo slot vazio (ou stay no último)
+    setActiveColumn((c) => {
+      let next = c + 1;
+      while (next < WORD_LENGTH && cells[next] !== "") next++;
+      return Math.min(next, WORD_LENGTH - 1);
+    });
   };
 
-  // teclado físico (desktop)
+  // Backspace inteligente: se a célula atual tem letra → apaga ela.
+  // Senão, anda pra trás, apaga a célula anterior, foca nela.
+  const handleBackspace = () => {
+    if (status !== "playing") return;
+    setCells((prev) => {
+      const next = [...prev];
+      if (next[activeColumn] !== "") {
+        next[activeColumn] = "";
+      } else if (activeColumn > 0) {
+        next[activeColumn - 1] = "";
+      }
+      return next;
+    });
+    setActiveColumn((c) => {
+      if (cells[c] !== "") return c;
+      return Math.max(0, c - 1);
+    });
+  };
+
+  const handleTileTap = (col: number) => {
+    if (status !== "playing") return;
+    setActiveColumn(col);
+  };
+
+  // ---------- teclado físico ----------
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
@@ -283,31 +351,38 @@ export function WordleGame({ partnerName }: Props) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [status, busy, current, attempts]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, busy, cells, activeColumn, attempts]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ---------- ações ----------
   const startNewPractice = () => {
-    const pool = WORD_POOL.filter((w) => w !== dailyWord);
-    const w = pool[Math.floor(Math.random() * pool.length)];
+    const newWords = getRandomWords(cfg.wordCount, dailyWords);
     const k = String(Date.now());
-    setPracticeWord(w);
+    setPracticeWords(newWords);
     setPracticeKey(k);
     setKind("practice");
-    saveLocal(lsKey("practice", k), { word: w, attempts: [], status: "playing" });
+    saveLocal(lsKey(mode, "practice", k), {
+      words: newWords, attempts: [], status: "playing",
+    });
   };
   const backToDaily = () => setKind("daily");
+  const changeMode = (m: GameMode) => {
+    setMode(m);
+    setKind("daily");
+  };
 
   const giveHint = async () => {
-    if (gaveHint || status !== "won" || kind !== "daily" || !otherPartnerName) return;
+    if (gaveHint || status !== "won" || mode !== "single" || kind !== "daily" || !otherPartnerName) return;
     setGaveHint(true);
     saveLocal(lsK, { attempts, status, hintLetter, gaveHint: true });
+    const target = words[0];
     const known = new Set<string>();
     for (const a of attempts) {
-      const ev = evaluateGuess(a, word);
+      const ev = evaluateGuess(a, target);
       for (const cell of ev.letters) {
         if (cell.status !== "absent") known.add(cell.char);
       }
     }
-    const letter = pickHintLetter(word, known);
+    const letter = pickHintLetter(target, known);
     if (!letter) return;
     triggerBurst("💡");
     showMessage(`💡 dica enviada pro ${otherPartnerName.toLowerCase()}`);
@@ -319,7 +394,7 @@ export function WordleGame({ partnerName }: Props) {
       supabase.from("word_game_daily").upsert({
         partner_name: otherPartnerName.toLowerCase(),
         game_date: today,
-        word,
+        word: target,
         received_hint_letter: letter,
       }, { onConflict: "partner_name,game_date" }),
     ]);
@@ -327,21 +402,29 @@ export function WordleGame({ partnerName }: Props) {
 
   const otherCopy =
     kind === "practice"
-      ? "modo treino · sem reward"
-      : `${otherPartnerName ? otherPartnerName.toLowerCase() : "parceiro"}: ${
-          otherStatus?.status === "won"
-            ? `acertou em ${otherStatus.attempts}!`
-            : otherStatus?.status === "lost"
-              ? "não conseguiu"
-              : "ainda jogando"
-        }`;
+      ? "modo treino"
+      : mode !== "single"
+        ? "modo competitivo só no termo"
+        : `${otherPartnerName ? otherPartnerName.toLowerCase() : "parceiro"}: ${
+            otherStatus?.status === "won" ? `acertou em ${otherStatus.attempts}!`
+            : otherStatus?.status === "lost" ? "não conseguiu"
+            : "ainda jogando"
+          }`;
+
+  // ---------- cell sizing por modo ----------
+  const cellSize: number = mode === "single" ? 50 : mode === "duo" ? 34 : 24;
+  const cellGap: number = mode === "single" ? 6 : mode === "duo" ? 4 : 2;
+  const fontSize = mode === "single"
+    ? "clamp(1.2rem, 5.5vw, 1.9rem)"
+    : mode === "duo"
+      ? "clamp(0.9rem, 3.8vw, 1.2rem)"
+      : "clamp(0.65rem, 2.6vw, 0.9rem)";
 
   return (
     <div className="game-container relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-gradient-to-b from-[#1C2638] to-[#0E1117] text-foreground">
       {/* HEADER */}
-      <header className="relative flex flex-shrink-0 items-center justify-between border-b border-white/10 px-3 py-2.5">
+      <header className="relative flex flex-shrink-0 items-center justify-between border-b border-white/10 px-3 py-2">
         <Link to="/" className="glass flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs" aria-label="voltar">←</Link>
-
         <div className="text-center">
           <p className="font-display text-sm font-extrabold tracking-wide text-foreground">
             🌸 palavrinha
@@ -350,7 +433,6 @@ export function WordleGame({ partnerName }: Props) {
             {otherCopy}
           </p>
         </div>
-
         <button
           onClick={kind === "daily" ? startNewPractice : backToDaily}
           className="glass flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"
@@ -359,7 +441,7 @@ export function WordleGame({ partnerName }: Props) {
           {kind === "daily" ? "🎲" : "📅"}
         </button>
 
-        {/* Bursts flutuando do centro do header */}
+        {/* Bursts */}
         <div className="pointer-events-none absolute left-1/2 top-full z-20 -translate-x-1/2">
           <AnimatePresence>
             {bursts.map((b) => (
@@ -377,8 +459,27 @@ export function WordleGame({ partnerName }: Props) {
         </div>
       </header>
 
+      {/* MODE PICKER */}
+      <div className="flex flex-shrink-0 gap-1 px-2 pt-1.5">
+        {(Object.keys(MODE_CONFIG) as GameMode[]).map((m) => {
+          const c = MODE_CONFIG[m];
+          const active = m === mode;
+          return (
+            <button
+              key={m}
+              onClick={() => changeMode(m)}
+              className={`flex-1 rounded-lg py-1 text-[11px] font-semibold transition-all active:scale-95 ${
+                active ? "bg-pink/20 text-pink ring-1 ring-pink/40" : "bg-white/5 text-muted-foreground"
+              }`}
+            >
+              {c.icon} {c.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* MENSAGEM TEMPORÁRIA */}
-      <div className="flex-shrink-0 px-2" style={{ minHeight: 24 }}>
+      <div className="flex-shrink-0 px-2" style={{ minHeight: 20 }}>
         <AnimatePresence>
           {message && (
             <motion.p
@@ -394,56 +495,41 @@ export function WordleGame({ partnerName }: Props) {
       </div>
 
       {/* HINT */}
-      {hintLetter && status === "playing" && (
+      {hintLetter && status === "playing" && mode === "single" && (
         <div className="mx-3 mb-1 flex-shrink-0 rounded-lg bg-pink/10 p-1.5 text-center text-[11px] ring-1 ring-pink/30">
           💡 dica do {(otherPartnerName || "parceiro").toLowerCase()}: letra{" "}
           <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span>
         </div>
       )}
 
-      {/* BOARD */}
-      <main className="game-main flex flex-1 items-center justify-center px-3 py-2 min-h-0">
+      {/* GRIDS */}
+      <main className="game-main flex flex-1 items-start justify-center overflow-y-auto px-3 py-2 min-h-0">
         <div
-          className="grid w-full"
+          className={`grid w-full justify-center ${shake ? "animate-shake" : ""}`}
           style={{
-            maxWidth: "min(94vw, 360px)",
-            gridTemplateRows: `repeat(${MAX_ATTEMPTS}, 1fr)`,
-            gap: "8px",
+            gridTemplateColumns: mode === "single" ? "1fr" : "repeat(2, max-content)",
+            gap: 12,
+            justifyItems: "center",
           }}
         >
-          {Array.from({ length: MAX_ATTEMPTS }).map((_, row) => {
-            const ev = evaluations[row];
-            const isCurrent = row === attempts.length && status === "playing";
-            const rowShake = isCurrent && shake;
-            return (
-              <div
-                key={row}
-                className={`grid ${rowShake ? "animate-shake" : ""}`}
-                style={{ gridTemplateColumns: "repeat(5, 1fr)", gap: "8px" }}
-              >
-                {Array.from({ length: WORD_LENGTH }).map((_, col) => {
-                  const ch = ev
-                    ? ev.letters[col].char
-                    : isCurrent
-                      ? current[col] ?? ""
-                      : "";
-                  const cellStatus: CellStatus = ev ? ev.letters[col].status : "empty";
-                  const isLastTyped = isCurrent && col === current.length - 1;
-                  return (
-                    <Tile
-                      key={col}
-                      char={ch}
-                      status={cellStatus}
-                      filled={!!ch && !ev}
-                      revealing={ev !== undefined && row === attempts.length - 1}
-                      delay={col * 0.12}
-                      pop={isLastTyped}
-                    />
-                  );
-                })}
-              </div>
-            );
-          })}
+          {words.map((w, wi) => (
+            <WordGrid
+              key={wi}
+              wordIndex={wi}
+              total={words.length}
+              attempts={attempts}
+              evaluations={allEvaluations[wi]}
+              solved={solvedFlags[wi]}
+              maxAttempts={maxAttempts}
+              cells={cells}
+              activeColumn={activeColumn}
+              isPlaying={status === "playing"}
+              cellSize={cellSize}
+              cellGap={cellGap}
+              fontSize={fontSize}
+              onTileTap={handleTileTap}
+            />
+          ))}
         </div>
       </main>
 
@@ -461,8 +547,10 @@ export function WordleGame({ partnerName }: Props) {
         {status !== "playing" && (
           <ResultModal
             status={status}
-            word={word}
+            words={words}
+            solvedFlags={solvedFlags}
             attempts={attempts.length}
+            mode={mode}
             kind={kind}
             otherPartnerName={otherPartnerName}
             gaveHint={gaveHint}
@@ -476,11 +564,77 @@ export function WordleGame({ partnerName }: Props) {
 }
 
 // ============================================================
-function Tile({
-  char, status, filled, revealing, delay, pop,
+// WordGrid — uma palavra (5 cols × maxAttempts rows)
+// ============================================================
+function WordGrid({
+  wordIndex, total, attempts, evaluations, solved, maxAttempts,
+  cells, activeColumn, isPlaying, cellSize, cellGap, fontSize, onTileTap,
 }: {
-  char: string; status: CellStatus; filled: boolean;
-  revealing: boolean; delay: number; pop: boolean;
+  wordIndex: number; total: number;
+  attempts: string[]; evaluations: EvaluatedGuess[]; solved: boolean;
+  maxAttempts: number;
+  cells: string[]; activeColumn: number; isPlaying: boolean;
+  cellSize: number; cellGap: number; fontSize: string;
+  onTileTap: (col: number) => void;
+}) {
+  const evCount = evaluations.length;
+  return (
+    <div
+      className={`relative flex flex-col rounded-lg p-1.5 transition-all ${
+        solved
+          ? "bg-emerald-500/10 ring-1 ring-emerald-500/40"
+          : total > 1 ? "bg-white/5 ring-1 ring-white/10" : ""
+      }`}
+      style={{ gap: cellGap }}
+    >
+      {total > 1 && (
+        <p className="mb-0.5 text-center text-[8px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+          palavra {wordIndex + 1}/{total} {solved && "✓"}
+        </p>
+      )}
+      {Array.from({ length: maxAttempts }).map((_, row) => {
+        const ev = evaluations[row];
+        const isCurrentRow = isPlaying && !solved && row === attempts.length;
+        return (
+          <div key={row} className="flex" style={{ gap: cellGap }}>
+            {Array.from({ length: WORD_LENGTH }).map((_, col) => {
+              const ch = ev
+                ? ev.letters[col].char
+                : isCurrentRow
+                  ? cells[col] ?? ""
+                  : "";
+              const cellStatus: CellStatus = ev ? ev.letters[col].status : "empty";
+              const isActive = isCurrentRow && col === activeColumn;
+              return (
+                <Tile
+                  key={col}
+                  char={ch}
+                  status={cellStatus}
+                  filled={!!ch && !ev}
+                  active={isActive}
+                  revealing={ev !== undefined && row === evCount - 1}
+                  delay={col * 0.1}
+                  size={cellSize}
+                  fontSize={fontSize}
+                  clickable={isCurrentRow}
+                  onClick={isCurrentRow ? () => onTileTap(col) : undefined}
+                />
+              );
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================
+function Tile({
+  char, status, filled, active, revealing, delay, size, fontSize, clickable, onClick,
+}: {
+  char: string; status: CellStatus; filled: boolean; active: boolean;
+  revealing: boolean; delay: number; size: number; fontSize: string;
+  clickable: boolean; onClick?: () => void;
 }) {
   const colorByStatus: Record<CellStatus, string> = {
     correct: "bg-[#36A269] border-[#36A269] text-white",
@@ -490,25 +644,31 @@ function Tile({
       ? "bg-white/5 border-white/45 text-foreground"
       : "bg-white/5 border-white/15 text-foreground",
   };
+  // Active highlight: borda e ring rosa quando é a coluna focada
+  const activeRing = active ? "ring-2 ring-pink ring-offset-1 ring-offset-[#0E1117]" : "";
+  const cls = `${colorByStatus[status]} ${activeRing} ${clickable ? "cursor-pointer" : ""}`;
   return (
-    <motion.div
+    <motion.button
+      type="button"
+      onClick={onClick}
       key={revealing ? `rev-${delay}` : undefined}
-      initial={revealing ? { rotateX: 0 } : pop ? { scale: 1 } : false}
+      initial={revealing ? { rotateX: 0 } : filled ? { scale: 1 } : false}
       animate={
         revealing ? { rotateX: [0, 90, 0] }
-        : pop ? { scale: [1, 1.08, 1] }
+        : filled ? { scale: [1, 1.06, 1] }
         : {}
       }
       transition={
         revealing ? { duration: 0.45, delay, times: [0, 0.5, 1] }
-        : pop ? { duration: 0.18, ease: "easeOut" }
+        : filled ? { duration: 0.16, ease: "easeOut" }
         : {}
       }
-      className={`flex aspect-square items-center justify-center rounded-xl border-2 font-display font-extrabold uppercase shadow-sm ${colorByStatus[status]}`}
-      style={{ fontSize: "clamp(1.2rem, 5.5vw, 1.9rem)" }}
+      className={`flex items-center justify-center rounded-lg border-2 font-display font-extrabold uppercase shadow-sm transition-all ${cls}`}
+      style={{ width: size, height: size, fontSize }}
+      tabIndex={-1}
     >
       {char}
-    </motion.div>
+    </motion.button>
   );
 }
 
@@ -572,7 +732,7 @@ function Key({
       onClick={onClick}
       disabled={disabled}
       className={`flex-1 select-none rounded-md font-bold uppercase transition-all active:scale-90 ${cls}`}
-      style={{ height: 46, fontSize: "clamp(0.85rem, 3.5vw, 1rem)", minWidth: 0 }}
+      style={{ height: 44, fontSize: "clamp(0.8rem, 3.2vw, 0.95rem)", minWidth: 0 }}
     >
       {k}
     </button>
@@ -589,7 +749,7 @@ function SpecialKey({
       onClick={onClick}
       disabled={disabled}
       className="select-none rounded-md bg-pink/15 font-extrabold text-pink transition-all active:bg-pink/25 active:scale-90"
-      style={{ height: 46, fontSize: "clamp(0.7rem, 2.6vw, 0.85rem)", padding: "0 10px", minWidth: 56 }}
+      style={{ height: 44, fontSize: "clamp(0.65rem, 2.4vw, 0.8rem)", padding: "0 8px", minWidth: 52 }}
     >
       {label}
     </button>
@@ -598,27 +758,32 @@ function SpecialKey({
 
 // ============================================================
 function ResultModal({
-  status, word, attempts, kind, otherPartnerName, gaveHint, onPlayAgain, onGiveHint,
+  status, words, solvedFlags, attempts, mode, kind, otherPartnerName, gaveHint, onPlayAgain, onGiveHint,
 }: {
-  status: "won" | "lost"; word: string; attempts: number;
-  kind: "daily" | "practice"; otherPartnerName: string; gaveHint: boolean;
+  status: "won" | "lost"; words: string[]; solvedFlags: boolean[];
+  attempts: number; mode: GameMode; kind: "daily" | "practice";
+  otherPartnerName: string; gaveHint: boolean;
   onPlayAgain: () => void; onGiveHint: () => void;
 }) {
-  const reward = calculateReward(attempts, status);
   const isWon = status === "won";
+  const cfg = MODE_CONFIG[mode];
+  const reward = mode === "single"
+    ? calculateReward(attempts, status)
+    : isWon ? rewardForGame(mode, attempts) : { xp: 3, happiness: 3 };
+  const unsolvedWords = words.filter((_, i) => !solvedFlags[i]);
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="result-modal fixed inset-0 z-30 flex items-center justify-center bg-black/55 px-6"
+      className="fixed inset-0 z-30 flex items-center justify-center bg-black/55 px-6"
     >
       <motion.div
         initial={{ y: 30, scale: 0.94, opacity: 0 }}
         animate={{ y: 0, scale: 1, opacity: 1 }}
         exit={{ y: 20, scale: 0.96, opacity: 0 }}
         transition={{ type: "spring", damping: 22, stiffness: 280 }}
-        className="result-card w-full max-w-sm rounded-3xl border border-white/15 bg-[#151B26] p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+        className="w-full max-w-sm rounded-3xl border border-white/15 bg-[#151B26] p-6 text-center shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
       >
         <div className="mb-2 text-3xl">{isWon ? "💗" : "🥺"}</div>
         <h2 className="font-display text-xl font-extrabold">
@@ -626,15 +791,16 @@ function ResultModal({
         </h2>
         {isWon ? (
           <p className="mt-2 text-sm text-muted-foreground">
-            tentativas: <span className="font-bold text-foreground">{attempts}/{MAX_ATTEMPTS}</span>
+            {cfg.wordCount > 1 ? `as ${cfg.wordCount} palavras` : "tentativas"}: <span className="font-bold text-foreground">{attempts}/{cfg.maxAttempts}</span>
             <br />
-            o bichinho ganhou carinho extra hoje 💗
+            o pet ganhou carinho extra hoje 💗
           </p>
         ) : (
           <p className="mt-2 text-sm text-muted-foreground">
-            a palavra era <span className="font-bold text-pink">{word.toUpperCase()}</span>
+            {unsolvedWords.length === 1 ? "a palavra era " : "faltavam "}
+            <span className="font-bold text-pink">{unsolvedWords.map((w) => w.toUpperCase()).join(", ")}</span>
             <br />
-            o bichinho quer tentar de novo 🥺
+            o pet quer tentar de novo 🥺
           </p>
         )}
         {kind === "daily" && (
@@ -647,7 +813,7 @@ function ResultModal({
         )}
 
         <div className="mt-5 flex flex-col gap-2">
-          {isWon && kind === "daily" && otherPartnerName && !gaveHint && (
+          {isWon && mode === "single" && kind === "daily" && otherPartnerName && !gaveHint && (
             <button
               onClick={onGiveHint}
               className="h-11 w-full rounded-2xl bg-pink/20 font-bold text-pink transition-all active:bg-pink/30 active:scale-[0.98]"

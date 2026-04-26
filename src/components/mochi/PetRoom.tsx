@@ -398,10 +398,10 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         if (newInt.partner_name !== partnerName) {
           const name = newInt.partner_name.toLowerCase();
           const actionMap: Record<string, string> = {
-            feed: `${name} alimentou o Mochi! 🍙`,
-            pet: `${name} deu carinho no Mochi 💗`,
-            play: `${name} brincou com o Mochi ✨`,
-            photo: `${name} mostrou uma foto pro Mochi 📸`,
+            feed: `${name} alimentou ${pet?.pet_name ?? "o pet"}! 🍙`,
+            pet: `${name} deu carinho ${pet?.pet_name ?? "no pet"} 💗`,
+            play: `${name} brincou com ${pet?.pet_name ?? "o pet"} ✨`,
+            photo: `${name} mostrou uma foto ${pet?.pet_name ?? "pro pet"} 📸`,
           };
           const msg = actionMap[newInt.interaction_type];
           if (msg) showToast(msg);

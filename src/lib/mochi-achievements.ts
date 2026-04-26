@@ -18,9 +18,9 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { key: "streak_30", label: "Maratonistas", emoji: "🏆", description: "Streak de 30 dias seguidos" },
   { key: "explorer", label: "Exploradores", emoji: "🗺️", description: "Visitar todos os cenários" },
   { key: "love_letter", label: "Românticos", emoji: "💌", description: "Enviar 5 bilhetinhos" },
-  { key: "night_owl", label: "Corujas", emoji: "🦉", description: "Visitar o Mochi de madrugada" },
+  { key: "night_owl", label: "Corujas", emoji: "🦉", description: "Visitar o pet de madrugada" },
   { key: "centenario", label: "Centenário", emoji: "💯", description: "100 dias juntos" },
-  { key: "level_10", label: "Veteranos", emoji: "⭐", description: "Mochi chegar no nível 10" },
+  { key: "level_10", label: "Veteranos", emoji: "⭐", description: "Pet chegar no nível 10" },
   { key: "full_closet", label: "Guarda-Roupa Cheio", emoji: "👗", description: "Ter 3+ acessórios equipados" },
 ];
 
