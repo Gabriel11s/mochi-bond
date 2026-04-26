@@ -726,11 +726,11 @@ function Keyboard({
       <KbRow keys={KB_ROW1} status={status} onPress={onLetter} disabled={disabled} />
       <KbRow keys={KB_ROW2} status={status} onPress={onLetter} disabled={disabled} />
       <div className="flex justify-center gap-1.5 pt-1.5">
-        <SpecialKey label="ENTER" onClick={onEnter} disabled={disabled} />
+        <SpecialKey label="⌫" onClick={onBackspace} disabled={disabled} variant="backspace" />
         {KB_ROW3.map((k) => (
           <Key key={k} k={k} status={status[k]} onClick={() => onLetter(k)} disabled={disabled} />
         ))}
-        <SpecialKey label="⌫" onClick={onBackspace} disabled={disabled} />
+        <SpecialKey label="ENTER" onClick={onEnter} disabled={disabled} variant="enter" />
       </div>
     </div>
   );
