@@ -116,12 +116,24 @@ export async function saveConnection(
   },
   profile: { id: string; display_name: string | null },
 ) {
+  // Normaliza pra lowercase pra evitar duplicatas com caixa diferente
+  // ("Tita" vs "tita") quebrando lookups subsequentes.
+  const partner = partnerName.trim().toLowerCase();
   const expires_at = new Date(Date.now() + (tokens.expires_in - 30) * 1000).toISOString();
+
+  // Limpa qualquer linha com case diferente (legado) antes do upsert,
+  // pra garantir 1 row só por partner.
+  await supabaseAdmin
+    .from("spotify_connections")
+    .delete()
+    .ilike("partner_name", partner)
+    .neq("partner_name", partner);
+
   const { error } = await supabaseAdmin
     .from("spotify_connections")
     .upsert(
       {
-        partner_name: partnerName,
+        partner_name: partner,
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         scope: tokens.scope,
@@ -142,10 +154,11 @@ export async function getValidAccessToken(partnerName: string): Promise<{
   display_name: string | null;
   spotify_user_id: string | null;
 } | null> {
+  // Lookup case-insensitive: pega rows antigas com qualquer caixa
   const { data, error } = await supabaseAdmin
     .from("spotify_connections")
     .select("*")
-    .eq("partner_name", partnerName)
+    .ilike("partner_name", partnerName.trim())
     .maybeSingle();
   if (error || !data) return null;
 
@@ -173,7 +186,7 @@ export async function getValidAccessToken(partnerName: string): Promise<{
       token_type: refreshed.token_type,
       updated_at: new Date().toISOString(),
     })
-    .eq("partner_name", partnerName);
+    .ilike("partner_name", partnerName.trim());
 
   return {
     access_token: refreshed.access_token,

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/api/spotify/status")({
         const { data } = await supabaseAdmin
           .from("spotify_connections")
           .select("partner_name, display_name, spotify_user_id")
-          .eq("partner_name", partner)
+          .ilike("partner_name", partner.trim())
           .maybeSingle();
 
         return new Response(
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/spotify/status")({
         await supabaseAdmin
           .from("spotify_connections")
           .delete()
-          .eq("partner_name", partner);
+          .ilike("partner_name", partner.trim());
         return new Response(JSON.stringify({ ok: true }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
