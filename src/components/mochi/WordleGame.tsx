@@ -418,14 +418,32 @@ export function WordleGame({ partnerName }: Props) {
           }`;
 
   // ---------- cell sizing fluido — adaptativo mobile ↔ desktop ----------
-  // No mobile usamos vw pra escalar com o viewport;
-  // no desktop usamos px maiores (a query @media não existe em JS, então
-  // dependemos do clamp + do max-w do container pra controlar o teto).
+  // Estratégia: width do grid via min(vw,px) E altura do main controla via clamp.
+  // Quarteto precisa caber 9 rows × 2 grids verticalmente — limito o grid pelo MENOR
+  // entre largura disponível e altura disponível.
   const gridConfig = mode === "single"
-    ? { gridWidth: "min(86vw, 380px)", gap: 8, fontSize: "clamp(1.5rem, 5vw, 2.4rem)" }
+    ? {
+        // single: 1 grid, 6 rows. Altura é folgada → escala pela largura.
+        gridWidth: "min(86vw, 360px)",
+        gap: 6,
+        fontSize: "clamp(1.4rem, 5vw, 2.2rem)",
+      }
     : mode === "duo"
-      ? { gridWidth: "min(44vw, 260px)", gap: 6, fontSize: "clamp(1rem, 3vw, 1.6rem)" }
-      : { gridWidth: "min(44vw, 220px)", gap: 5, fontSize: "clamp(0.85rem, 2.4vw, 1.4rem)" };
+      ? {
+          // duo: 2 grids lado a lado, 7 rows. Largura é o gargalo.
+          gridWidth: "min(44vw, 240px)",
+          gap: 5,
+          fontSize: "clamp(0.95rem, 3vw, 1.5rem)",
+        }
+      : {
+          // quarteto: 2x2 grids, 9 rows. ALTURA é o gargalo no mobile.
+          // Limito por min() entre largura (44vw) e altura disponível por linha.
+          // ~9 rows + 8 gaps + padding precisa caber em ~50% da altura disponível.
+          // 5vh por row * 9 = 45vh; cell width = 5vh; total grid width = 25vh + 4 gaps.
+          gridWidth: "min(44vw, 22vh, 200px)",
+          gap: 3,
+          fontSize: "clamp(0.7rem, min(2.4vw, 2.2vh), 1.2rem)",
+        };
   const cellGap = gridConfig.gap;
   const fontSize = gridConfig.fontSize;
   const gridWidth = gridConfig.gridWidth;
