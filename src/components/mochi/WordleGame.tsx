@@ -566,7 +566,8 @@ export function WordleGame({ partnerName }: Props) {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="mt-1 text-center text-[11px] font-semibold text-pink"
+              className="mt-1 text-center text-[11px] font-semibold"
+              style={{ color: skin.bodyEdge }}
             >
               {message}
             </motion.p>
@@ -576,9 +577,15 @@ export function WordleGame({ partnerName }: Props) {
 
       {/* HINT */}
       {hintLetter && status === "playing" && mode === "single" && (
-        <div className="mx-3 mb-1 flex-shrink-0 rounded-lg bg-pink/10 p-1.5 text-center text-[11px] ring-1 ring-pink/30">
+        <div
+          className="mx-3 mb-1 flex-shrink-0 rounded-lg p-1.5 text-center text-[11px]"
+          style={{
+            background: `color-mix(in oklab, ${skin.bodyEdge} 12%, transparent)`,
+            boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${skin.bodyEdge} 32%, transparent)`,
+          }}
+        >
           💡 dica do {(otherPartnerName || "parceiro").toLowerCase()}: letra{" "}
-          <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span>
+          <span className="font-bold" style={{ color: skin.bodyEdge }}>{hintLetter.toUpperCase()}</span>
         </div>
       )}
 
