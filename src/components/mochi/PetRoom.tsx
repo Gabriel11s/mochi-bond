@@ -37,7 +37,7 @@ import { useKonamiCode } from "@/lib/mochi-secrets";
 import { LoveNotesDrawer } from "./LoveNotesDrawer";
 import { AchievementsDrawer } from "./AchievementsDrawer";
 import { GalleryDrawer } from "./GalleryDrawer";
-import { WordleDrawer } from "./WordleDrawer";
+import { Link } from "@tanstack/react-router";
 import { getTodayKey } from "@/lib/mochi-wordle";
 import {
   checkAchievements,
@@ -97,7 +97,6 @@ export function PetRoom({ partnerName, onLogout }: Props) {
   const [notesOpen, setNotesOpen] = useState(false);
   const [achievementsOpen, setAchievementsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
-  const [wordleOpen, setWordleOpen] = useState(false);
   // Pra mostrar badge "🆕" no botão se ainda não jogou hoje
   const [wordlePlayedToday, setWordlePlayedToday] = useState(false);
   const [backgroundId, setBackgroundId] = useState<BackgroundId>("quartinho");
@@ -209,25 +208,6 @@ export function PetRoom({ partnerName, onLogout }: Props) {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [partnerName]);
-
-  // Recompensa quando ganha o Wordle: aplica delta no pet
-  const handleWordleWin = async (xp: number, happiness: number) => {
-    if (!pet) return;
-    const newHappiness = Math.round(clamp(pet.happiness + happiness));
-    const newXp = Math.round(pet.xp + xp);
-    const newLevel = Math.floor(newXp / 100) + 1;
-    await supabase
-      .from("pet_state")
-      .update({
-        happiness: newHappiness,
-        xp: newXp,
-        level: newLevel,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", 1);
-    showToast(`🔤 acertou! +${xp} XP, +${happiness} happiness 💗`);
-    burstParticles("✨", 8);
-  };
 
   // Bilhetes não lidos: count inicial + realtime + recount quando o
   // drawer fecha (porque marcar como lido é dentro do drawer).
@@ -761,23 +741,35 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         message: photo.caption ? `derreteu vendo "${photo.caption}"` : "derreteu vendo uma fotinho de vocês",
       });
 
-      // Spotlight de 24h + snapshot do Mochi + sugestão musical
-      // (cast as any: campos novos ainda não regenerados nos types)
-      const featuredUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-      const currentMood = computeMood(Math.round(pet.hunger), newHappiness, Math.round(pet.energy));
-      const suggested = await pickSuggestedTrack(nowPlaying);
-      await (supabase as any)
-        .from("photos")
-        .update({
-          featured_until: featuredUntil,
-          shown_skin: pet.equipped_skin,
-          shown_accessory: pet.equipped_accessory,
-          shown_mood: currentMood,
-          suggested_track_id: suggested?.id ?? null,
-          suggested_track_name: suggested?.name ?? null,
-          suggested_track_artist: suggested?.artist ?? null,
-        })
-        .eq("id", photo.id);
+      // Spotlight de 24h + snapshot do Mochi + sugestão musical.
+      // Em try/catch separado: se a migration de photos_metadata ainda não
+      // rodou, as colunas não existem — mas a foto já foi mostrada e o pet
+      // já reagiu. Não dá pra perder o flow inteiro por causa disso.
+      try {
+        const featuredUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        const currentMood = computeMood(Math.round(pet.hunger), newHappiness, Math.round(pet.energy));
+        const suggested = await pickSuggestedTrack(nowPlaying);
+        const { error: metaErr } = await (supabase as any)
+          .from("photos")
+          .update({
+            featured_until: featuredUntil,
+            shown_skin: pet.equipped_skin,
+            shown_accessory: pet.equipped_accessory,
+            shown_mood: currentMood,
+            suggested_track_id: suggested?.id ?? null,
+            suggested_track_name: suggested?.name ?? null,
+            suggested_track_artist: suggested?.artist ?? null,
+          })
+          .eq("id", photo.id);
+        if (metaErr) {
+          console.warn(
+            "[showPhoto] não consegui salvar snapshot — provavelmente a migration photos_metadata ainda não foi aplicada:",
+            metaErr.message
+          );
+        }
+      } catch (e) {
+        console.warn("[showPhoto] snapshot falhou:", e);
+      }
 
       showToast("ele ficou apaixonadinho 💗");
 
@@ -1312,9 +1304,9 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         >
           📷 galeria
         </button>
-        <button
-          onClick={() => setWordleOpen(true)}
-          className="glass relative rounded-2xl px-2 py-3 font-display text-xs font-semibold transition-all active:scale-[0.97]"
+        <Link
+          to="/wordle"
+          className="glass relative rounded-2xl px-2 py-3 text-center font-display text-xs font-semibold transition-all active:scale-[0.97]"
         >
           🔤 palavra
           {!wordlePlayedToday && (
@@ -1322,7 +1314,7 @@ export function PetRoom({ partnerName, onLogout }: Props) {
               🆕
             </span>
           )}
-        </button>
+        </Link>
       </div>
 
       {/* last care */}
@@ -1443,17 +1435,6 @@ export function PetRoom({ partnerName, onLogout }: Props) {
         />
       )}
 
-      {wordleOpen && (
-        <WordleDrawer
-          open={wordleOpen}
-          onOpenChange={setWordleOpen}
-          partnerName={partnerName}
-          otherPartnerName={
-            partnerName.toLowerCase() === partnerOne.toLowerCase() ? partnerTwo : partnerOne
-          }
-          onWin={handleWordleWin}
-        />
-      )}
       </div>
     </div>
   );

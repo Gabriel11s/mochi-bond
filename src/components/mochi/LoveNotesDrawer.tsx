@@ -48,17 +48,29 @@ export function LoveNotesDrawer({ partnerName, otherPartnerName, open, onOpenCha
     setNotes((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
   };
 
+  const [sendError, setSendError] = useState<string | null>(null);
+
   const send = async () => {
     const text = draft.trim();
     if (!text || sending) return;
     setSending(true);
-    await (supabase as any).from("love_notes").insert({
+    setSendError(null);
+    const { error } = await (supabase as any).from("love_notes").insert({
       from_partner: partnerName,
       to_partner: otherPartner,
       message: text,
     });
-    setDraft("");
     setSending(false);
+    if (error) {
+      console.error("[love_notes] insert falhou:", error);
+      setSendError(
+        error.code === "42P01" || error.message?.includes("does not exist")
+          ? "tabela love_notes não existe ainda — peça pro Lovable aplicar a migration 💌"
+          : `erro: ${error.message ?? "desconhecido"}`
+      );
+      return;
+    }
+    setDraft("");
     setTab("inbox");
     onNewNote?.();
     loadNotes();
@@ -161,6 +173,11 @@ export function LoveNotesDrawer({ partnerName, otherPartnerName, open, onOpenCha
                   {sending ? "enviando..." : "💌 enviar"}
                 </button>
               </div>
+              {sendError && (
+                <p className="rounded-lg bg-danger-soft/15 px-3 py-2 text-[11px] text-danger-soft">
+                  {sendError}
+                </p>
+              )}
             </div>
           )}
         </motion.div>

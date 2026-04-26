@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WordleRouteImport } from './routes/wordle'
 import { Route as ApiSpotifyStatusRouteImport } from './routes/api.spotify.status'
 import { Route as ApiSpotifyLoginRouteImport } from './routes/api.spotify.login'
 import { Route as ApiSpotifyDataRouteImport } from './routes/api.spotify.data'
@@ -18,6 +19,11 @@ import { Route as ApiSpotifyCallbackRouteImport } from './routes/api.spotify.cal
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WordleRoute = WordleRouteImport.update({
+  id: '/wordle',
+  path: '/wordle',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSpotifyStatusRoute = ApiSpotifyStatusRouteImport.update({
@@ -43,6 +49,7 @@ const ApiSpotifyCallbackRoute = ApiSpotifyCallbackRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/wordle': typeof WordleRoute
   '/api/spotify/callback': typeof ApiSpotifyCallbackRoute
   '/api/spotify/data': typeof ApiSpotifyDataRoute
   '/api/spotify/login': typeof ApiSpotifyLoginRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/wordle': typeof WordleRoute
   '/api/spotify/callback': typeof ApiSpotifyCallbackRoute
   '/api/spotify/data': typeof ApiSpotifyDataRoute
   '/api/spotify/login': typeof ApiSpotifyLoginRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/wordle': typeof WordleRoute
   '/api/spotify/callback': typeof ApiSpotifyCallbackRoute
   '/api/spotify/data': typeof ApiSpotifyDataRoute
   '/api/spotify/login': typeof ApiSpotifyLoginRoute
@@ -67,6 +76,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/wordle'
     | '/api/spotify/callback'
     | '/api/spotify/data'
     | '/api/spotify/login'
@@ -74,6 +84,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/wordle'
     | '/api/spotify/callback'
     | '/api/spotify/data'
     | '/api/spotify/login'
@@ -81,6 +92,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/wordle'
     | '/api/spotify/callback'
     | '/api/spotify/data'
     | '/api/spotify/login'
@@ -89,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  WordleRoute: typeof WordleRoute
   ApiSpotifyCallbackRoute: typeof ApiSpotifyCallbackRoute
   ApiSpotifyDataRoute: typeof ApiSpotifyDataRoute
   ApiSpotifyLoginRoute: typeof ApiSpotifyLoginRoute
@@ -102,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/wordle': {
+      id: '/wordle'
+      path: '/wordle'
+      fullPath: '/wordle'
+      preLoaderRoute: typeof WordleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/spotify/status': {
@@ -137,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  WordleRoute: WordleRoute,
   ApiSpotifyCallbackRoute: ApiSpotifyCallbackRoute,
   ApiSpotifyDataRoute: ApiSpotifyDataRoute,
   ApiSpotifyLoginRoute: ApiSpotifyLoginRoute,

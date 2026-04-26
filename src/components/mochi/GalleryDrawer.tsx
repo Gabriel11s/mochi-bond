@@ -55,15 +55,38 @@ export function GalleryDrawer({
     if (!open) return;
     setLoading(true);
     (async () => {
-      // Cast as any: campos novos ainda não regenerados nos types
-      const { data } = await (supabase as any)
-        .from("photos")
-        .select(
-          "id, storage_path, caption, created_at, shown_skin, shown_accessory, shown_mood, suggested_track_name, suggested_track_artist"
-        )
-        .order("created_at", { ascending: false })
-        .limit(60);
-      if (data) setPhotos(data as GalleryPhoto[]);
+      // Galeria SEMPRE mostra todas as fotos. Tenta com snapshot primeiro;
+      // se as colunas novas não existirem (migration pendente), cai pro
+      // select básico — o pin usa skin/mood ATUAL via fallback props.
+      let data: GalleryPhoto[] | null = null;
+      try {
+        const r = await (supabase as any)
+          .from("photos")
+          .select(
+            "id, storage_path, caption, created_at, shown_skin, shown_accessory, shown_mood, suggested_track_name, suggested_track_artist"
+          )
+          .order("created_at", { ascending: false })
+          .limit(100);
+        if (!r.error) data = r.data as GalleryPhoto[];
+      } catch (_e) { /* colunas novas não existem ainda */ }
+
+      if (!data) {
+        const { data: basic } = await supabase
+          .from("photos")
+          .select("id, storage_path, caption, created_at")
+          .order("created_at", { ascending: false })
+          .limit(100);
+        data = (basic ?? []).map((p) => ({
+          ...p,
+          shown_skin: null,
+          shown_accessory: null,
+          shown_mood: null,
+          suggested_track_name: null,
+          suggested_track_artist: null,
+        })) as GalleryPhoto[];
+      }
+
+      setPhotos(data);
       setLoading(false);
     })();
   }, [open]);

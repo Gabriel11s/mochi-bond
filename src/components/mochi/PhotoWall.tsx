@@ -29,14 +29,30 @@ export function PhotoWall() {
     let active = true;
     const load = async () => {
       const nowIso = new Date().toISOString();
-      // Cast as any: campos novos ainda não regenerados nos types
-      const { data } = await (supabase as any)
-        .from("photos")
-        .select("id, storage_path, caption, featured_until")
-        .gt("featured_until", nowIso)
-        .order("featured_until", { ascending: false })
-        .limit(MAX_FEATURED);
-      if (active && data) setPhotos(data as FeaturedPhoto[]);
+      // Tenta primeiro com featured_until (migration aplicada). Se a coluna
+      // não existir ainda, cai pro fallback que mostra as 2 fotos mais
+      // recentes — assim o mural nunca fica vazio por bug de migration.
+      let data: FeaturedPhoto[] | null = null;
+      try {
+        const r = await (supabase as any)
+          .from("photos")
+          .select("id, storage_path, caption, featured_until")
+          .gt("featured_until", nowIso)
+          .order("featured_until", { ascending: false })
+          .limit(MAX_FEATURED);
+        if (!r.error) data = r.data as FeaturedPhoto[];
+      } catch (_e) { /* coluna ainda não existe */ }
+
+      if (!data || data.length === 0) {
+        const { data: fallback } = await supabase
+          .from("photos")
+          .select("id, storage_path, caption")
+          .order("created_at", { ascending: false })
+          .limit(MAX_FEATURED);
+        data = (fallback ?? []).map((p) => ({ ...p, featured_until: null })) as FeaturedPhoto[];
+      }
+
+      if (active) setPhotos(data);
     };
     load();
 
