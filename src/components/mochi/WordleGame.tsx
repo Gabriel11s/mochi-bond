@@ -417,14 +417,17 @@ export function WordleGame({ partnerName }: Props) {
             : "ainda jogando"
           }`;
 
-  // ---------- cell sizing por modo ----------
-  const cellSize: number = mode === "single" ? 54 : mode === "duo" ? 32 : 20;
-  const cellGap: number = mode === "single" ? 6 : mode === "duo" ? 4 : 2;
-  const fontSize = mode === "single"
-    ? "clamp(1.3rem, 6vw, 2rem)"
+  // ---------- cell sizing fluido (estilo term.ooo) ----------
+  // Cada modo define a largura MÁX do grid e o gap. A célula é derivada via
+  // calc((width - 4*gap) / 5) e usa aspect-ratio: 1 → escala em qualquer viewport.
+  const gridConfig = mode === "single"
+    ? { gridWidth: "min(86vw, 320px)", gap: 6, fontSize: "clamp(1.3rem, 7vw, 2rem)" }
     : mode === "duo"
-      ? "clamp(0.85rem, 3.6vw, 1.15rem)"
-      : "clamp(0.55rem, 2.2vw, 0.75rem)";
+      ? { gridWidth: "min(44vw, 180px)", gap: 4, fontSize: "clamp(0.85rem, 4vw, 1.15rem)" }
+      : { gridWidth: "min(44vw, 160px)", gap: 3, fontSize: "clamp(0.7rem, 3.2vw, 1rem)" };
+  const cellGap = gridConfig.gap;
+  const fontSize = gridConfig.fontSize;
+  const gridWidth = gridConfig.gridWidth;
 
   // título grande estilo term.ooo
   const modeTitle = mode === "single" ? "TERMO" : mode === "duo" ? "DUETO" : "QUARTETO";
