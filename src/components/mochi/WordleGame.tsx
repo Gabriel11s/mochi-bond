@@ -426,23 +426,30 @@ export function WordleGame({ partnerName }: Props) {
       ? "clamp(0.9rem, 3.8vw, 1.2rem)"
       : "clamp(0.65rem, 2.6vw, 0.9rem)";
 
+  // título grande estilo term.ooo
+  const modeTitle = mode === "single" ? "TERMO" : mode === "duo" ? "DUETO" : "QUARTETO";
+
   return (
     <div className="game-container relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-gradient-to-b from-[#1C2638] to-[#0E1117] text-foreground">
-      {/* HEADER */}
-      <header className="relative flex flex-shrink-0 items-center justify-between border-b border-white/10 px-3 py-2">
-        <Link to="/" className="glass flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs" aria-label="voltar">←</Link>
-        <div className="text-center">
-          <p className="font-display text-sm font-extrabold tracking-wide text-foreground">
-            🌸 palavrinha
-          </p>
-          <p className="text-[10px] leading-tight text-muted-foreground/80">
-            {otherCopy}
-          </p>
-        </div>
+      {/* HEADER — minimal: voltar | título grande | toggle treino */}
+      <header className="relative flex flex-shrink-0 items-center justify-between px-3 pt-3 pb-1">
+        <Link
+          to="/"
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-white/5 text-sm text-muted-foreground ring-1 ring-white/10 transition active:scale-95"
+          aria-label="voltar"
+        >
+          ←
+        </Link>
+
+        <h1 className="font-display text-2xl font-black tracking-[0.08em] text-foreground sm:text-3xl">
+          {modeTitle}
+        </h1>
+
         <button
           onClick={kind === "daily" ? startNewPractice : backToDaily}
-          className="glass flex-shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold"
+          className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-white/5 text-sm ring-1 ring-white/10 transition active:scale-95"
           title={kind === "daily" ? "modo treino" : "voltar pra do dia"}
+          aria-label={kind === "daily" ? "modo treino" : "voltar pra do dia"}
         >
           {kind === "daily" ? "🎲" : "📅"}
         </button>
@@ -465,8 +472,8 @@ export function WordleGame({ partnerName }: Props) {
         </div>
       </header>
 
-      {/* MODE PICKER */}
-      <div className="flex flex-shrink-0 gap-1 px-2 pt-1.5">
+      {/* MODE PICKER — tabs discretas abaixo do título */}
+      <div className="flex flex-shrink-0 items-center justify-center gap-1 px-3 pt-1">
         {(Object.keys(MODE_CONFIG) as GameMode[]).map((m) => {
           const c = MODE_CONFIG[m];
           const active = m === mode;
@@ -474,18 +481,25 @@ export function WordleGame({ partnerName }: Props) {
             <button
               key={m}
               onClick={() => changeMode(m)}
-              className={`flex-1 rounded-lg py-1 text-[11px] font-semibold transition-all active:scale-95 ${
-                active ? "bg-pink/20 text-pink ring-1 ring-pink/40" : "bg-white/5 text-muted-foreground"
+              className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${
+                active
+                  ? "bg-pink/20 text-pink ring-1 ring-pink/40"
+                  : "text-muted-foreground/60 hover:text-muted-foreground"
               }`}
             >
-              {c.icon} {c.label}
+              {c.label}
             </button>
           );
         })}
       </div>
 
+      {/* SUBTITLE — status do parceiro */}
+      <p className="flex-shrink-0 px-3 pt-1 text-center text-[10px] leading-tight text-muted-foreground/70">
+        {otherCopy}
+      </p>
+
       {/* MENSAGEM TEMPORÁRIA */}
-      <div className="flex-shrink-0 px-2" style={{ minHeight: 20 }}>
+      <div className="flex-shrink-0 px-2" style={{ minHeight: 18 }}>
         <AnimatePresence>
           {message && (
             <motion.p
@@ -508,13 +522,18 @@ export function WordleGame({ partnerName }: Props) {
         </div>
       )}
 
-      {/* GRIDS */}
-      <main className="game-main flex flex-1 items-start justify-center overflow-y-auto px-3 py-2 min-h-0">
+      {/* GRIDS — single: 1 col centralizado | duo: 2 lado a lado | quarteto: 2x2 */}
+      <main className="game-main flex flex-1 items-start justify-center overflow-y-auto px-2 py-2 min-h-0">
         <div
           className={`grid w-full justify-center ${shake ? "animate-shake" : ""}`}
           style={{
-            gridTemplateColumns: mode === "single" ? "1fr" : "repeat(2, max-content)",
-            gap: 12,
+            gridTemplateColumns:
+              mode === "single"
+                ? "1fr"
+                : mode === "duo"
+                  ? "repeat(2, max-content)"
+                  : "repeat(2, max-content)",
+            gap: mode === "quartet" ? 10 : 8,
             justifyItems: "center",
           }}
         >
