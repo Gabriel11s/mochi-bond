@@ -385,34 +385,34 @@ export function WordleGame({ partnerName }: Props) {
         : `${otherPartnerName ? otherPartnerName.toLowerCase() : "parceiro"} ainda não jogou`;
 
   return (
-    <div className="relative mx-auto flex min-h-[100dvh] w-full max-w-md flex-col bg-background pb-3">
-      {/* HEADER */}
-      <header className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+    <div className="relative mx-auto flex h-[100dvh] w-full max-w-md flex-col overflow-hidden bg-background">
+      {/* HEADER — compacto */}
+      <header className="flex flex-shrink-0 items-center justify-between border-b border-white/10 px-2 py-1.5">
         <Link
           to="/"
-          className="glass flex h-9 w-9 items-center justify-center rounded-full text-sm"
+          className="glass flex h-8 w-8 items-center justify-center rounded-full text-xs"
           aria-label="voltar"
         >
           ←
         </Link>
         <div className="text-center">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <p className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
             {mode === "daily" ? "palavra do dia" : "🎲 modo treino"}
           </p>
-          <p className="text-[11px] text-muted-foreground/80">{otherCopy}</p>
+          <p className="text-[10px] leading-tight text-muted-foreground/80">{otherCopy}</p>
         </div>
         <button
           onClick={mode === "daily" ? switchToPractice : switchToDaily}
-          className="glass rounded-full px-3 py-1.5 text-[11px] font-semibold"
+          className="glass rounded-full px-2.5 py-1 text-[10px] font-semibold"
           title={mode === "daily" ? "outra palavra (treino)" : "voltar pra palavra do dia"}
         >
           {mode === "daily" ? "🎲" : "📅"}
         </button>
       </header>
 
-      {/* MOCHI MASCOTE no canto superior direito — bem pequeno, NÃO tampa nada */}
-      <div className="pointer-events-none absolute right-3 top-12 z-10" style={{ width: 64, height: 64 }}>
-        <div style={{ transform: "scale(0.32)", transformOrigin: "top right" }}>
+      {/* MOCHI MASCOTE — minúsculo no canto, fora do flow */}
+      <div className="pointer-events-none absolute right-1 top-9 z-10 h-12 w-12">
+        <div style={{ transform: "scale(0.22)", transformOrigin: "top right" }}>
           <Mochi
             mood={mochiMood}
             skinId={mochiAppearance?.skin}
@@ -422,15 +422,14 @@ export function WordleGame({ partnerName }: Props) {
             energy={mochiAppearance?.energy}
           />
         </div>
-        {/* Bursts de emoji subindo do mascote */}
         <AnimatePresence>
           {emojiBursts.map((b) => (
             <motion.div
               key={b.id}
               initial={{ opacity: 1, y: 0, scale: 0.6 }}
-              animate={{ opacity: 0, y: -36, scale: 1.2 }}
-              transition={{ duration: 0.85, ease: "easeOut" }}
-              className="absolute right-2 top-2 text-lg"
+              animate={{ opacity: 0, y: -32, scale: 1.1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="absolute right-1 top-1 text-base"
             >
               {b.char}
             </motion.div>
@@ -440,24 +439,23 @@ export function WordleGame({ partnerName }: Props) {
 
       {/* HINT BANNER */}
       {hintLetter && (
-        <div className="mx-3 mt-2 rounded-xl bg-pink/10 p-2 text-center text-xs ring-1 ring-pink/30">
-          💡 {(otherPartnerName || "parceiro").toLowerCase()} te deu uma dica: a letra{" "}
-          <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span>{" "}
-          tá na palavra
+        <div className="mx-2 mt-1 flex-shrink-0 rounded-lg bg-pink/10 p-1.5 text-center text-[11px] ring-1 ring-pink/30">
+          💡 {(otherPartnerName || "parceiro").toLowerCase()}: letra{" "}
+          <span className="font-bold text-pink">{hintLetter.toUpperCase()}</span> tá na palavra
         </div>
       )}
 
-      {/* GRID — protagonista, centralizada, espaçada */}
-      <div className="flex flex-1 items-center justify-center py-4">
+      {/* GRID — protagonista, ocupa espaço disponível */}
+      <div className="flex flex-1 items-center justify-center px-2 py-2 min-h-0">
         <div
-          className={`flex flex-col gap-1.5 ${shake ? "animate-shake" : ""}`}
-          style={{ width: "fit-content" }}
+          className={`flex flex-col gap-1 ${shake ? "animate-shake" : ""}`}
+          style={{ width: "min(100%, 280px)" }}
         >
           {Array.from({ length: MAX_ATTEMPTS }).map((_, row) => {
             const ev = evaluations[row];
             const isCurrentRow = row === attempts.length && !finished;
             return (
-              <div key={row} className="flex gap-1.5">
+              <div key={row} className="flex gap-1">
                 {Array.from({ length: WORD_LENGTH }).map((_, col) => {
                   const cellChar = ev
                     ? ev.letters[col].char
@@ -483,60 +481,64 @@ export function WordleGame({ partnerName }: Props) {
         </div>
       </div>
 
-      {/* ERROR */}
-      {error && (
-        <p className="mx-3 -mt-2 mb-2 text-center text-xs text-pink animate-pulse">{error}</p>
-      )}
+      {/* ERROR — inline, não empurra layout */}
+      <div className="flex-shrink-0 px-2" style={{ minHeight: 18 }}>
+        {error && (
+          <p className="text-center text-[11px] text-pink animate-pulse">{error}</p>
+        )}
+      </div>
 
       {/* ESTADO FINAL */}
       {finished && (
-        <div className="mx-3 mb-3 rounded-2xl bg-white/5 p-3 text-center">
+        <div className="mx-2 mb-1.5 flex-shrink-0 rounded-xl bg-white/5 p-2 text-center">
           {won ? (
-            <p className="text-sm font-semibold text-emerald-400">
+            <p className="text-xs font-semibold text-emerald-400">
               🎉 acertou em {attempts.length} {attempts.length === 1 ? "tentativa" : "tentativas"}!
               {mode === "daily" && (
-                <span className="ml-1 text-[11px] text-muted-foreground">
-                  · +{rewardForAttempts(attempts.length).xp} XP
+                <span className="ml-1 text-[10px] text-muted-foreground">
+                  +{rewardForAttempts(attempts.length).xp} XP
                 </span>
               )}
             </p>
           ) : (
-            <p className="text-sm">
-              💔 a palavra era{" "}
+            <p className="text-xs">
+              💔 era{" "}
               <span className="font-bold text-pink">{word.toUpperCase()}</span>
             </p>
           )}
-          {won && mode === "daily" && !gaveHint && otherStatus && !otherStatus.finished && (
+          <div className="mt-1.5 flex flex-wrap justify-center gap-1.5">
+            {won && mode === "daily" && !gaveHint && otherStatus && !otherStatus.finished && (
+              <button
+                onClick={giveHint}
+                className="rounded-full bg-pink/20 px-3 py-1 text-[10px] font-semibold text-pink active:scale-95"
+              >
+                💡 dar dica
+              </button>
+            )}
             <button
-              onClick={giveHint}
-              className="mt-2 rounded-full bg-pink/20 px-4 py-1.5 text-xs font-semibold text-pink transition-all hover:bg-pink/30 active:scale-95"
+              onClick={switchToPractice}
+              className="rounded-full bg-gradient-to-r from-pink to-lilac px-3 py-1 text-[10px] font-bold text-white shadow-md active:scale-95"
             >
-              💡 dar dica pro {otherPartnerName.toLowerCase()}
+              🎲 outra (treino)
             </button>
-          )}
+          </div>
           {gaveHint && (
-            <p className="mt-1 text-[10px] text-muted-foreground">✓ dica enviada</p>
+            <p className="mt-1 text-[9px] text-muted-foreground">✓ dica enviada</p>
           )}
-          <button
-            onClick={switchToPractice}
-            className="mt-3 inline-block rounded-full bg-gradient-to-r from-pink to-lilac px-5 py-2 text-xs font-bold text-white shadow-md transition-all active:scale-95"
-          >
-            🎲 jogar outra (treino)
-          </button>
         </div>
       )}
 
-      {/* TECLADO — fixo no fundo */}
+      {/* TECLADO — flex full width, fixo no fundo */}
       {!finished && (
-        <div className="space-y-1.5 px-2 pb-2">
+        <div className="flex-shrink-0 space-y-1 px-1 pb-1.5">
           <KbRow keys={KB_ROW1} status={keyboardStatus} onPress={onKeyPress} />
           <KbRow keys={KB_ROW2} status={keyboardStatus} onPress={onKeyPress} />
-          <div className="flex justify-center gap-1">
-            <SpecialKey label="ENTER" onPress={() => onKeyPress("ENTER")} wide />
+          <div className="flex w-full justify-center gap-1">
+            <SpecialKey label="ENTER" onPress={() => onKeyPress("ENTER")} />
             {KB_ROW3.map((k) => (
               <Key key={k} k={k} status={keyboardStatus[k]} onPress={() => onKeyPress(k)} />
             ))}
-            <SpecialKey label="⌫" onPress={() => onKeyPress("BACK")} wide />
+            <SpecialKey label="⌫" onPress={() => onKeyPress("BACK")} />
           </div>
         </div>
       )}
@@ -581,8 +583,8 @@ function Cell({
             ? { duration: 0.16, ease: "easeOut" }
             : {}
       }
-      className={`flex h-13 w-13 items-center justify-center rounded-md border-2 font-display text-2xl font-bold uppercase ${colors[status]}`}
-      style={{ width: 52, height: 52 }}
+      className={`flex aspect-square flex-1 items-center justify-center rounded-md border-2 font-display font-bold uppercase ${colors[status]}`}
+      style={{ fontSize: "clamp(18px, 6vw, 24px)" }}
     >
       {char}
     </motion.div>
@@ -621,14 +623,14 @@ function Key({
     correct: "bg-emerald-500 text-white",
     present: "bg-yellow-500 text-white",
     absent: "bg-zinc-800 text-zinc-500",
-    empty: "bg-white/10 text-foreground hover:bg-white/15",
+    empty: "bg-white/10 text-foreground active:bg-white/20",
   };
   const cls = status ? colors[status] : colors.empty;
   return (
     <button
       onClick={onPress}
-      className={`h-12 flex-1 rounded-md font-bold uppercase text-base transition-all active:scale-90 ${cls}`}
-      style={{ minWidth: 28, maxWidth: 38 }}
+      className={`flex-1 rounded-md font-bold uppercase transition-all active:scale-90 ${cls}`}
+      style={{ height: 44, fontSize: "clamp(13px, 3.8vw, 16px)", minWidth: 0 }}
     >
       {k}
     </button>
@@ -638,16 +640,15 @@ function Key({
 function SpecialKey({
   label,
   onPress,
-  wide,
 }: {
   label: string;
   onPress: () => void;
-  wide?: boolean;
 }) {
   return (
     <button
       onClick={onPress}
-      className={`h-12 rounded-md bg-pink/15 px-3 text-[11px] font-bold text-pink transition-all hover:bg-pink/25 active:scale-90 ${wide ? "min-w-14" : ""}`}
+      className="rounded-md bg-pink/15 font-bold text-pink transition-all active:bg-pink/25 active:scale-90"
+      style={{ height: 44, fontSize: 11, padding: "0 8px", flexBasis: "14%", flexShrink: 0 }}
     >
       {label}
     </button>
